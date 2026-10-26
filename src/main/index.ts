@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -11,6 +11,8 @@ function createWindow(): void {
     minWidth: 960,
     minHeight: 640,
     show: false,
+    // Match the renderer canvas colour so there is no white flash before first paint.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0e1a24' : '#f3f6f8',
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {

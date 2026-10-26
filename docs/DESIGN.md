@@ -1,0 +1,49 @@
+# Design system — "Adriatic pocketbook"
+
+Calm and friendly, for one person keeping track of their own money. Amounts are the hero: big,
+confident numbers set in a display face. Everything around them stays quiet.
+
+Tokens live in `src/renderer/src/assets/main.css`; components in `src/renderer/src/components/ui`.
+
+## Colour
+
+| Token                   | Light                 | Dark                  | Use                                     |
+| ----------------------- | --------------------- | --------------------- | --------------------------------------- |
+| `canvas`                | `#f3f6f8`             | `#0e1a24`             | App background (cool, not cream)        |
+| `surface` / `surface-2` | `#ffffff` / `#eaf0f3` | `#152331` / `#1c2d3d` | Panels / hover, segmented controls      |
+| `ink` / `ink-muted`     | `#17263a` / `#5b6b7f` | `#e7eef4` / `#93a4b5` | Text                                    |
+| `line`                  | `#dde4ea`             | `#26394b`             | Borders, dividers                       |
+| `primary`               | `#0b6e8a` (Adriatic)  | `#4db6d0`             | Actions, focus, the balance panel       |
+| `banner`                | `#0b6e8a`             | `#0f4f66`             | The one bold panel per screen (balance) |
+| `income`                | `#1f8f62` (pine)      | `#4cc994`             | Money in                                |
+| `expense`               | `#d64545` (poppy)     | `#f07a6e`             | Money out, destructive actions, errors  |
+| `savings`               | `#b97f0c` (sunflower) | `#f0bd4f`             | Savings goals                           |
+| `loan`                  | `#6352d6` (iris)      | `#a497f2`             | Loans and debt                          |
+
+Each money colour has a `-soft` tint for backgrounds (chips, tiles). Money colours mean money
+kinds only — never use them as decoration.
+
+## Type
+
+- **Figtree** (variable) — UI and body text, 15px base (`text-body`).
+- **Bricolage Grotesque** (variable) — headings and amounts. Use the `amount` utility for any
+  money value: display face, tabular figures, tight tracking.
+- Scale: `text-sm` 14 · `text-body` 15 · `text-lg` 18 · `text-title` 22 · `text-amount` 32 · `text-hero` 46.
+- Sentence case everywhere. No all-caps labels.
+
+## Shape and depth
+
+- Radius by hierarchy: `rounded-control` (10px) for inputs/buttons, `rounded-panel` (18px) for
+  panels and dialogs, `rounded-full` for segmented controls and chips.
+- Panels are flat: a 1px `line` border, no shadow. Only floating layers (dialogs, menus, toasts)
+  get `shadow-float`.
+
+## Motion
+
+Only in response to an action: dialogs, menus and toasts animate in. No entrance animations on
+page content. `prefers-reduced-motion` disables all of it.
+
+## Writing
+
+Buttons name the action ("Save transaction", not "Submit"); the toast repeats it ("Transaction
+saved"). Errors say what's wrong and how to fix it. Empty states invite the next action.
