@@ -6,6 +6,7 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type { Account, AccountInput } from '@shared/accounts'
+import { statsKeys } from '@renderer/features/stats/queries'
 import { invoke } from '@renderer/lib/api'
 
 export const accountKeys = {
@@ -19,7 +20,13 @@ export function useAccounts(): UseQueryResult<Account[]> {
 
 function useInvalidateAccounts(): () => Promise<void> {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: accountKeys.all })
+  // Opening balances and archiving change the balance in stats series too.
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: accountKeys.all }),
+      queryClient.invalidateQueries({ queryKey: statsKeys.all })
+    ])
+  }
 }
 
 export function useCreateAccount(): UseMutationResult<Account, Error, AccountInput> {

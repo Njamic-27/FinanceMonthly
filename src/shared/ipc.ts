@@ -5,6 +5,14 @@ import type { SerializedError } from './errors'
 import type { RecurringItem, RecurringItemInput } from './recurring'
 import type { Settings, SettingsPatch } from './settings'
 import type {
+  CategoryTotal,
+  CategoryTotalsQuery,
+  PeriodTotals,
+  StatsRange,
+  StatsSeriesQuery,
+  Totals
+} from './stats'
+import type {
   Transaction,
   TransactionInput,
   TransactionPage,
@@ -44,6 +52,13 @@ export interface IpcContract {
   'recurring:list': () => RecurringItem[]
   'recurring:create': (input: RecurringItemInput) => RecurringItem
 
+  /** Income, expenses, savings and loan movements over a date range. */
+  'stats:totals': (range: StatsRange) => Totals
+  /** The same per day, week or month, with the total balance at the end of each. */
+  'stats:series': (query: StatsSeriesQuery) => PeriodTotals[]
+  /** Income or expenses per category, largest first. */
+  'stats:categories': (query: CategoryTotalsQuery) => CategoryTotal[]
+
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
   /** Development builds only: empties finance-dev.db, back to a first run. */
@@ -78,6 +93,9 @@ const channels: Record<IpcChannel, true> = {
   'transactions:delete': true,
   'recurring:list': true,
   'recurring:create': true,
+  'stats:totals': true,
+  'stats:series': true,
+  'stats:categories': true,
   'dev:seed': true,
   'dev:reset': true
 }
