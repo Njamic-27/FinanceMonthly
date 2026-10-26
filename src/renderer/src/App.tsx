@@ -9,6 +9,7 @@ import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CategoriesPage } from './routes/CategoriesPage'
+import { OverviewPage } from './routes/OverviewPage'
 import { TransactionsPage } from './routes/TransactionsPage'
 import { SettingsPage } from './routes/SettingsPage'
 
@@ -21,6 +22,7 @@ const UiPreview = import.meta.env.DEV
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
   '/transactions': TransactionsPage,
+  '/overview': OverviewPage,
   '/accounts': AccountsPage,
   '/categories': CategoriesPage,
   '/settings': SettingsPage

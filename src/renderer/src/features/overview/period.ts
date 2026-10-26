@@ -1,7 +1,9 @@
 import {
   addDays,
   daysBetween,
+  formatDate,
   isIsoDate,
+  parseIsoDate,
   periodContaining,
   shiftPeriod,
   type DateRange,
@@ -88,6 +90,27 @@ export function comparisonFor(
   return sameDay < previous.end
     ? { range: { start: previous.start, end: sameDay }, partial: true }
     : { range: previous, partial: false }
+}
+
+/**
+ * How the comparison reads after "more than …": "1–26 Sep" for part of a period,
+ * "September" (with the year if it differs) for a whole month, "the week before" for a week.
+ */
+export function comparisonLabel(
+  period: OverviewPeriod,
+  comparison: { range: DateRange; partial: boolean },
+  locale: string
+): string {
+  const { start, end } = comparison.range
+  if (comparison.partial) {
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).formatRange(
+      parseIsoDate(start),
+      parseIsoDate(end)
+    )
+  }
+  if (period.kind === 'week') return 'the week before'
+  const sameYear = start.slice(0, 4) === period.range.start.slice(0, 4)
+  return formatDate(start, locale, { month: 'long', ...(!sameYear && { year: 'numeric' }) })
 }
 
 /** Change from `previous` to `current` as a fraction (0.25 = 25% more); null if `previous` is 0. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   comparisonFor,
+  comparisonLabel,
   readOverviewPeriod,
   relativeChange,
   stepPeriod,
@@ -105,6 +106,18 @@ describe('comparisonFor', () => {
       range: { start: '2026-10-19', end: '2026-10-21' },
       partial: true
     })
+  })
+})
+
+describe('comparisonLabel', () => {
+  const label = (period: OverviewPeriod, today = TODAY): string =>
+    comparisonLabel(period, comparisonFor(period, today, MONDAY), 'en-GB')
+
+  it('names the days, the month or the week compared with', () => {
+    expect(label(read(''))).toMatch(/^1\s*–\s*26 Sept$/)
+    expect(label(read('date=2026-03-05'))).toBe('February')
+    expect(label(read('date=2026-01-05'))).toBe('December 2025')
+    expect(label(read('view=week&date=2026-10-14'))).toBe('the week before')
   })
 })
 
