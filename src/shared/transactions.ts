@@ -69,7 +69,7 @@ const isoDate = z.string().refine(isIsoDate, 'Choose a date')
 /** Filters and paging for the transaction list. Results are newest first. */
 export const transactionQuerySchema = z
   .object({
-    /** Matches title, note or category name. */
+    /** Matches title, note or category name, ignoring case and diacritics. */
     search: z.string().trim().max(100).optional(),
     /** Also match this exact amount (the renderer parses the search text with the locale). */
     amount: z.number().int().positive().max(MAX_CENTS).optional(),

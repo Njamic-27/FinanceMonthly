@@ -1,5 +1,6 @@
 import type { Database } from 'better-sqlite3'
 import { formatDate } from '@shared/dates'
+import { foldText } from '@shared/text'
 import {
   transactionIdSchema,
   transactionInputSchema,
@@ -148,13 +149,14 @@ function filterSql(query: ReturnType<typeof transactionQuerySchema.parse>): {
   const params: Record<string, string | number> = {}
 
   if (query.search) {
-    // Escape LIKE wildcards so "50%" or "a_b" match literally.
-    params.like = `%${query.search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
-    const like = (column: string): string => `${column} LIKE @like ESCAPE '\\'`
+    // Case- and accent-insensitive: "cokolada" finds "Čokolada". instr() rather than LIKE,
+    // so "%" and "_" in the search are just characters.
+    params.needle = foldText(query.search)
+    const contains = (column: string): string => `instr(fold(${column}), @needle) > 0`
     const matches = [
-      like('t.title'),
-      like('t.note'),
-      `t.category_id IN (SELECT id FROM categories WHERE ${like('name')})`
+      contains('t.title'),
+      contains('t.note'),
+      `t.category_id IN (SELECT id FROM categories WHERE ${contains('name')})`
     ]
     if (query.amount !== undefined) {
       params.amount = query.amount

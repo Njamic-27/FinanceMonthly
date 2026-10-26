@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import { registerFunctions } from './functions'
 
 export function openDatabase(filename: string): Database.Database {
   const db = new Database(filename)
@@ -6,5 +7,6 @@ export function openDatabase(filename: string): Database.Database {
   db.pragma('synchronous = NORMAL')
   db.pragma('foreign_keys = ON')
   db.pragma('busy_timeout = 5000')
+  registerFunctions(db)
   return db
 }

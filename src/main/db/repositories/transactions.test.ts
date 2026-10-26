@@ -4,7 +4,7 @@ import type { TransactionInput } from '@shared/transactions'
 import { AppError } from '../../errors'
 import { createTestDb } from '../testing'
 import { createAccount, getAccount, setAccountArchived } from './accounts'
-import { listCategories, updateCategory } from './categories'
+import { createCategory, listCategories, updateCategory } from './categories'
 import {
   createTransaction,
   deleteTransaction,
@@ -326,6 +326,35 @@ describe('listTransactions', () => {
     expect(titles({ search: 'eating' })).toEqual(['Pizza'])
     expect(titles({ search: '50%' })).toEqual(['Bakery'])
     expect(titles({ search: '5_%' })).toEqual([])
+  })
+
+  it('ignores case and diacritics in titles, notes and category names', () => {
+    createTransaction(db, expense({ date: '2026-10-06', title: 'Čokolada', amount: 199 }))
+    createTransaction(
+      db,
+      expense({ date: '2026-10-07', title: 'Pekara', amount: 450, note: 'DORUČAK s Đurom' })
+    )
+    const pets = createCategory(db, {
+      name: 'Ljubimci i hrana za mačke',
+      type: 'expense',
+      color: 'brown',
+      icon: 'paw-print'
+    })
+    createTransaction(
+      db,
+      expense({ date: '2026-10-08', title: 'Granule', amount: 1500, categoryId: pets.id })
+    )
+
+    expect(titles({ search: 'cokolada' })).toEqual(['Čokolada'])
+    expect(titles({ search: 'ČOKOLADA' })).toEqual(['Čokolada'])
+    expect(titles({ search: 'dorucak' })).toEqual(['Pekara'])
+    expect(titles({ search: 'durom' })).toEqual(['Pekara'])
+    expect(titles({ search: 'macke' })).toEqual(['Granule'])
+  })
+
+  it('treats % and _ in the search as plain characters', () => {
+    expect(titles({ search: '%' })).toEqual(['Bakery'])
+    expect(titles({ search: '_' })).toEqual([])
   })
 
   it('also matches an exact amount', () => {
