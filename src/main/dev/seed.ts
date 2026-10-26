@@ -9,6 +9,7 @@ import {
 } from '@shared/dates'
 import type { SeedSummary } from '@shared/dev'
 import type { Cents } from '@shared/money'
+import { nextOccurrence, occurrences, type Schedule } from '@shared/recurrence'
 import type { TransactionType } from '@shared/transactions'
 import { updateSettings } from '../db/repositories/settings'
 
@@ -124,7 +125,14 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
       first: IsoDate,
       url: string | null = null
     ): void => {
-      const { dates, next } = monthly(first, today)
+      const schedule: Schedule = {
+        frequency: 'monthly',
+        interval: 1,
+        anchorDate: first,
+        endDate: null
+      }
+      const dates = occurrences(schedule, first, today)
+      const next = nextOccurrence(schedule, today)
       const id = insert(
         `INSERT INTO recurring_items (kind, title, amount, account_id, category_id, frequency, anchor_date, next_due_date, auto_post, reminder_days_before, url)
          VALUES (@kind, @title, @amount, @accountId, @categoryId, 'monthly', @first, @next, @autoPost, @reminder, @url)`,
