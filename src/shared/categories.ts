@@ -1,26 +1,8 @@
 import { z } from 'zod'
+import { paletteColors, type PaletteColor } from './palette'
 
 export const categoryTypes = ['income', 'expense'] as const
 export type CategoryType = (typeof categoryTypes)[number]
-
-/**
- * Category colours, stored by name so each one has a light and a dark step (main.css,
- * `--cat-*`). The first eight are in validated order: neighbours stay distinguishable with
- * colour-vision deficiencies, so assign them in this order. `slate` is the neutral for
- * "Other". Green, red, amber and violet are left out — they mean money kinds (DESIGN.md).
- */
-export const categoryColors = [
-  'blue',
-  'orange',
-  'aqua',
-  'plum',
-  'olive',
-  'pink',
-  'brown',
-  'sky',
-  'slate'
-] as const
-export type CategoryColor = (typeof categoryColors)[number]
 
 /** Icons offered for categories; the renderer maps each name to a lucide icon. */
 export const categoryIcons = [
@@ -66,15 +48,14 @@ export const categoryIcons = [
 ] as const
 export type CategoryIcon = (typeof categoryIcons)[number]
 
-/** Used when a stored colour or icon is missing or no longer offered. */
-export const fallbackCategoryColor: CategoryColor = 'slate'
+/** Used when a stored icon is missing or no longer offered. */
 export const fallbackCategoryIcon: CategoryIcon = 'tag'
 
 export interface Category {
   id: number
   name: string
   type: CategoryType
-  color: CategoryColor
+  color: PaletteColor
   icon: CategoryIcon
   isArchived: boolean
   sortOrder: number
@@ -96,7 +77,7 @@ export const categoryCreateSchema = z
   .object({
     name,
     type: z.enum(categoryTypes),
-    color: z.enum(categoryColors),
+    color: z.enum(paletteColors),
     icon: z.enum(categoryIcons)
   })
   .strict()
@@ -106,7 +87,7 @@ export type CategoryCreate = z.infer<typeof categoryCreateSchema>
 export const categoryUpdateSchema = z
   .object({
     name,
-    color: z.enum(categoryColors),
+    color: z.enum(paletteColors),
     icon: z.enum(categoryIcons),
     isArchived: z.boolean()
   })

@@ -1,19 +1,17 @@
 import type { Database } from 'better-sqlite3'
 import {
-  categoryColors,
   categoryCreateSchema,
   categoryIcons,
   categoryIdSchema,
   categoryUpdateSchema,
-  fallbackCategoryColor,
   fallbackCategoryIcon,
   type Category,
-  type CategoryColor,
   type CategoryCreate,
   type CategoryIcon,
   type CategoryType,
   type CategoryUpdate
 } from '@shared/categories'
+import { isPaletteColor, neutralPaletteColor } from '@shared/palette'
 import { AppError } from '../../errors'
 
 interface CategoryRow {
@@ -39,8 +37,6 @@ const selectCategories = /* sql */ `
            .join(' + ')} AS usage_count
   FROM categories c`
 
-const isColor = (value: string | null): value is CategoryColor =>
-  (categoryColors as readonly (string | null)[]).includes(value)
 const isIcon = (value: string | null): value is CategoryIcon =>
   (categoryIcons as readonly (string | null)[]).includes(value)
 
@@ -49,7 +45,7 @@ function toCategory(row: CategoryRow): Category {
     id: row.id,
     name: row.name,
     type: row.type,
-    color: isColor(row.color) ? row.color : fallbackCategoryColor,
+    color: isPaletteColor(row.color) ? row.color : neutralPaletteColor,
     icon: isIcon(row.icon) ? row.icon : fallbackCategoryIcon,
     isArchived: row.is_archived === 1,
     sortOrder: row.sort_order,

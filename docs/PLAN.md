@@ -272,7 +272,7 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 7. Settings v1: currency, locale, week start, theme.
 8. Categories CRUD + seeded defaults.
 9. Accounts CRUD (debit / credit / cash, opening balance, credit limit) + balance query.
-10. Add transaction dialog (add/edit/delete; income / expense) with validation; layout leaves room for card-only options that step 25 fills in.
+10. Add transaction dialog (add/edit/delete; income / expense) with validation; layout leaves room for card-only options that step 25 fills in. Includes a date field that shows dates in the app’s locale (the native date input follows the Windows language instead); the account form switches to it too.
 11. Transactions list: grouping by day, filters, search, paging.
 12. Transfers (debit → cash, debit → credit card payment).
 13. **Dev only — seed demo data.** Two buttons on the UI kit page (`/dev/ui`):

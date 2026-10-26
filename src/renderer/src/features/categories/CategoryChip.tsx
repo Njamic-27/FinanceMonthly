@@ -1,33 +1,15 @@
-import type { CategoryColor, CategoryIcon } from '@shared/categories'
-import { cn } from '@renderer/lib/utils'
-import { categoryColorStyle, categoryIconComponents } from './appearance'
+import type { CategoryIcon } from '@shared/categories'
+import type { PaletteColor } from '@shared/palette'
+import { ColorChip } from '@renderer/components/ColorChip'
+import { categoryIconComponents } from './appearance'
 
 interface CategoryChipProps {
-  color: CategoryColor
+  color: PaletteColor
   icon: CategoryIcon
   size?: 'sm' | 'md'
   className?: string
 }
 
-/** The category's icon on a tint of its colour. Decorative: the name always sits beside it. */
-export function CategoryChip({
-  color,
-  icon,
-  size = 'md',
-  className
-}: CategoryChipProps): React.JSX.Element {
-  const Icon = categoryIconComponents[icon]
-  return (
-    <span
-      aria-hidden
-      style={categoryColorStyle(color)}
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-(color:--cat)/15 text-(color:--cat)',
-        size === 'md' ? 'size-9 [&_svg]:size-[1.125rem]' : 'size-7 [&_svg]:size-3.5',
-        className
-      )}
-    >
-      <Icon />
-    </span>
-  )
+export function CategoryChip({ icon, ...props }: CategoryChipProps): React.JSX.Element {
+  return <ColorChip icon={categoryIconComponents[icon]} {...props} />
 }

@@ -97,3 +97,17 @@ export function parseAmount(input: string, locale: string): Cents | null {
   if (!Number.isSafeInteger(cents)) return null
   return negative && cents !== 0 ? -cents : cents
 }
+
+/** The currency symbol as the locale writes it, and which side of the number it goes on. */
+export function currencyAffix(
+  currency: string,
+  locale: string
+): { symbol: string; position: 'prefix' | 'suffix' } {
+  const parts = formatter(locale, { style: 'currency', currency }).formatToParts(1)
+  const symbolAt = parts.findIndex((p) => p.type === 'currency')
+  const numberAt = parts.findIndex((p) => p.type === 'integer')
+  return {
+    symbol: parts[symbolAt]?.value ?? currency,
+    position: symbolAt !== -1 && symbolAt < numberAt ? 'prefix' : 'suffix'
+  }
+}

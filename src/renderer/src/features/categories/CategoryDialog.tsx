@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
 import {
-  categoryColors,
   categoryCreateSchema,
   categoryIcons,
   fallbackCategoryIcon,
   type Category,
-  type CategoryColor,
   type CategoryIcon,
   type CategoryType
 } from '@shared/categories'
+import { nextPaletteColor, type PaletteColor } from '@shared/palette'
+import { ActionRow } from '@renderer/components/ActionRow'
+import { ColorPicker } from '@renderer/components/ColorPicker'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -32,7 +32,8 @@ import {
 import { ApiError } from '@renderer/lib/api'
 import { toast } from '@renderer/lib/toast'
 import { CategoryChip } from './CategoryChip'
-import { categoryColorStyle, categoryIconComponents, colorLabel, iconLabel } from './appearance'
+import { swatchStyle } from '@renderer/lib/palette'
+import { categoryIconComponents, iconLabel } from './appearance'
 import {
   useCreateCategory,
   useDeleteCategory,
@@ -55,70 +56,26 @@ const showError = (title: string) => (error: Error) =>
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
-/** First colour (in validated order) not yet used by an active category of this type. */
-function nextColor(categories: Category[], type: CategoryType): CategoryColor {
-  const used = new Set(
-    categories.filter((c) => c.type === type && !c.isArchived).map((c) => c.color)
-  )
-  const hues = categoryColors.filter((c) => c !== 'slate')
-  return hues.find((c) => !used.has(c)) ?? hues[used.size % hues.length]
-}
-
-function ColorPicker({
-  value,
-  onChange
-}: {
-  value: CategoryColor
-  onChange: (color: CategoryColor) => void
-}): React.JSX.Element {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-sm font-semibold">Colour</legend>
-      <div className="flex flex-wrap gap-2.5">
-        {categoryColors.map((color) => (
-          <label
-            key={color}
-            title={colorLabel(color)}
-            style={categoryColorStyle(color)}
-            className="relative inline-flex size-8 cursor-pointer items-center justify-center rounded-full bg-(color:--cat) text-white ring-offset-2 ring-offset-surface transition-shadow has-checked:ring-2 has-checked:ring-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-4 has-focus-visible:outline-primary"
-          >
-            <input
-              type="radio"
-              name="category-color"
-              value={color}
-              checked={value === color}
-              onChange={() => onChange(color)}
-              aria-label={colorLabel(color)}
-              className="peer sr-only"
-            />
-            <Check className="hidden size-4 peer-checked:block" aria-hidden />
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  )
-}
-
 function IconPicker({
   value,
   color,
   onChange
 }: {
   value: CategoryIcon
-  color: CategoryColor
+  color: PaletteColor
   onChange: (icon: CategoryIcon) => void
 }): React.JSX.Element {
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-semibold">Icon</legend>
-      <div className="grid grid-cols-13 gap-1" style={categoryColorStyle(color)}>
+      <div className="grid grid-cols-13 gap-1" style={swatchStyle(color)}>
         {categoryIcons.map((icon) => {
           const Icon = categoryIconComponents[icon]
           return (
             <label
               key={icon}
               title={iconLabel(icon)}
-              className="relative inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink has-checked:bg-(color:--cat)/15 has-checked:text-(color:--cat) has-focus-visible:outline-2 has-focus-visible:outline-primary [&_svg]:size-[1.125rem]"
+              className="relative inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink has-checked:bg-(color:--swatch)/15 has-checked:text-(color:--swatch) has-focus-visible:outline-2 has-focus-visible:outline-primary [&_svg]:size-[1.125rem]"
             >
               <input
                 type="radio"
@@ -138,24 +95,6 @@ function IconPicker({
   )
 }
 
-interface ActionRowProps {
-  title: string
-  description: string
-  children?: React.ReactNode
-}
-
-function ActionRow({ title, description, children }: ActionRowProps): React.JSX.Element {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold">{title}</p>
-        <p className="text-sm text-ink-muted">{description}</p>
-      </div>
-      {children}
-    </div>
-  )
-}
-
 type Mode = 'form' | 'merge' | 'delete'
 
 function CategoryForm({
@@ -168,7 +107,12 @@ function CategoryForm({
 
   const [mode, setMode] = useState<Mode>('form')
   const [name, setName] = useState(existing?.name ?? '')
-  const [color, setColor] = useState<CategoryColor>(existing?.color ?? nextColor(categories, type))
+  const [color, setColor] = useState<PaletteColor>(
+    existing?.color ??
+      nextPaletteColor(
+        categories.filter((c) => c.type === type && !c.isArchived).map((c) => c.color)
+      )
+  )
   const [icon, setIcon] = useState<CategoryIcon>(existing?.icon ?? fallbackCategoryIcon)
   const [nameError, setNameError] = useState<string | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState<string>('')
@@ -360,7 +304,7 @@ function CategoryForm({
             </p>
           )}
         </div>
-        <ColorPicker value={color} onChange={setColor} />
+        <ColorPicker name="category-color" value={color} onChange={setColor} />
         <IconPicker value={icon} color={color} onChange={setIcon} />
       </div>
 

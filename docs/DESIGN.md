@@ -23,14 +23,14 @@ Tokens live in `src/renderer/src/assets/main.css`; components in `src/renderer/s
 Each money colour has a `-soft` tint for backgrounds (chips, tiles). Money colours mean money
 kinds only — never use them as decoration.
 
-**Category colours** (`--cat-*`, chosen per category, stored by name) are a separate
+**Palette colours** (`--swatch-*`, chosen per category or account, stored by name) are a separate
 categorical set that avoids the money hues: blue, orange, aqua, plum, olive, pink, brown, sky,
 plus neutral slate for "Other". Each has its own light and dark step. In this order, every
 neighbouring pair passes the colour-vision-deficiency and contrast checks on `surface` in both
-themes, so new categories take the next unused colour in this order. With more than eight
+themes, so new categories and accounts take the next unused colour in this order. With more than eight
 categories some colours repeat, so charts fold small categories into "Other" rather than
-relying on colour alone. Category chips use the colour at 15% for the background and the full
-colour for the icon; the category name stays in `ink`.
+relying on colour alone. Chips use the colour at 15% for the background and the full colour for
+the icon; the name beside them stays in `ink`.
 
 ## Type
 

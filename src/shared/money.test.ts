@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { decimalSeparator, formatAmountInput, formatMoney, parseAmount } from './money'
+import {
+  decimalSeparator,
+  currencyAffix,
+  formatAmountInput,
+  formatMoney,
+  parseAmount
+} from './money'
 
 // Intl uses (narrow) no-break spaces in some locales; compare with plain spaces.
 const plain = (s: string): string => s.replace(/[\u00a0\u202f]/g, ' ')
@@ -95,4 +101,13 @@ describe('parseAmount', () => {
       expect(parseAmount(input, 'en-GB')).toBeNull()
     }
   )
+})
+
+describe('currencyAffix', () => {
+  it('puts the symbol where the locale writes it', () => {
+    expect(currencyAffix('EUR', 'en-GB')).toEqual({ symbol: '€', position: 'prefix' })
+    expect(currencyAffix('EUR', 'hr-HR')).toEqual({ symbol: '€', position: 'suffix' })
+    expect(currencyAffix('USD', 'en-US')).toEqual({ symbol: '$', position: 'prefix' })
+    expect(currencyAffix('USD', 'hr-HR')).toEqual({ symbol: 'USD', position: 'suffix' })
+  })
 })

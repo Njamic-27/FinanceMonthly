@@ -16,7 +16,7 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] data-[state=open]:animate-overlay-in" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-4rem)] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-panel border border-line bg-surface p-6 text-ink shadow-float focus:outline-none data-[state=open]:animate-dialog-in',
+          'fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-4rem)] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-panel border border-line bg-surface p-6 text-ink shadow-float has-data-[slot=dialog-footer]:pb-0 focus:outline-none data-[state=open]:animate-dialog-in',
           className
         )}
         {...props}
@@ -44,7 +44,18 @@ export function DialogFooter({
   className,
   ...props
 }: React.ComponentProps<'div'>): React.JSX.Element {
-  return <div className={cn('mt-6 flex justify-end gap-2', className)} {...props} />
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn(
+        // Sticks to the bottom of a dialog that scrolls, so its actions stay in reach. It
+        // supplies the dialog's bottom padding (see DialogContent) so nothing shows below it.
+        'sticky bottom-0 z-10 -mx-6 mt-2 flex justify-end gap-2 bg-surface px-6 pt-4 pb-6',
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 export function DialogTitle({

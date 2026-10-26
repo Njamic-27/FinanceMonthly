@@ -40,7 +40,7 @@ import {
   Zap,
   type LucideIcon
 } from 'lucide-react'
-import type { CategoryColor, CategoryIcon } from '@shared/categories'
+import type { CategoryIcon } from '@shared/categories'
 
 export const categoryIconComponents: Record<CategoryIcon, LucideIcon> = {
   briefcase: Briefcase,
@@ -88,13 +88,4 @@ export const categoryIconComponents: Record<CategoryIcon, LucideIcon> = {
 export function iconLabel(icon: CategoryIcon): string {
   const words = icon.replace(/-\d+$/, '').replace(/-/g, ' ')
   return words.charAt(0).toUpperCase() + words.slice(1)
-}
-
-export function colorLabel(color: CategoryColor): string {
-  return color.charAt(0).toUpperCase() + color.slice(1)
-}
-
-/** Sets `--cat` to the category colour, for `text-(color:--cat)` / `bg-(color:--cat)/15`. */
-export function categoryColorStyle(color: CategoryColor): React.CSSProperties {
-  return { '--cat': `var(--cat-${color})` } as React.CSSProperties
 }

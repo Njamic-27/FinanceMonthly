@@ -1,3 +1,4 @@
+import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { SerializedError } from './errors'
 import type { Settings, SettingsPatch } from './settings'
@@ -17,6 +18,13 @@ export interface IpcContract {
   'categories:delete': (id: number) => void
   /** Moves everything in the source category to the target and deletes the source. */
   'categories:merge': (sourceId: number, targetId: number) => Category
+
+  /** Balances are as of today. */
+  'accounts:list': () => Account[]
+  'accounts:create': (input: AccountInput) => Account
+  'accounts:update': (id: number, input: AccountInput) => Account
+  'accounts:archive': (id: number, archived: boolean) => Account
+  'accounts:delete': (id: number) => void
 }
 
 export type IpcChannel = keyof IpcContract
@@ -34,7 +42,12 @@ const channels: Record<IpcChannel, true> = {
   'categories:create': true,
   'categories:update': true,
   'categories:delete': true,
-  'categories:merge': true
+  'categories:merge': true,
+  'accounts:list': true,
+  'accounts:create': true,
+  'accounts:update': true,
+  'accounts:archive': true,
+  'accounts:delete': true
 }
 
 export function isIpcChannel(value: unknown): value is IpcChannel {
