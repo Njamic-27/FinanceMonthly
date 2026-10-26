@@ -60,6 +60,10 @@ export interface IpcContract {
   /** Creating or editing an item also posts what is already due, if it posts automatically. */
   'recurring:create': (input: RecurringItemInput) => RecurringItem
   'recurring:update': (id: number, input: RecurringItemInput) => RecurringItem
+  /** Pauses or resumes; resuming leaves out payments that fell due while paused. */
+  'recurring:setActive': (id: number, active: boolean) => RecurringItem
+  /** Ends it today: nothing after today is posted. */
+  'recurring:cancel': (id: number) => RecurringItem
   /** Transactions it posted stay, as ordinary transactions. */
   'recurring:delete': (id: number) => void
   /** Occurrences due by today that wait to be confirmed or skipped, oldest first. */
@@ -115,6 +119,8 @@ const channels: Record<IpcChannel, true> = {
   'recurring:list': true,
   'recurring:create': true,
   'recurring:update': true,
+  'recurring:setActive': true,
+  'recurring:cancel': true,
   'recurring:delete': true,
   'recurring:due': true,
   'recurring:post': true,

@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { RecurringItemInput } from '@shared/recurring'
+import { hasEnded, type RecurringItemInput } from '@shared/recurring'
 import { createTestDb } from '../db/testing'
 import { createAccount, setAccountArchived } from '../db/repositories/accounts'
 import { listCategories } from '../db/repositories/categories'
@@ -10,7 +10,15 @@ import {
   deleteTransaction,
   listTransactions
 } from '../db/repositories/transactions'
-import { dueOccurrences, postDueItems, postOccurrence, skipOccurrence, syncItem } from './posting'
+import {
+  cancelItem,
+  dueOccurrences,
+  postDueItems,
+  postOccurrence,
+  setItemActive,
+  skipOccurrence,
+  syncItem
+} from './posting'
 
 let db: Database.Database
 let debit: number
@@ -267,4 +275,60 @@ it('does not post an occurrence again after its transaction is deleted', () => {
     note: null
   })
   expect(postDueItems(db, '2026-10-31')).toBe(1)
+})
+
+describe('setItemActive', () => {
+  it('posts nothing while paused and leaves out what fell due meanwhile', () => {
+    const id = rent({ anchorDate: '2026-10-31', nextDueDate: '2026-10-31' })
+    setItemActive(db, id, false, '2026-10-26')
+    expect(postDueItems(db, '2027-01-15')).toBe(0)
+    expect(dueOccurrences(db, '2027-01-15')).toEqual([])
+
+    const resumed = setItemActive(db, id, true, '2027-01-15')
+    expect(resumed).toMatchObject({ isActive: true, nextDueDate: '2027-01-31' })
+    expect(posted()).toEqual([])
+  })
+
+  it('posts a payment due on the day it resumes', () => {
+    const id = rent({ anchorDate: '2026-10-31', nextDueDate: '2026-10-31' })
+    setItemActive(db, id, false, '2026-10-26')
+    expect(setItemActive(db, id, true, '2026-11-30').nextDueDate).toBe('2026-12-31')
+    expect(posted()).toEqual([{ date: '2026-11-30', plannedDate: '2026-11-30', amount: 65000 }])
+  })
+
+  it('keeps the next date when resumed before it', () => {
+    const id = rent({ anchorDate: '2026-10-31', nextDueDate: '2026-10-31' })
+    setItemActive(db, id, false, '2026-10-26')
+    expect(setItemActive(db, id, true, '2026-10-28').nextDueDate).toBe('2026-10-31')
+  })
+})
+
+describe('cancelItem', () => {
+  it('ends it today, so nothing after today is posted', () => {
+    const id = rent({ nextDueDate: '2026-10-31' })
+    const cancelled = cancelItem(db, id, '2026-10-26')
+    expect(cancelled).toMatchObject({ endDate: '2026-10-26', nextDueDate: '2026-10-31' })
+    expect(hasEnded(cancelled)).toBe(true)
+    expect(postDueItems(db, '2027-01-01')).toBe(0)
+  })
+
+  it('keeps payments already due waiting', () => {
+    const id = rent({ autoPost: false })
+    const cancelled = cancelItem(db, id, '2026-10-26')
+    expect(hasEnded(cancelled)).toBe(false)
+    expect(dueOccurrences(db, '2026-12-31').map((d) => d.plannedDate)).toEqual([
+      '2026-08-31',
+      '2026-09-30'
+    ])
+    skipOccurrence(db, id, '2026-08-31')
+    expect(hasEnded(skipOccurrence(db, id, '2026-09-30'))).toBe(true)
+  })
+
+  it('ends one that hasn’t started before its first payment', () => {
+    const id = rent({ anchorDate: '2026-12-05', nextDueDate: '2026-12-05' })
+    const cancelled = cancelItem(db, id, '2026-10-26')
+    expect(cancelled).toMatchObject({ endDate: '2026-12-05', nextDueDate: '2027-01-05' })
+    expect(hasEnded(cancelled)).toBe(true)
+    expect(postDueItems(db, '2027-06-01')).toBe(0)
+  })
 })

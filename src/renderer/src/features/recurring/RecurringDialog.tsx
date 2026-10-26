@@ -4,11 +4,13 @@ import type { Category } from '@shared/categories'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
 import { occurrences } from '@shared/recurrence'
+import { subscriptionCategoryName } from '@shared/subscription-presets'
 import {
   frequencies,
   hasEnded,
   postedType,
   recurringItemInputSchema,
+  reminderChoices,
   type Frequency,
   type RecurringItem,
   type RecurringKind
@@ -31,6 +33,13 @@ import {
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { AccountSelect } from '@renderer/features/accounts/AccountSelect'
 import { useAccounts } from '@renderer/features/accounts/queries'
@@ -39,15 +48,30 @@ import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
-import { useCreateRecurringItem, useDeleteRecurringItem, useUpdateRecurringItem } from './queries'
-import { kindLabels } from './appearance'
+import { kindLabels, reminderLabel } from './appearance'
+import { PresetPicker } from './PresetPicker'
+import {
+  useCancelRecurringItem,
+  useCreateRecurringItem,
+  useDeleteRecurringItem,
+  useSetRecurringActive,
+  useUpdateRecurringItem
+} from './queries'
 import { anchorFor, describeSchedule } from './schedule'
 
 export type RecurringDialogTarget =
   { kind: 'new'; itemKind: RecurringKind } | { kind: 'edit'; item: RecurringItem }
 
 type Field =
-  'title' | 'amount' | 'categoryId' | 'accountId' | 'interval' | 'nextDueDate' | 'endDate' | 'note'
+  | 'title'
+  | 'amount'
+  | 'categoryId'
+  | 'accountId'
+  | 'interval'
+  | 'nextDueDate'
+  | 'endDate'
+  | 'url'
+  | 'note'
 
 const frequencyOptions = frequencies.map((value) => ({
   value,
@@ -71,16 +95,27 @@ const endingOptions: { value: Ending; label: string }[] = [
   { value: 'on', label: 'On a date' }
 ]
 
+/** The reminder select's value for no reminder. */
+const OFF = 'off'
+
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
 interface FormProps {
   target: RecurringDialogTarget
   accounts: Account[]
   categories: Category[]
+  /** A name picked from the subscription presets. */
+  presetTitle?: string
   onClose: () => void
 }
 
-function RecurringForm({ target, accounts, categories, onClose }: FormProps): React.JSX.Element {
+function RecurringForm({
+  target,
+  accounts,
+  categories,
+  presetTitle,
+  onClose
+}: FormProps): React.JSX.Element {
   const money = useCurrency()
   const existing = target.kind === 'edit' ? target.item : null
   const itemKind = existing?.kind ?? (target.kind === 'new' ? target.itemKind : 'expense')
@@ -92,11 +127,11 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
     (c) => c.type === categoryType && (!c.isArchived || c.id === existing?.categoryId)
   )
 
-  const [title, setTitle] = useState(existing?.title ?? '')
+  const [title, setTitle] = useState(existing?.title ?? presetTitle ?? '')
   const [amount, setAmount] = useState(existing ? money.toInput(existing.amount) : '')
   const [categoryId, setCategoryId] = useState(() => {
     if (existing) return String(existing.categoryId)
-    const preferred = itemKind === 'subscription' ? 'Subscriptions' : null
+    const preferred = itemKind === 'subscription' ? subscriptionCategoryName : null
     return String(usableCategories.find((c) => c.name === preferred)?.id ?? '')
   })
   const [accountId, setAccountId] = useState(() =>
@@ -115,6 +150,15 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
   const [posting, setPosting] = useState<Posting>(
     (existing?.autoPost ?? itemKind !== 'subscription') ? 'auto' : 'ask'
   )
+  // Subscriptions start with a reminder two days before; bills and income without.
+  const [reminder, setReminder] = useState(
+    existing
+      ? (existing.reminderDaysBefore?.toString() ?? OFF)
+      : itemKind === 'subscription'
+        ? '2'
+        : OFF
+  )
+  const [url, setUrl] = useState(existing?.url ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -123,7 +167,21 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
   const createItem = useCreateRecurringItem()
   const updateItem = useUpdateRecurringItem()
   const deleteItem = useDeleteRecurringItem()
-  const pending = createItem.isPending || updateItem.isPending || deleteItem.isPending
+  const setActive = useSetRecurringActive()
+  const cancelItem = useCancelRecurringItem()
+  const pending =
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    setActive.isPending ||
+    cancelItem.isPending
+
+  // Reminders are for money going out; a website only for subscriptions.
+  const hasReminder = itemKind !== 'income'
+  const hasWebsite = itemKind === 'subscription'
+  const reminderOptions = [
+    ...new Set([...reminderChoices, existing?.reminderDaysBefore ?? null])
+  ].sort((a, b) => (a ?? -1) - (b ?? -1))
 
   const clearError = (field: Field): void => {
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -168,7 +226,8 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
       nextDueDate,
       endDate: schedule.endDate,
       autoPost: posting === 'auto',
-      reminderDaysBefore: existing?.reminderDaysBefore ?? null,
+      reminderDaysBefore: hasReminder && reminder !== OFF ? Number(reminder) : null,
+      url: hasWebsite ? url : (existing?.url ?? null),
       note
     })
     // Problems found above explain more than the schema's messages, so they win.
@@ -202,6 +261,34 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
     } else {
       createItem.mutate(parsed.data, { onSuccess: saved('added'), onError })
     }
+  }
+
+  const changeState = (action: 'pause' | 'resume' | 'cancel', item: RecurringItem): void => {
+    const done = (updated: RecurringItem): void => {
+      const posted = updated.postedCount - item.postedCount
+      const verbs = {
+        pause: 'paused',
+        resume: 'resumed',
+        cancel: itemKind === 'subscription' ? 'cancelled' : 'ended'
+      }
+      const description = {
+        pause: 'Nothing is added until you resume it.',
+        resume: hasEnded(updated)
+          ? 'It has no payments left before its end date.'
+          : `Next on ${formatDate(updated.nextDueDate, money.locale)}.${posted > 0 ? ` ${plural(posted, 'payment', 'payments')} added.` : ''}`,
+        cancel: 'Nothing after today will be added.'
+      }
+      toast({
+        title: `${item.title} ${verbs[action]}`,
+        description: description[action],
+        variant: 'success'
+      })
+      onClose()
+    }
+    const onError = (error: Error): void => setFormError(error.message)
+    if (action === 'cancel') cancelItem.mutate(item.id, { onSuccess: done, onError })
+    else
+      setActive.mutate({ id: item.id, active: action === 'resume' }, { onSuccess: done, onError })
   }
 
   if (existing && confirmDelete) {
@@ -258,7 +345,7 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
           <Input
             id="recurring-title"
             value={title}
-            autoFocus
+            autoFocus={!presetTitle}
             maxLength={80}
             placeholder={kindLabels[itemKind].placeholder}
             {...errorProps('recurring-title', errors.title)}
@@ -275,6 +362,7 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
             <Label htmlFor="recurring-amount">Amount</Label>
             <AmountInput
               id="recurring-amount"
+              autoFocus={!!presetTitle}
               value={amount}
               placeholder={`0${decimalSeparator(money.locale)}00`}
               {...errorProps('recurring-amount', errors.amount)}
@@ -444,6 +532,47 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
           </p>
         </div>
 
+        {(hasReminder || hasWebsite) && (
+          <div className="grid grid-cols-2 gap-4">
+            {hasReminder && (
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="recurring-reminder">Remind me</Label>
+                <Select value={reminder} onValueChange={setReminder}>
+                  <SelectTrigger id="recurring-reminder">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reminderOptions.map((days) => (
+                      <SelectItem key={days ?? OFF} value={days?.toString() ?? OFF}>
+                        {days === null ? 'No reminder' : reminderLabel(days)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {hasWebsite && (
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="recurring-url">
+                  Website <span className="font-normal text-ink-muted">(optional)</span>
+                </Label>
+                <Input
+                  id="recurring-url"
+                  value={url}
+                  maxLength={300}
+                  placeholder="Where you manage it"
+                  {...errorProps('recurring-url', errors.url)}
+                  onChange={(event) => {
+                    setUrl(event.target.value)
+                    clearError('url')
+                  }}
+                />
+                <FieldError id="recurring-url-error" message={errors.url} />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-1.5">
           <Label htmlFor="recurring-note">
             Note <span className="font-normal text-ink-muted">(optional)</span>
@@ -466,13 +595,58 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
       {formError && <FormError message={formError} className="mt-5" />}
 
       {existing && (
-        <div className="mt-6 border-t border-line">
+        <div className="mt-6 divide-y divide-line border-t border-line">
+          {!hasEnded(existing) &&
+            (existing.isActive ? (
+              <ActionRow
+                title="Pause"
+                description="Nothing is added or asked for until you resume it."
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => changeState('pause', existing)}
+                >
+                  Pause
+                </Button>
+              </ActionRow>
+            ) : (
+              <ActionRow
+                title="Resume"
+                description="It continues from its next date. Payments missed while paused are left out."
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => changeState('resume', existing)}
+                >
+                  Resume
+                </Button>
+              </ActionRow>
+            ))}
+          {!hasEnded(existing) && (
+            <ActionRow
+              title={itemKind === 'subscription' ? 'Cancel' : 'End'}
+              description="It ends today, so nothing after today is added. To restart it, set a new next date and end."
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => changeState('cancel', existing)}
+              >
+                {itemKind === 'subscription' ? 'Cancel subscription' : 'End today'}
+              </Button>
+            </ActionRow>
+          )}
           <ActionRow
             title="Delete"
             description={
               hasEnded(existing)
                 ? 'It has ended. Remove it from the list; what it added stays.'
-                : 'Stop it for good. What it already added stays.'
+                : 'Remove it for good. What it already added stays.'
             }
           >
             <Button
@@ -500,6 +674,32 @@ function RecurringForm({ target, accounts, categories, onClose }: FormProps): Re
   )
 }
 
+function DialogBody({
+  target,
+  onClose
+}: {
+  target: RecurringDialogTarget
+  onClose: () => void
+}): React.JSX.Element | null {
+  const accounts = useAccounts()
+  const categories = useCategories()
+  const picksPreset = target.kind === 'new' && target.itemKind === 'subscription'
+  // A new subscription starts with the presets: undefined until one (or "Custom", '') is picked.
+  const [preset, setPreset] = useState<string | undefined>(picksPreset ? undefined : '')
+
+  if (!accounts.data || !categories.data) return null
+  if (preset === undefined) return <PresetPicker onPick={setPreset} />
+  return (
+    <RecurringForm
+      target={target}
+      accounts={accounts.data}
+      categories={categories.data}
+      presetTitle={preset || undefined}
+      onClose={onClose}
+    />
+  )
+}
+
 /** Add or edit recurring income, a recurring expense or a subscription; editing also deletes. */
 export function RecurringDialog({
   target,
@@ -508,17 +708,13 @@ export function RecurringDialog({
   target: RecurringDialogTarget | null
   onClose: () => void
 }): React.JSX.Element {
-  const accounts = useAccounts()
-  const categories = useCategories()
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[min(38rem,calc(100vw-2rem))]">
-        {target && accounts.data && categories.data && (
-          <RecurringForm
+        {target && (
+          <DialogBody
             key={target.kind === 'edit' ? target.item.id : `new-${target.itemKind}`}
             target={target}
-            accounts={accounts.data}
-            categories={categories.data}
             onClose={onClose}
           />
         )}

@@ -89,10 +89,18 @@ describe('createRecurringItem', () => {
     expect(() => createRecurringItem(db, salary({ endDate: '2026-11-01' }))).toThrow(/end date/)
   })
 
-  it('saves an end date and a note', () => {
-    expect(
-      createRecurringItem(db, salary({ endDate: '2027-06-30', note: '  Until the contract ends ' }))
-    ).toMatchObject({ endDate: '2027-06-30', note: 'Until the contract ends', postedCount: 0 })
+  it('saves an end date, a note and a website', () => {
+    const item = createRecurringItem(
+      db,
+      salary({ endDate: '2027-06-30', note: '  Until the contract ends ', url: 'example.com/pay' })
+    )
+    expect(item).toMatchObject({
+      endDate: '2027-06-30',
+      note: 'Until the contract ends',
+      url: 'https://example.com/pay',
+      postedCount: 0
+    })
+    expect(updateRecurringItem(db, item.id, salary({ url: null })).url).toBeNull()
   })
 })
 

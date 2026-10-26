@@ -6,7 +6,14 @@ import {
   listRecurringItems,
   updateRecurringItem
 } from '../db/repositories/recurring'
-import { dueOccurrences, postOccurrence, skipOccurrence, syncItem } from '../services/posting'
+import {
+  cancelItem,
+  dueOccurrences,
+  postOccurrence,
+  setItemActive,
+  skipOccurrence,
+  syncItem
+} from '../services/posting'
 import { handle } from './handle'
 
 export function registerRecurringHandlers(): void {
@@ -20,6 +27,8 @@ export function registerRecurringHandlers(): void {
     const db = getDb()
     return syncItem(db, updateRecurringItem(db, id, input).id, today())
   })
+  handle('recurring:setActive', (id, active) => setItemActive(getDb(), id, active, today()))
+  handle('recurring:cancel', (id) => cancelItem(getDb(), id, today()))
   handle('recurring:delete', (id) => deleteRecurringItem(getDb(), id))
   handle('recurring:due', () => dueOccurrences(getDb(), today()))
   handle('recurring:post', (input) => postOccurrence(getDb(), input))

@@ -1,7 +1,13 @@
 import { useState } from 'react'
-import { ChevronRight, Plus } from 'lucide-react'
+import { BellRing, ChevronRight, Plus } from 'lucide-react'
 import { formatDate } from '@shared/dates'
-import { hasEnded, type RecurringItem, type RecurringKind } from '@shared/recurring'
+import {
+  hasEnded,
+  monthlyCost,
+  yearlyCost,
+  type RecurringItem,
+  type RecurringKind
+} from '@shared/recurring'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
@@ -11,7 +17,7 @@ import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
 import { DueNow } from '@renderer/features/recurring/DueNow'
 import { useDueOccurrences, useRecurringItems } from '@renderer/features/recurring/queries'
-import { kindLabels } from '@renderer/features/recurring/appearance'
+import { kindLabels, reminderLabel } from '@renderer/features/recurring/appearance'
 import {
   RecurringDialog,
   type RecurringDialogTarget
@@ -20,21 +26,34 @@ import { describeSchedule } from '@renderer/features/recurring/schedule'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 
-const tabs: { kind: RecurringKind; label: string; empty: string }[] = [
+const tabs: {
+  kind: RecurringKind
+  label: string
+  empty: string
+  total: string
+  /** What the summary counts: one, many. */
+  nouns: [string, string]
+}[] = [
   {
     kind: 'subscription',
     label: 'Subscriptions',
+    total: 'Your subscriptions cost',
+    nouns: ['subscription', 'subscriptions'],
     empty:
       'No subscriptions yet. Add the services you pay for regularly, like streaming or software.'
   },
   {
     kind: 'income',
     label: 'Income',
+    total: 'Your recurring income brings in',
+    nouns: ['source of income', 'sources of income'],
     empty: 'No recurring income yet. Add your salary so it’s added on payday.'
   },
   {
     kind: 'expense',
     label: 'Expenses',
+    total: 'Your recurring expenses cost',
+    nouns: ['bill', 'bills'],
     empty: 'No recurring expenses yet. Add rent, utilities or other regular bills.'
   }
 ]
@@ -45,6 +64,11 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
   const account = useAccounts().data?.find((a) => a.id === item.accountId)
   const ended = hasEnded(item)
   const isIncome = item.kind === 'income'
+  const paused = !ended && !item.isActive
+  const reminder =
+    !ended && item.isActive && item.reminderDaysBefore !== null
+      ? `Reminder ${reminderLabel(item.reminderDaysBefore).toLowerCase()}`
+      : null
 
   const status = ended
     ? `Ended ${formatDate(item.endDate ?? item.nextDueDate, money.locale)}`
@@ -60,19 +84,27 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
         className="group flex w-full cursor-pointer items-center gap-3 rounded-control px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
       >
         {category && <CategoryChip color={category.color} icon={category.icon} />}
-        <span className="min-w-0 flex-1">
+        <span className={cn('min-w-0 flex-1', paused && 'opacity-60')}>
           <span className="block truncate font-semibold">{item.title}</span>
           <span className="block truncate text-sm text-ink-muted">
             {describeSchedule(item, money.locale)}
             {account && ` · ${account.name}`}
+            {item.kind === 'subscription' && ` · ${money.format(yearlyCost(item))} a year`}
           </span>
         </span>
         <span className="text-right">
-          <span className={cn('amount block text-lg', isIncome && !ended && 'text-income')}>
+          <span
+            className={cn(
+              'amount block text-lg',
+              isIncome && !ended && !paused && 'text-income',
+              paused && 'opacity-60'
+            )}
+          >
             {isIncome ? '+' : ''}
             {money.format(item.amount)}
           </span>
-          <span className="block text-sm text-ink-muted">
+          <span className="flex items-center justify-end gap-1.5 text-sm text-ink-muted">
+            {reminder && <BellRing className="size-3.5" aria-label={reminder} />}
             {status}
             {!ended && item.isActive && !item.autoPost && ' · asks first'}
           </span>
@@ -83,6 +115,44 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
         />
       </button>
     </li>
+  )
+}
+
+/** What the running items in a tab add up to, per month and per year. */
+function CostSummary({
+  items,
+  label,
+  nouns,
+  income
+}: {
+  items: RecurringItem[]
+  label: string
+  nouns: [string, string]
+  income: boolean
+}): React.JSX.Element {
+  const money = useCurrency()
+  const perMonth = items.reduce((sum, item) => sum + monthlyCost(item), 0)
+  const perYear = items.reduce((sum, item) => sum + yearlyCost(item), 0)
+  return (
+    <Card className="flex flex-wrap items-end gap-x-10 gap-y-3">
+      <div>
+        <p className="text-sm text-ink-muted">{label}</p>
+        <p className={cn('amount text-amount', income && 'text-income')}>
+          {money.format(perMonth)}
+          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">a month</span>
+        </p>
+      </div>
+      <div className="pb-1.5">
+        <p className="amount text-title">
+          {money.format(perYear)}
+          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">a year</span>
+        </p>
+      </div>
+      <p className="w-full text-sm text-ink-muted">
+        Averaged over the year, from {items.length} {items.length === 1 ? nouns[0] : nouns[1]}.
+        Paused and ended ones aren’t counted.
+      </p>
+    </Card>
   )
 }
 
@@ -133,11 +203,23 @@ export function RecurringPage(): React.JSX.Element {
             ))}
           </TabsList>
 
-          {tabs.map(({ kind, empty }) => {
-            const current = all.filter((i) => i.kind === kind && !hasEnded(i))
+          {tabs.map(({ kind, empty, total, nouns }) => {
+            // Running ones first, then paused ones.
+            const current = all
+              .filter((i) => i.kind === kind && !hasEnded(i))
+              .sort((a, b) => Number(b.isActive) - Number(a.isActive))
+            const running = current.filter((i) => i.isActive)
             const ended = all.filter((i) => i.kind === kind && hasEnded(i))
             return (
               <TabsContent key={kind} value={kind} className="grid gap-6">
+                {running.length > 0 && (
+                  <CostSummary
+                    items={running}
+                    label={total}
+                    nouns={nouns}
+                    income={kind === 'income'}
+                  />
+                )}
                 {current.length > 0 ? (
                   <Card className="p-3">
                     <ul className="divide-y divide-line">

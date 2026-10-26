@@ -48,6 +48,25 @@ export function hasEnded(item: Pick<RecurringItem, 'endDate' | 'nextDueDate'>): 
   return item.endDate !== null && item.nextDueDate > item.endDate
 }
 
+/** How many times a year the schedule falls due, on average (52.18 for weekly). */
+function perYear(item: Pick<RecurringItem, 'frequency' | 'interval'>): number {
+  const times = { weekly: 365.2425 / 7, monthly: 12, yearly: 1 }[item.frequency]
+  return times / item.interval
+}
+
+/** What it costs (or brings in) over a year, in whole cents. */
+export function yearlyCost(item: Pick<RecurringItem, 'amount' | 'frequency' | 'interval'>): Cents {
+  return Math.round(item.amount * perYear(item))
+}
+
+/** What it costs (or brings in) in an average month, in whole cents. */
+export function monthlyCost(item: Pick<RecurringItem, 'amount' | 'frequency' | 'interval'>): Cents {
+  return Math.round((item.amount * perYear(item)) / 12)
+}
+
+/** Choices for `reminderDaysBefore`: null is off, 0 is on the day. */
+export const reminderChoices = [null, 0, 1, 2, 3, 7] as const
+
 export const recurringIdSchema = z.number().int().positive()
 
 const isoDate = z.string().refine(isIsoDate, 'Choose a date')
@@ -58,7 +77,7 @@ const amount = z
   .max(MAX_CENTS, 'That amount is too large')
 const accountId = z.number({ error: 'Choose an account' }).int().positive('Choose an account')
 
-/** Creating or editing a recurring item. Subscription details arrive in step 21. */
+/** Creating or editing a recurring item. */
 export const recurringItemInputSchema = z
   .object({
     kind: z.enum(recurringKinds),
@@ -77,6 +96,20 @@ export const recurringItemInputSchema = z
     endDate: isoDate.nullable().default(null),
     autoPost: z.boolean(),
     reminderDaysBefore: z.number().int().min(0).max(30).nullable(),
+    /** Where to manage or cancel it; "netflix.com" is saved as "https://netflix.com". */
+    url: z
+      .string()
+      .trim()
+      .max(300, 'Keep the address to 300 characters or fewer')
+      // Only a bare address gets a scheme; "javascript:" or "file:" ones stay as typed and fail.
+      .transform(
+        (url) => (url && !/^[a-z][a-z\d+.-]*:/i.test(url) ? `https://${url}` : url) || null
+      )
+      .refine((url) => url === null || /^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]+$/i.test(url), {
+        message: 'Enter a web address like netflix.com'
+      })
+      .nullable()
+      .default(null),
     note: z
       .string()
       .trim()
@@ -112,6 +145,9 @@ export interface DueOccurrence {
    */
   problem: string | null
 }
+
+/** Whether `url` is a web address the app may open in the browser. */
+export const isWebAddress = (url: string): boolean => /^https?:\/\//i.test(url)
 
 /** Confirming a due or planned occurrence: posts it with these values. */
 export const postOccurrenceSchema = z

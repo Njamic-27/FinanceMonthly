@@ -111,9 +111,9 @@ export function createRecurringItem(db: Database, input: RecurringItemInput): Re
   const { lastInsertRowid } = db
     .prepare(
       `INSERT INTO recurring_items (kind, title, amount, account_id, category_id, frequency, interval,
-         anchor_date, end_date, next_due_date, auto_post, reminder_days_before, note)
+         anchor_date, end_date, next_due_date, auto_post, reminder_days_before, url, note)
        VALUES (@kind, @title, @amount, @accountId, @categoryId, @frequency, @interval,
-         @anchorDate, @endDate, @nextDueDate, @autoPost, @reminderDaysBefore, @note)`
+         @anchorDate, @endDate, @nextDueDate, @autoPost, @reminderDaysBefore, @url, @note)`
     )
     .run({ ...item, autoPost: Number(item.autoPost) })
   return getRecurringItem(db, Number(lastInsertRowid))
@@ -135,7 +135,8 @@ export function updateRecurringItem(
      SET kind = @kind, title = @title, amount = @amount, account_id = @accountId,
          category_id = @categoryId, frequency = @frequency, interval = @interval,
          anchor_date = @anchorDate, end_date = @endDate, next_due_date = @nextDueDate,
-         auto_post = @autoPost, reminder_days_before = @reminderDaysBefore, note = @note
+         auto_post = @autoPost, reminder_days_before = @reminderDaysBefore, url = @url,
+         note = @note
      WHERE id = @id`
   ).run({ ...item, autoPost: Number(item.autoPost), id })
   return getRecurringItem(db, id)
@@ -159,4 +160,14 @@ export function deleteRecurringItem(db: Database, id: number): void {
 /** Moves the item's next due date; the posting service is the only caller. */
 export function setNextDueDate(db: Database, id: number, nextDueDate: string): void {
   db.prepare('UPDATE recurring_items SET next_due_date = ? WHERE id = ?').run(nextDueDate, id)
+}
+
+/** Pauses or resumes the item; the posting service is the only caller. */
+export function setActive(db: Database, id: number, active: boolean): void {
+  db.prepare('UPDATE recurring_items SET is_active = ? WHERE id = ?').run(Number(active), id)
+}
+
+/** Sets the last day it can fall due; the posting service is the only caller. */
+export function setEndDate(db: Database, id: number, endDate: string): void {
+  db.prepare('UPDATE recurring_items SET end_date = ? WHERE id = ?').run(endDate, id)
 }

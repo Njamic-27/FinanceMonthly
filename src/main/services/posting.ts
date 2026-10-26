@@ -1,7 +1,8 @@
 import type { Database } from 'better-sqlite3'
-import { formatDate, type IsoDate } from '@shared/dates'
+import { addDays, formatDate, type IsoDate } from '@shared/dates'
 import { nextOccurrence, occurrences } from '@shared/recurrence'
 import {
+  hasEnded,
   postOccurrenceSchema,
   postedType,
   type DueOccurrence,
@@ -10,7 +11,13 @@ import {
 } from '@shared/recurring'
 import type { Transaction, TransactionInput } from '@shared/transactions'
 import { AppError } from '../errors'
-import { getRecurringItem, listRecurringItems, setNextDueDate } from '../db/repositories/recurring'
+import {
+  getRecurringItem,
+  listRecurringItems,
+  setActive,
+  setEndDate,
+  setNextDueDate
+} from '../db/repositories/recurring'
 import { getSettings } from '../db/repositories/settings'
 import { checkTransaction, createPlannedTransaction } from '../db/repositories/transactions'
 
@@ -164,5 +171,48 @@ export function skipOccurrence(db: Database, itemId: number, plannedDate: IsoDat
 /** Brings one item up to date after it was created or edited: posts what is due, if it may. */
 export function syncItem(db: Database, itemId: number, today: IsoDate): RecurringItem {
   postItem(db, getRecurringItem(db, itemId), today)
+  return getRecurringItem(db, itemId)
+}
+
+/**
+ * Pauses an item: nothing is posted or asked for while it is paused. On resuming, payments
+ * that fell due during the pause are left out and it continues from the first one on or
+ * after `today`.
+ */
+export function setItemActive(
+  db: Database,
+  itemId: number,
+  active: boolean,
+  today: IsoDate
+): RecurringItem {
+  const item = getRecurringItem(db, itemId)
+  if (item.isActive === active) return item
+  db.transaction(() => {
+    setActive(db, item.id, active)
+    if (active && item.nextDueDate < today) {
+      setNextDueDate(db, item.id, following(item, addDays(today, -1)))
+    }
+    advance(db, getRecurringItem(db, itemId))
+  })()
+  return syncItem(db, itemId, today)
+}
+
+/**
+ * Cancels an item from tomorrow on: it ends today, so payments up to today still count
+ * (and wait in Due now if they ask first) and nothing after is posted. One that hasn't
+ * started yet ends before its first payment.
+ */
+export function cancelItem(db: Database, itemId: number, today: IsoDate): RecurringItem {
+  const item = getRecurringItem(db, itemId)
+  if (hasEnded(item)) return item
+  db.transaction(() => {
+    if (item.anchorDate > today) {
+      // The schema keeps the end on or after the anchor: end on it, past every occurrence.
+      setEndDate(db, item.id, item.anchorDate)
+      setNextDueDate(db, item.id, following(item, item.anchorDate))
+    } else if (item.endDate === null || item.endDate > today) {
+      setEndDate(db, item.id, today)
+    }
+  })()
   return getRecurringItem(db, itemId)
 }

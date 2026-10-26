@@ -89,3 +89,23 @@ export function useSkipOccurrence(): UseMutationResult<
     onSuccess: invalidate
   })
 }
+
+export function useSetRecurringActive(): UseMutationResult<
+  RecurringItem,
+  Error,
+  { id: number; active: boolean }
+> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ id, active }) => invoke('recurring:setActive', id, active),
+    onSuccess: invalidate
+  })
+}
+
+export function useCancelRecurringItem(): UseMutationResult<RecurringItem, Error, number> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (id: number) => invoke('recurring:cancel', id),
+    onSuccess: invalidate
+  })
+}
