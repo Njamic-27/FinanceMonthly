@@ -1,11 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ArrowDownLeft, ArrowUpRight, CircleAlert, Copy, Wallet } from 'lucide-react'
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  CircleAlert,
+  Copy,
+  Wallet,
+  type LucideIcon
+} from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Category } from '@shared/categories'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
-import { transactionInputSchema, type Transaction } from '@shared/transactions'
+import {
+  defaultTransferTitle,
+  transactionInputSchema,
+  type EditableType,
+  type Transaction
+} from '@shared/transactions'
 import { AmountInput } from '@renderer/components/AmountInput'
 import { ColorChip } from '@renderer/components/ColorChip'
 import { DatePicker } from '@renderer/components/DatePicker'
@@ -53,13 +66,59 @@ import {
   useUpdateTransaction
 } from './queries'
 
-type Kind = 'income' | 'expense'
-type Field = 'amount' | 'title' | 'categoryId' | 'accountId' | 'date' | 'note'
+type Kind = EditableType
+type Field = 'amount' | 'title' | 'categoryId' | 'accountId' | 'toAccountId' | 'date' | 'note'
 
-const kindOptions = [
-  { value: 'expense' as const, label: 'Expense', icon: ArrowUpRight },
-  { value: 'income' as const, label: 'Income', icon: ArrowDownLeft }
+const kindOptions: { value: Kind; label: string; icon: LucideIcon }[] = [
+  { value: 'expense', label: 'Expense', icon: ArrowUpRight },
+  { value: 'income', label: 'Income', icon: ArrowDownLeft },
+  { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight }
 ]
+
+const kindNames: Record<Kind, string> = {
+  expense: 'Expense',
+  income: 'Income',
+  transfer: 'Transfer'
+}
+const kindDescriptions: Record<Kind, string> = {
+  expense: 'Money you spent.',
+  income: 'Money you received.',
+  transfer: 'Money moved between your accounts, like cash from an ATM or a card payment.'
+}
+
+interface AccountSelectProps {
+  id: string
+  value: string
+  accounts: Account[]
+  error?: string
+  onChange: (value: string) => void
+}
+
+function AccountSelect({
+  id,
+  value,
+  accounts,
+  error,
+  onChange
+}: AccountSelectProps): React.JSX.Element {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger id={id} {...errorProps(id, error)}>
+        <SelectValue placeholder="Choose an account" />
+      </SelectTrigger>
+      <SelectContent>
+        {accounts.map((a) => (
+          <SelectItem key={a.id} value={String(a.id)}>
+            <span className="flex items-center gap-2">
+              <ColorChip color={a.color} icon={accountTypeIcons[a.type]} size="sm" />
+              {a.name}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 
 /** The account used last, so a run of entries doesn't need it picked each time. */
 let lastAccountId: number | null = null
@@ -88,7 +147,7 @@ function TransactionForm({
   const money = useCurrency()
 
   const [kind, setKind] = useState<Kind>(
-    existing?.type === 'income' || existing?.type === 'expense'
+    existing?.type === 'income' || existing?.type === 'expense' || existing?.type === 'transfer'
       ? existing.type
       : (prefill?.type ?? 'expense')
   )
@@ -103,6 +162,9 @@ function TransactionForm({
   const [accountId, setAccountId] = useState(
     existing ? String(existing.accountId) : defaultAccountId(accounts, prefill)
   )
+  const [toAccountId, setToAccountId] = useState(
+    (existing?.toAccountId ?? prefill?.toAccountId)?.toString() ?? ''
+  )
   const [date, setDate] = useState<IsoDate>(existing?.date ?? prefill?.date ?? today())
   const [note, setNote] = useState(existing?.note ?? prefill?.note ?? '')
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
@@ -116,12 +178,24 @@ function TransactionForm({
     createTransaction.isPending || updateTransaction.isPending || deleteTransaction.isPending
 
   // Archived ones stay listed only when this transaction already uses them.
-  const accountOptions = accounts.filter((a) => !a.isArchived || a.id === existing?.accountId)
+  const accountOptions = accounts.filter(
+    (a) => !a.isArchived || a.id === existing?.accountId || a.id === existing?.toAccountId
+  )
   const categoryOptions = categories.filter(
     (c) => c.type === kind && (!c.isArchived || c.id === existing?.categoryId)
   )
   const account = accounts.find((a) => String(a.id) === accountId)
+  const toAccount =
+    kind === 'transfer' ? accounts.find((a) => String(a.id) === toAccountId) : undefined
   const category = categories.find((c) => String(c.id) === categoryId)
+  // Every account the transaction touches must already be open on its date.
+  const opening = [account, toAccount]
+    .filter((a): a is Account => !!a)
+    .reduce<Account | undefined>(
+      (latest, a) => (!latest || a.openingDate > latest.openingDate ? a : latest),
+      undefined
+    )
+  const owedOnCard = toAccount?.type === 'credit' ? Math.max(0, -toAccount.balance) : 0
 
   const clearError = (field: Field): void => {
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -133,6 +207,21 @@ function TransactionForm({
     // A category belongs to one kind; keep it only if it still fits.
     if (category && category.type !== next) setCategoryId('')
     clearError('categoryId')
+    clearError('toAccountId')
+  }
+
+  const changeAccount = (value: string): void => {
+    setAccountId(value)
+    if (value === toAccountId) setToAccountId('')
+    clearError('accountId')
+    clearError('date')
+  }
+
+  const swapAccounts = (): void => {
+    setAccountId(toAccountId)
+    setToAccountId(accountId)
+    clearError('accountId')
+    clearError('toAccountId')
   }
 
   const submit = (event: React.FormEvent): void => {
@@ -144,19 +233,22 @@ function TransactionForm({
     else if (cents === null) found.amount = `Enter an amount like ${money.toInput(1250)}`
     else if (cents < 0) found.amount = 'Enter the amount without a minus sign'
 
-    if (account && date < account.openingDate) {
-      found.date = `${account.name} starts on ${formatDate(account.openingDate, money.locale)}. Choose that day or later.`
+    if (opening && date < opening.openingDate) {
+      found.date = `${opening.name} starts on ${formatDate(opening.openingDate, money.locale)}. Choose that day or later.`
     }
 
-    const parsed = transactionInputSchema.safeParse({
-      type: kind,
+    const common = {
       title,
       amount: cents ?? 0,
       date,
       accountId: accountId ? Number(accountId) : undefined,
-      categoryId: categoryId ? Number(categoryId) : undefined,
       note
-    })
+    }
+    const parsed = transactionInputSchema.safeParse(
+      kind === 'transfer'
+        ? { ...common, type: kind, toAccountId: toAccountId ? Number(toAccountId) : undefined }
+        : { ...common, type: kind, categoryId: categoryId ? Number(categoryId) : undefined }
+    )
     // Problems found above explain more than the schema's messages, so they win.
     if (!parsed.success) found = { ...fieldErrors(parsed.error), ...found }
     if (!parsed.success || Object.values(found).some(Boolean)) {
@@ -168,7 +260,7 @@ function TransactionForm({
     const saved = (verb: string) => (tx: Transaction) => {
       lastAccountId = tx.accountId
       toast({
-        title: `${tx.type === 'income' ? 'Income' : 'Expense'} ${verb}`,
+        title: `${kindNames[kind]} ${verb}`,
         description: `${tx.title} · ${money.format(tx.amount)}`,
         variant: 'success'
       })
@@ -183,6 +275,16 @@ function TransactionForm({
       createTransaction.mutate(input, { onSuccess: saved('added'), onError })
     }
   }
+
+  const defaultTitle =
+    kind === 'transfer'
+      ? account && toAccount && defaultTransferTitle(account, toAccount)
+      : category?.name
+  const titlePlaceholder = defaultTitle
+    ? `Leave empty to use “${defaultTitle}”`
+    : kind === 'transfer'
+      ? 'e.g. ATM Ilica'
+      : 'e.g. Lidl weekly shop'
 
   if (existing && confirmDelete) {
     const remove = (): void =>
@@ -219,9 +321,7 @@ function TransactionForm({
     <form onSubmit={submit} noValidate>
       <DialogHeader>
         <DialogTitle>{existing ? 'Edit transaction' : 'Add transaction'}</DialogTitle>
-        <DialogDescription>
-          {kind === 'expense' ? 'Money you spent.' : 'Money you received.'}
-        </DialogDescription>
+        <DialogDescription>{kindDescriptions[kind]}</DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
@@ -251,74 +351,143 @@ function TransactionForm({
           <FieldError id="tx-amount-error" message={errors.amount} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid content-start gap-1.5">
-            <Label htmlFor="tx-category">Category</Label>
-            <Select
-              value={categoryId}
-              onValueChange={(value) => {
-                setCategoryId(value)
-                clearError('categoryId')
-              }}
-            >
-              <SelectTrigger id="tx-category" {...errorProps('tx-category', errors.categoryId)}>
-                <SelectValue placeholder="Choose a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    <span className="flex items-center gap-2">
-                      <ColorChip color={c.color} icon={categoryIconComponents[c.icon]} size="sm" />
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError id="tx-category-error" message={errors.categoryId} />
-          </div>
-          <div className="grid content-start gap-1.5">
-            <Label htmlFor="tx-date">Date</Label>
-            <DatePicker
-              id="tx-date"
-              value={date}
-              min={account?.openingDate}
-              {...errorProps('tx-date', errors.date)}
-              onChange={(value) => {
-                setDate(value)
-                clearError('date')
-              }}
-            />
-            <FieldError id="tx-date-error" message={errors.date} />
-          </div>
-        </div>
+        {kind === 'transfer' ? (
+          <>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="tx-account">From</Label>
+                <AccountSelect
+                  id="tx-account"
+                  value={accountId}
+                  accounts={accountOptions}
+                  error={errors.accountId}
+                  onChange={changeAccount}
+                />
+                <FieldError id="tx-account-error" message={errors.accountId} />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mt-6"
+                aria-label="Swap accounts"
+                title="Swap accounts"
+                onClick={swapAccounts}
+              >
+                <ArrowLeftRight />
+              </Button>
+              <div className="grid gap-1.5">
+                <Label htmlFor="tx-to-account">To</Label>
+                <AccountSelect
+                  id="tx-to-account"
+                  value={toAccountId}
+                  accounts={accountOptions.filter((a) => String(a.id) !== accountId)}
+                  error={errors.toAccountId}
+                  onChange={(value) => {
+                    setToAccountId(value)
+                    clearError('toAccountId')
+                    clearError('date')
+                  }}
+                />
+                <FieldError id="tx-to-account-error" message={errors.toAccountId} />
+              </div>
+            </div>
+            {toAccount && owedOnCard > 0 && (
+              <p className="-mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+                <span>
+                  {toAccount.name} owes{' '}
+                  <span className="amount text-ink">{money.format(owedOnCard)}</span>.
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setAmount(money.toInput(owedOnCard))
+                    clearError('amount')
+                  }}
+                >
+                  Pay it all
+                </Button>
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="tx-date">Date</Label>
+                <DatePicker
+                  id="tx-date"
+                  value={date}
+                  min={opening?.openingDate}
+                  {...errorProps('tx-date', errors.date)}
+                  onChange={(value) => {
+                    setDate(value)
+                    clearError('date')
+                  }}
+                />
+                <FieldError id="tx-date-error" message={errors.date} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="tx-category">Category</Label>
+                <Select
+                  value={categoryId}
+                  onValueChange={(value) => {
+                    setCategoryId(value)
+                    clearError('categoryId')
+                  }}
+                >
+                  <SelectTrigger id="tx-category" {...errorProps('tx-category', errors.categoryId)}>
+                    <SelectValue placeholder="Choose a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        <span className="flex items-center gap-2">
+                          <ColorChip
+                            color={c.color}
+                            icon={categoryIconComponents[c.icon]}
+                            size="sm"
+                          />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError id="tx-category-error" message={errors.categoryId} />
+              </div>
 
-        <div className="grid gap-1.5">
-          <Label htmlFor="tx-account">{kind === 'expense' ? 'Paid with' : 'Paid into'}</Label>
-          <Select
-            value={accountId}
-            onValueChange={(value) => {
-              setAccountId(value)
-              clearError('accountId')
-              clearError('date')
-            }}
-          >
-            <SelectTrigger id="tx-account" {...errorProps('tx-account', errors.accountId)}>
-              <SelectValue placeholder="Choose an account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accountOptions.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)}>
-                  <span className="flex items-center gap-2">
-                    <ColorChip color={a.color} icon={accountTypeIcons[a.type]} size="sm" />
-                    {a.name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldError id="tx-account-error" message={errors.accountId} />
-        </div>
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="tx-date">Date</Label>
+                <DatePicker
+                  id="tx-date"
+                  value={date}
+                  min={opening?.openingDate}
+                  {...errorProps('tx-date', errors.date)}
+                  onChange={(value) => {
+                    setDate(value)
+                    clearError('date')
+                  }}
+                />
+                <FieldError id="tx-date-error" message={errors.date} />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="tx-account">{kind === 'expense' ? 'Paid with' : 'Paid into'}</Label>
+              <AccountSelect
+                id="tx-account"
+                value={accountId}
+                accounts={accountOptions}
+                error={errors.accountId}
+                onChange={changeAccount}
+              />
+              <FieldError id="tx-account-error" message={errors.accountId} />
+            </div>
+          </>
+        )}
 
         {/* Step 25: "Pay in installments" for an expense on a credit card goes here. */}
 
@@ -330,9 +499,7 @@ function TransactionForm({
             id="tx-title"
             value={title}
             maxLength={80}
-            placeholder={
-              category ? `Leave empty to use “${category.name}”` : 'e.g. Lidl weekly shop'
-            }
+            placeholder={titlePlaceholder}
             {...errorProps('tx-title', errors.title)}
             onChange={(event) => {
               setTitle(event.target.value)

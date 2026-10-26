@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Account } from './accounts'
 import { isIsoDate, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 
@@ -36,29 +37,49 @@ export interface Transaction {
 
 export const transactionIdSchema = z.number().int().positive()
 
-/** What the Add transaction dialog edits: income and expenses. Transfers arrive in step 12. */
-export const transactionInputSchema = z
-  .object({
-    type: z.enum(['income', 'expense']),
-    /** Empty means "use the category name". */
-    title: z.string().trim().max(80, 'Keep the title to 80 characters or fewer'),
-    amount: z
-      .number()
-      .int()
-      .positive('Enter an amount above zero')
-      .max(MAX_CENTS, 'That amount is too large'),
-    date: z.string().refine(isIsoDate, 'Choose a date'),
-    accountId: z.number({ error: 'Choose an account' }).int().positive('Choose an account'),
-    categoryId: z.number({ error: 'Choose a category' }).int().positive('Choose a category'),
-    note: z
-      .string()
-      .trim()
-      .max(500, 'Keep the note to 500 characters or fewer')
-      .transform((note) => note || null)
-      .nullable()
-  })
-  .strict()
+const accountId = (message: string): z.ZodNumber =>
+  z.number({ error: message }).int().positive(message)
+
+const common = {
+  /** Empty means a default: the category name, or for transfers e.g. "Cash withdrawal". */
+  title: z.string().trim().max(80, 'Keep the title to 80 characters or fewer'),
+  amount: z
+    .number()
+    .int()
+    .positive('Enter an amount above zero')
+    .max(MAX_CENTS, 'That amount is too large'),
+  date: z.string().refine(isIsoDate, 'Choose a date'),
+  accountId: accountId('Choose an account'),
+  note: z
+    .string()
+    .trim()
+    .max(500, 'Keep the note to 500 characters or fewer')
+    .transform((note) => note || null)
+    .nullable()
+}
+const categoryId = z.number({ error: 'Choose a category' }).int().positive('Choose a category')
+
+/** What the Add transaction dialog edits: income, expenses and transfers between accounts. */
+export const transactionInputSchema = z.discriminatedUnion('type', [
+  z.object({ ...common, type: z.literal('income'), categoryId }).strict(),
+  z.object({ ...common, type: z.literal('expense'), categoryId }).strict(),
+  z
+    .object({
+      ...common,
+      type: z.literal('transfer'),
+      /** Where the money goes; `accountId` is where it comes from. */
+      toAccountId: accountId('Choose where the money goes')
+    })
+    .strict()
+    .refine((t) => t.toAccountId !== t.accountId, {
+      message: 'Choose two different accounts',
+      path: ['toAccountId']
+    })
+])
 export type TransactionInput = z.input<typeof transactionInputSchema>
+
+/** The transaction types the dialog creates and edits. */
+export type EditableType = TransactionInput['type']
 
 /** The type filter on the Transactions screen. */
 export const transactionKinds = ['income', 'expense', 'transfer'] as const
@@ -100,4 +121,15 @@ export interface TransactionPage {
   dayTotals: DayTotal[]
   /** Totals over everything matching the filters; only on the first page. */
   summary: { count: number; income: Cents; expenses: Cents } | null
+}
+
+/** The title an untitled transfer gets: "Mastercard payment", "Cash withdrawal", … */
+export function defaultTransferTitle(
+  from: Pick<Account, 'type'>,
+  to: Pick<Account, 'name' | 'type'>
+): string {
+  if (to.type === 'credit') return `${to.name} payment`
+  if (from.type !== 'cash' && to.type === 'cash') return 'Cash withdrawal'
+  if (from.type === 'cash' && to.type !== 'cash') return 'Cash deposit'
+  return `Transfer to ${to.name}`
 }

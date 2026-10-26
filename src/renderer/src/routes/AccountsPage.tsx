@@ -8,6 +8,7 @@ import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { AccountDialog, type AccountDialogTarget } from '@renderer/features/accounts/AccountDialog'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { useAccounts, useArchiveAccount } from '@renderer/features/accounts/queries'
+import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
@@ -74,9 +75,12 @@ function CreditUsage({ account }: { account: Account }): React.JSX.Element {
 
 function AccountCard({
   account,
+  payFrom,
   onOpen
 }: {
   account: Account
+  /** The account a card payment comes from by default. */
+  payFrom?: Account
   onOpen: () => void
 }): React.JSX.Element {
   const money = useCurrency()
@@ -90,30 +94,56 @@ function AccountCard({
       ? 'Overdrawn'
       : 'Balance'
 
+  const owed = isCredit ? Math.max(0, -account.balance) : 0
+
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex cursor-pointer flex-col rounded-panel border border-line bg-surface p-5 text-left text-ink transition-colors hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
-    >
-      <span className="flex items-center gap-3">
-        <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
-        <span className="min-w-0">
-          <span className="block truncate font-semibold">{account.name}</span>
-          <span className="block text-sm text-ink-muted">{accountTypeLabels[account.type]}</span>
-        </span>
-      </span>
-      <span className="mt-6 block text-sm text-ink-muted">{caption}</span>
-      <span
-        className={cn(
-          'amount block text-title',
-          !isCredit && account.balance < 0 && 'text-expense'
-        )}
+    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:border-ink-muted/40">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Edit ${account.name}`}
+        className="flex flex-1 cursor-pointer flex-col rounded-panel p-5 text-left focus-visible:outline-2 focus-visible:outline-primary"
       >
-        {money.format(isCredit && account.balance > 0 ? account.balance : figure)}
-      </span>
-      {isCredit && <CreditUsage account={account} />}
-    </button>
+        <span className="flex items-center gap-3">
+          <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
+          <span className="min-w-0">
+            <span className="block truncate font-semibold">{account.name}</span>
+            <span className="block text-sm text-ink-muted">{accountTypeLabels[account.type]}</span>
+          </span>
+        </span>
+        <span className="mt-6 block text-sm text-ink-muted">{caption}</span>
+        <span
+          className={cn(
+            'amount block text-title',
+            !isCredit && account.balance < 0 && 'text-expense'
+          )}
+        >
+          {money.format(isCredit && account.balance > 0 ? account.balance : figure)}
+        </span>
+        {isCredit && <CreditUsage account={account} />}
+      </button>
+      {owed > 0 && (
+        <div className="-mt-1 px-5 pb-5">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              openTransactionDialog({
+                kind: 'new',
+                prefill: {
+                  type: 'transfer',
+                  accountId: payFrom?.id,
+                  toAccountId: account.id,
+                  amount: owed
+                }
+              })
+            }
+          >
+            Pay card
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -187,6 +217,7 @@ export function AccountsPage(): React.JSX.Element {
               <AccountCard
                 key={account.id}
                 account={account}
+                payFrom={active.find((a) => a.type === 'debit')}
                 onOpen={() => setDialog({ kind: 'edit', account })}
               />
             ))}

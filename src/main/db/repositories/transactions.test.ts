@@ -23,13 +23,30 @@ const categoryId = (name: string): number => {
   return category.id
 }
 
-const expense = (overrides: Partial<TransactionInput> = {}): TransactionInput => ({
-  type: 'expense',
-  title: 'Lidl weekly shop',
-  amount: 4250,
+type IncomeOrExpense =
+  Extract<TransactionInput, { type: 'expense' }> | Extract<TransactionInput, { type: 'income' }>
+
+const expense = (overrides: Partial<IncomeOrExpense> = {}): TransactionInput =>
+  ({
+    type: 'expense',
+    title: 'Lidl weekly shop',
+    amount: 4250,
+    date: '2026-10-20',
+    accountId: debit,
+    categoryId: categoryId('Groceries'),
+    note: null,
+    ...overrides
+  }) as TransactionInput
+
+const transfer = (
+  overrides: Partial<Extract<TransactionInput, { type: 'transfer' }>> = {}
+): TransactionInput => ({
+  type: 'transfer',
+  title: '',
+  amount: 20000,
   date: '2026-10-20',
   accountId: debit,
-  categoryId: categoryId('Groceries'),
+  toAccountId: card,
   note: null,
   ...overrides
 })
@@ -200,27 +217,154 @@ describe('updateTransaction', () => {
     expectAppError(() => updateTransaction(db, id, { ...input, accountId: debit }), 'validation')
   })
 
-  it('only edits income and expenses', () => {
-    const cash = createAccount(db, {
+  it('leaves savings and loan movements to their own screens', () => {
+    const goal = db
+      .prepare("INSERT INTO savings_goals (name, target_amount) VALUES ('Holiday', 100000)")
+      .run().lastInsertRowid
+    const id = Number(
+      db
+        .prepare(
+          `INSERT INTO transactions (date, title, amount, type, account_id, savings_goal_id)
+           VALUES ('2026-10-20', 'Holiday', 5000, 'savings_deposit', ?, ?)`
+        )
+        .run(debit, goal).lastInsertRowid
+    )
+    expectAppError(() => updateTransaction(db, id, expense()), 'validation', /own screens/)
+  })
+
+  it('keeps a transaction posted from a recurring item the same type', () => {
+    const item = db
+      .prepare(
+        `INSERT INTO recurring_items (kind, title, amount, account_id, category_id, frequency, anchor_date, next_due_date)
+         VALUES ('subscription', 'Netflix', 1399, ?, ?, 'monthly', '2026-01-05', '2026-11-05')`
+      )
+      .run(debit, categoryId('Subscriptions')).lastInsertRowid
+    const id = Number(
+      db
+        .prepare(
+          `INSERT INTO transactions (date, title, amount, type, account_id, category_id, recurring_item_id, planned_date)
+           VALUES ('2026-10-05', 'Netflix', 1399, 'expense', ?, ?, ?, '2026-10-05')`
+        )
+        .run(debit, categoryId('Subscriptions'), item).lastInsertRowid
+    )
+    expect(() =>
+      updateTransaction(db, id, expense({ amount: 1599, categoryId: categoryId('Subscriptions') }))
+    ).not.toThrow()
+    expectAppError(() => updateTransaction(db, id, transfer()), 'validation', /stays an expense/)
+  })
+})
+
+describe('transfers', () => {
+  let cash: number
+
+  beforeEach(() => {
+    cash = createAccount(db, {
       type: 'cash',
       name: 'Wallet',
       openingBalance: 0,
       openingDate: '2026-01-01',
       color: 'olive'
     }).id
-    const id = Number(
-      db
-        .prepare(
-          `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id)
-           VALUES ('2026-10-20', 'ATM', 5000, 'transfer', ?, ?)`
-        )
-        .run(debit, cash).lastInsertRowid
+  })
+
+  const balance = (id: number): number => getAccount(db, id, '2026-10-26').balance
+
+  it('moves money from one account to another', () => {
+    const tx = createTransaction(db, transfer({ toAccountId: cash, amount: 5000 }))
+    expect(tx).toMatchObject({
+      type: 'transfer',
+      accountId: debit,
+      toAccountId: cash,
+      categoryId: null
+    })
+    expect(balance(debit)).toBe(100000 - 5000)
+    expect(balance(cash)).toBe(5000)
+  })
+
+  it('pays off a credit card', () => {
+    createTransaction(db, expense({ accountId: card, amount: 30000 }))
+    createTransaction(db, transfer({ toAccountId: card, amount: 20000 }))
+    expect(balance(card)).toBe(-10000)
+    expect(getAccount(db, card, '2026-10-26').available).toBe(290000)
+  })
+
+  it('names an untitled transfer after what it does', () => {
+    expect(createTransaction(db, transfer({ toAccountId: card })).title).toBe('Mastercard payment')
+    expect(createTransaction(db, transfer({ toAccountId: cash })).title).toBe('Cash withdrawal')
+    expect(createTransaction(db, transfer({ accountId: cash, toAccountId: debit })).title).toBe(
+      'Cash deposit'
     )
+    const savings = createAccount(db, {
+      type: 'debit',
+      name: 'Savings account',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'sky'
+    }).id
+    expect(createTransaction(db, transfer({ toAccountId: savings })).title).toBe(
+      'Transfer to Savings account'
+    )
+    expect(createTransaction(db, transfer({ toAccountId: cash, title: 'ATM Ilica' })).title).toBe(
+      'ATM Ilica'
+    )
+  })
+
+  it('needs two different, usable accounts', () => {
+    expect(() => createTransaction(db, transfer({ toAccountId: debit }))).toThrow(/two different/)
+    expect(() =>
+      createTransaction(db, {
+        ...transfer(),
+        toAccountId: undefined
+      } as unknown as TransactionInput)
+    ).toThrow(/where the money goes/)
+    expect(() =>
+      createTransaction(db, {
+        ...transfer(),
+        categoryId: categoryId('Groceries')
+      } as unknown as TransactionInput)
+    ).toThrow()
+    setAccountArchived(db, cash, true)
     expectAppError(
-      () => updateTransaction(db, id, expense()),
+      () => createTransaction(db, transfer({ toAccountId: cash })),
       'validation',
-      /Only income and expenses/
+      /archived/
     )
+  })
+
+  it('checks the starting date of both accounts', () => {
+    const later = createAccount(db, {
+      type: 'cash',
+      name: 'Holiday cash',
+      openingBalance: 0,
+      openingDate: '2026-10-22',
+      color: 'pink'
+    }).id
+    expectAppError(
+      () => createTransaction(db, transfer({ toAccountId: later, date: '2026-10-21' })),
+      'validation',
+      /Holiday cash” starts on 22 Oct 2026/
+    )
+  })
+
+  it('turns an expense into a transfer and back', () => {
+    const { id } = createTransaction(db, expense())
+    expect(updateTransaction(db, id, transfer({ toAccountId: cash }))).toMatchObject({
+      type: 'transfer',
+      toAccountId: cash,
+      categoryId: null,
+      title: 'Cash withdrawal'
+    })
+    expect(updateTransaction(db, id, expense())).toMatchObject({
+      type: 'expense',
+      toAccountId: null,
+      categoryId: categoryId('Groceries')
+    })
+  })
+
+  it('can still be edited when one of its accounts is archived later', () => {
+    const { id } = createTransaction(db, transfer({ toAccountId: cash }))
+    setAccountArchived(db, cash, true)
+    expect(updateTransaction(db, id, transfer({ toAccountId: cash, amount: 100 })).amount).toBe(100)
   })
 })
 

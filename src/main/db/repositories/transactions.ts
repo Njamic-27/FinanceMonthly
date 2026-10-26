@@ -1,7 +1,9 @@
 import type { Database } from 'better-sqlite3'
 import { formatDate } from '@shared/dates'
+import type { Account } from '@shared/accounts'
 import { foldText } from '@shared/text'
 import {
+  defaultTransferTitle,
   transactionIdSchema,
   transactionInputSchema,
   transactionQuerySchema,
@@ -10,6 +12,7 @@ import {
   type TransactionInput,
   type TransactionPage,
   type TransactionQuery,
+  type EditableType,
   type TransactionType
 } from '@shared/transactions'
 import { AppError } from '../../errors'
@@ -67,30 +70,79 @@ export function getTransaction(db: Database, id: number): Transaction {
   return toTransaction(row)
 }
 
-/**
- * Checks the input against the accounts and categories it names and returns the row values.
- * Archived accounts and categories are refused unless the transaction already uses them.
- */
-function resolve(
-  db: Database,
-  input: TransactionInput,
-  current?: Transaction
-): { title: string; note: string | null } & Omit<TransactionInput, 'title' | 'note'> {
-  const valid = transactionInputSchema.parse(input)
+/** The values written to a row by the dialog's create and update. */
+interface RowValues {
+  type: EditableType
+  title: string
+  amount: number
+  date: string
+  accountId: number
+  toAccountId: number | null
+  categoryId: number | null
+  note: string | null
+}
 
-  const account = getAccount(db, valid.accountId)
-  if (account.isArchived && account.id !== current?.accountId) {
+/**
+ * An account the transaction may use: not archived (unless the transaction already uses it)
+ * and already open on the transaction's date.
+ */
+function usableAccount(db: Database, id: number, date: string, current?: Transaction): Account {
+  const account = getAccount(db, id)
+  const alreadyUsed = account.id === current?.accountId || account.id === current?.toAccountId
+  if (account.isArchived && !alreadyUsed) {
     throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
   }
-  if (valid.date < account.openingDate) {
+  if (date < account.openingDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
       `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Choose a later date, or move the account’s starting date back first.`
     )
   }
-  if (current?.installmentPlanId != null && account.id !== current.accountId) {
-    throw new AppError('validation', 'Installment payments stay on the card they were bought with.')
+  return account
+}
+
+/**
+ * Checks the input against the accounts and categories it names and returns the row values.
+ * Archived accounts and categories are refused unless the transaction already uses them.
+ */
+function resolve(db: Database, input: TransactionInput, current?: Transaction): RowValues {
+  const valid = transactionInputSchema.parse(input)
+
+  // Rows posted from a recurring item or an installment plan settle that item, so they keep
+  // their type, and installment payments stay on their card.
+  if (current && (current.recurringItemId != null || current.installmentPlanId != null)) {
+    if (valid.type !== current.type) {
+      throw new AppError(
+        'validation',
+        `This ${current.type} was posted from a plan, so it stays an ${current.type}.`
+      )
+    }
+    if (current.installmentPlanId != null && valid.accountId !== current.accountId) {
+      throw new AppError(
+        'validation',
+        'Installment payments stay on the card they were bought with.'
+      )
+    }
+  }
+
+  const account = usableAccount(db, valid.accountId, valid.date, current)
+  const base = {
+    type: valid.type,
+    amount: valid.amount,
+    date: valid.date,
+    accountId: account.id,
+    note: valid.note
+  }
+
+  if (valid.type === 'transfer') {
+    const to = usableAccount(db, valid.toAccountId, valid.date, current)
+    return {
+      ...base,
+      title: valid.title || defaultTransferTitle(account, to),
+      toAccountId: to.id,
+      categoryId: null
+    }
   }
 
   const category = getCategory(db, valid.categoryId)
@@ -103,16 +155,22 @@ function resolve(
   if (category.isArchived && category.id !== current?.categoryId) {
     throw new AppError('validation', `“${category.name}” is archived. Restore it to use it again.`)
   }
-
-  return { ...valid, title: valid.title || category.name }
+  return {
+    ...base,
+    title: valid.title || category.name,
+    toAccountId: null,
+    categoryId: category.id
+  }
 }
+
+const editableTypes: readonly TransactionType[] = ['income', 'expense', 'transfer']
 
 export function createTransaction(db: Database, input: TransactionInput): Transaction {
   const tx = resolve(db, input)
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO transactions (date, title, amount, type, account_id, category_id, note)
-       VALUES (@date, @title, @amount, @type, @accountId, @categoryId, @note)`
+      `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, category_id, note)
+       VALUES (@date, @title, @amount, @type, @accountId, @toAccountId, @categoryId, @note)`
     )
     .run(tx)
   return getTransaction(db, Number(lastInsertRowid))
@@ -120,14 +178,17 @@ export function createTransaction(db: Database, input: TransactionInput): Transa
 
 export function updateTransaction(db: Database, id: number, input: TransactionInput): Transaction {
   const current = getTransaction(db, id)
-  if (current.type !== 'income' && current.type !== 'expense') {
-    throw new AppError('validation', 'Only income and expenses can be edited here.')
+  if (!editableTypes.includes(current.type)) {
+    throw new AppError(
+      'validation',
+      'Savings and loan movements are edited from their own screens.'
+    )
   }
   const tx = resolve(db, input, current)
   db.prepare(
     `UPDATE transactions
-     SET date = @date, title = @title, amount = @amount, type = @type,
-         account_id = @accountId, category_id = @categoryId, note = @note
+     SET date = @date, title = @title, amount = @amount, type = @type, account_id = @accountId,
+         to_account_id = @toAccountId, category_id = @categoryId, note = @note
      WHERE id = @id`
   ).run({ ...tx, id })
   return getTransaction(db, id)

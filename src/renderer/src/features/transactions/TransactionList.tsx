@@ -64,7 +64,7 @@ function TransactionRow({
   const account = lookup.accounts.get(tx.accountId)
   const toAccount = tx.toAccountId ? lookup.accounts.get(tx.toAccountId) : undefined
   const sign = direction(tx, accountFilter)
-  const editable = tx.type === 'income' || tx.type === 'expense'
+  const editable = tx.type === 'income' || tx.type === 'expense' || tx.type === 'transfer'
 
   const icon = category
     ? categoryIconComponents[category.icon]
