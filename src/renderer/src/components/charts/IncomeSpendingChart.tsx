@@ -14,6 +14,7 @@ import type { PeriodTotals } from '@shared/stats'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { overviewParams } from '@renderer/features/overview/period'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { cn } from '@renderer/lib/utils'
 
 interface Month {
   start: IsoDate
@@ -40,7 +41,15 @@ function LegendKey({ color, label }: { color: string; label: string }): React.JS
  * so the chart doesn't rely on green and red alone (they're too close for some colour-blind
  * eyes). Clicking a month opens it in Overview.
  */
-export function YearChart({ months }: { months: PeriodTotals[] }): React.JSX.Element {
+export function IncomeSpendingChart({
+  months,
+  title,
+  className
+}: {
+  months: PeriodTotals[]
+  title: string
+  className?: string
+}): React.JSX.Element {
   const money = useCurrency()
   const navigate = useNavigate()
   const data: Month[] = months.map((m) => ({
@@ -55,10 +64,10 @@ export function YearChart({ months }: { months: PeriodTotals[] }): React.JSX.Ele
   }
 
   return (
-    <Card>
+    <Card className={cn('flex flex-col', className)}>
       <CardHeader className="flex-wrap">
         <div>
-          <CardTitle>Income and spending by month</CardTitle>
+          <CardTitle>{title}</CardTitle>
           <CardDescription>
             Income above the line, spending below. Click a month to open it.
           </CardDescription>
@@ -69,8 +78,9 @@ export function YearChart({ months }: { months: PeriodTotals[] }): React.JSX.Ele
         </p>
       </CardHeader>
 
-      <div aria-hidden className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
+      {/* Fills the card when a taller neighbour stretches it; never shorter than minHeight. */}
+      <div aria-hidden className="flex-1">
+        <ResponsiveContainer width="100%" height="100%" minHeight={288}>
           <BarChart
             data={data}
             stackOffset="sign"
@@ -150,7 +160,7 @@ export function YearChart({ months }: { months: PeriodTotals[] }): React.JSX.Ele
       </div>
 
       <table className="sr-only">
-        <caption>Income and spending by month</caption>
+        <caption>{title}</caption>
         <thead>
           <tr>
             <th scope="col">Month</th>

@@ -72,9 +72,9 @@ export function DailySpendingChart({
         </div>
       </CardHeader>
 
-      {/* Grows to the height of the panel beside it. */}
-      <div aria-hidden className="min-h-60 flex-1">
-        <ResponsiveContainer width="100%" height="100%">
+      {/* Fills the card when a taller neighbour stretches it; never shorter than minHeight. */}
+      <div aria-hidden className="flex-1">
+        <ResponsiveContainer width="100%" height="100%" minHeight={240}>
           <BarChart data={data} margin={{ top: 20, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis

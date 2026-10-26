@@ -539,8 +539,7 @@ export function OnboardingPage(): React.JSX.Element | null {
                   variant: 'success'
                 }
           )
-          // Accounts shows what was just set up; the dashboard is a placeholder until step 18.
-          navigate(how === 'skipped' ? '/' : '/accounts', { replace: true })
+          navigate('/', { replace: true })
         },
         onError: (error) => {
           setFinishing(false)

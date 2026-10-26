@@ -7,42 +7,12 @@ import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { AccountDialog, type AccountDialogTarget } from '@renderer/features/accounts/AccountDialog'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
+import { BalanceBanner } from '@renderer/features/accounts/BalanceBanner'
 import { useAccounts, useArchiveAccount } from '@renderer/features/accounts/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
-
-function BalanceBanner({ accounts }: { accounts: Account[] }): React.JSX.Element {
-  const money = useCurrency()
-  const total = accounts.reduce((sum, a) => sum + a.balance, 0)
-  const onHand = accounts.filter((a) => a.type !== 'credit').reduce((sum, a) => sum + a.balance, 0)
-  const owed = accounts
-    .filter((a) => a.type === 'credit')
-    .reduce((sum, a) => sum + Math.max(0, -a.balance), 0)
-
-  return (
-    <section
-      aria-label="Total balance"
-      className="mb-8 flex flex-wrap items-end justify-between gap-6 rounded-panel bg-banner p-7 text-on-banner"
-    >
-      <div>
-        <p className="text-on-banner/80">Total balance</p>
-        <p className="amount mt-1 text-hero">{money.format(total)}</p>
-      </div>
-      <dl className="flex gap-10">
-        <div>
-          <dt className="text-sm text-on-banner/80">Cards and cash</dt>
-          <dd className="amount mt-0.5 text-lg">{money.format(onHand)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-on-banner/80">Owed on credit cards</dt>
-          <dd className="amount mt-0.5 text-lg">{money.format(owed)}</dd>
-        </div>
-      </dl>
-    </section>
-  )
-}
 
 function CreditUsage({ account }: { account: Account }): React.JSX.Element {
   const money = useCurrency()
@@ -211,7 +181,7 @@ export function AccountsPage(): React.JSX.Element {
 
       {active.length > 0 && (
         <>
-          <BalanceBanner accounts={active} />
+          <BalanceBanner accounts={active} className="mb-8" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {active.map((account) => (
               <AccountCard

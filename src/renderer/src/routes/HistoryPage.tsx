@@ -1,12 +1,12 @@
 import { useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight, History, Plus } from 'lucide-react'
 import { today, type PeriodKind } from '@shared/dates'
+import { IncomeSpendingChart } from '@renderer/components/charts/IncomeSpendingChart'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
 import { HeatLegend, PeriodGrid } from '@renderer/features/history/PeriodGrid'
-import { YearChart } from '@renderer/features/history/YearChart'
 import {
   historyParams,
   readHistory,
@@ -143,7 +143,10 @@ export function HistoryPage(): React.JSX.Element {
           ) : (
             <>
               <div className="mt-6">
-                <YearChart months={months.data ?? []} />
+                <IncomeSpendingChart
+                  title="Income and spending by month"
+                  months={months.data ?? []}
+                />
               </div>
               <section aria-labelledby="history-grid" className="mt-8">
                 <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
