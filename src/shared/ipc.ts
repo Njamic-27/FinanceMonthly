@@ -1,3 +1,4 @@
+import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { SerializedError } from './errors'
 import type { Settings, SettingsPatch } from './settings'
 
@@ -9,6 +10,13 @@ import type { Settings, SettingsPatch } from './settings'
 export interface IpcContract {
   'settings:get': () => Settings
   'settings:update': (patch: SettingsPatch) => Settings
+
+  'categories:list': () => Category[]
+  'categories:create': (input: CategoryCreate) => Category
+  'categories:update': (id: number, patch: CategoryUpdate) => Category
+  'categories:delete': (id: number) => void
+  /** Moves everything in the source category to the target and deletes the source. */
+  'categories:merge': (sourceId: number, targetId: number) => Category
 }
 
 export type IpcChannel = keyof IpcContract
@@ -21,7 +29,12 @@ export type IpcResponse<T> = { ok: true; data: T } | { ok: false; error: Seriali
 /** Runtime allowlist for the preload. Typed as a Record so a missing channel fails to compile. */
 const channels: Record<IpcChannel, true> = {
   'settings:get': true,
-  'settings:update': true
+  'settings:update': true,
+  'categories:list': true,
+  'categories:create': true,
+  'categories:update': true,
+  'categories:delete': true,
+  'categories:merge': true
 }
 
 export function isIpcChannel(value: unknown): value is IpcChannel {

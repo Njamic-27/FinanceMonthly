@@ -39,7 +39,7 @@ export function SegmentedControl<V extends string>({
       {options.map(({ value: optionValue, label, icon: Icon }) => (
         <label
           key={optionValue}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-ink-muted transition-colors select-none hover:text-ink has-checked:bg-surface has-checked:text-ink has-checked:shadow-[0_1px_2px_rgb(23_38_58/0.12)] has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-primary [&_svg]:size-4"
+          className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-ink-muted transition-colors select-none hover:text-ink has-checked:bg-surface has-checked:text-ink has-checked:shadow-[0_1px_2px_rgb(23_38_58/0.12)] has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-primary [&_svg]:size-4"
         >
           <input
             type="radio"

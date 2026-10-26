@@ -49,6 +49,7 @@ beforeEach(() => {
          (2, 'Wallet', 'cash', 0, '2026-10-01')`)
   run(`INSERT INTO accounts (id, name, type, opening_balance, opening_date, credit_limit, statement_day, payment_due_day)
        VALUES (3, 'Mastercard', 'credit', -20000, '2026-10-01', 300000, 25, 15)`)
+  run('DELETE FROM categories') // fixed ids below instead of the seeded defaults
   run(`INSERT INTO categories (id, name, type) VALUES
          (1, 'Groceries', 'expense'), (2, 'Salary', 'income'), (3, 'Subscriptions', 'expense')`)
 })

@@ -7,10 +7,12 @@ import { queryClient } from './lib/queryClient'
 import { UiPreview } from './dev/UiPreview'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
+import { CategoriesPage } from './routes/CategoriesPage'
 import { SettingsPage } from './routes/SettingsPage'
 
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
+  '/categories': CategoriesPage,
   '/settings': SettingsPage
 }
 
