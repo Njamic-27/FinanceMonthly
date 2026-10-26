@@ -9,6 +9,7 @@ import {
   createTransaction,
   deleteTransaction,
   getTransaction,
+  listTransactions,
   updateTransaction
 } from './transactions'
 
@@ -230,5 +231,113 @@ describe('deleteTransaction', () => {
     expectAppError(() => getTransaction(db, id), 'not_found')
     expect(getAccount(db, debit, '2026-10-26').balance).toBe(100000)
     expectAppError(() => deleteTransaction(db, id), 'not_found')
+  })
+})
+
+describe('listTransactions', () => {
+  let cash: number
+
+  beforeEach(() => {
+    cash = createAccount(db, {
+      type: 'cash',
+      name: 'Wallet',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'olive'
+    }).id
+    createTransaction(db, expense({ date: '2026-10-01', title: 'Lidl', amount: 4250 }))
+    createTransaction(
+      db,
+      expense({ date: '2026-10-01', title: 'Bakery', amount: 350, note: '50% off' })
+    )
+    createTransaction(
+      db,
+      expense({
+        date: '2026-10-02',
+        title: 'Pizza',
+        amount: 1800,
+        categoryId: categoryId('Eating out'),
+        accountId: card
+      })
+    )
+    createTransaction(
+      db,
+      expense({
+        type: 'income',
+        date: '2026-10-05',
+        title: 'October salary',
+        amount: 250000,
+        categoryId: categoryId('Salary')
+      })
+    )
+    db.prepare(
+      `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id)
+       VALUES ('2026-10-03', 'ATM', 5000, 'transfer', ?, ?)`
+    ).run(debit, cash)
+  })
+
+  const titles = (query: Parameters<typeof listTransactions>[1] = {}): string[] =>
+    listTransactions(db, query).items.map((t) => t.title)
+
+  it('lists newest first, latest added first within a day', () => {
+    expect(titles()).toEqual(['October salary', 'ATM', 'Pizza', 'Bakery', 'Lidl'])
+  })
+
+  it('summarises income and expenses (not transfers) over all matches', () => {
+    expect(listTransactions(db).summary).toEqual({ count: 5, income: 250000, expenses: 6400 })
+  })
+
+  it('totals each day on the page', () => {
+    expect(listTransactions(db).dayTotals).toEqual([
+      { date: '2026-10-05', income: 250000, expenses: 0 },
+      { date: '2026-10-03', income: 0, expenses: 0 },
+      { date: '2026-10-02', income: 0, expenses: 1800 },
+      { date: '2026-10-01', income: 0, expenses: 4600 }
+    ])
+  })
+
+  it('pages without gaps or repeats, even inside a day, with full day totals', () => {
+    const first = listTransactions(db, { limit: 4 })
+    expect(first.items.map((t) => t.title)).toEqual(['October salary', 'ATM', 'Pizza', 'Bakery'])
+    expect(first.dayTotals.at(-1)).toEqual({ date: '2026-10-01', income: 0, expenses: 4600 })
+    expect(first.next).not.toBeNull()
+
+    const second = listTransactions(db, { limit: 4, after: first.next ?? undefined })
+    expect(second.items.map((t) => t.title)).toEqual(['Lidl'])
+    expect(second.next).toBeNull()
+    expect(second.summary).toBeNull()
+  })
+
+  it('filters by date range, category and type', () => {
+    expect(titles({ from: '2026-10-02', to: '2026-10-03' })).toEqual(['ATM', 'Pizza'])
+    expect(titles({ categoryId: categoryId('Groceries') })).toEqual(['Bakery', 'Lidl'])
+    expect(titles({ kind: 'income' })).toEqual(['October salary'])
+    expect(titles({ kind: 'transfer' })).toEqual(['ATM'])
+  })
+
+  it('matches transfers on either account', () => {
+    expect(titles({ accountId: cash })).toEqual(['ATM'])
+    expect(titles({ accountId: card })).toEqual(['Pizza'])
+    expect(titles({ accountId: debit })).toEqual(['October salary', 'ATM', 'Bakery', 'Lidl'])
+  })
+
+  it('searches title, note and category name, ignoring case', () => {
+    expect(titles({ search: 'lidl' })).toEqual(['Lidl'])
+    expect(titles({ search: 'eating' })).toEqual(['Pizza'])
+    expect(titles({ search: '50%' })).toEqual(['Bakery'])
+    expect(titles({ search: '5_%' })).toEqual([])
+  })
+
+  it('also matches an exact amount', () => {
+    expect(titles({ search: '18', amount: 1800 })).toEqual(['Pizza'])
+  })
+
+  it('combines filters', () => {
+    expect(titles({ search: 'a', kind: 'expense', accountId: debit })).toEqual(['Bakery'])
+    expect(listTransactions(db, { kind: 'expense', accountId: debit }).summary).toEqual({
+      count: 2,
+      income: 0,
+      expenses: 4600
+    })
   })
 })

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ArrowDownLeft, ArrowUpRight, CircleAlert, Wallet } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CircleAlert, Copy, Wallet } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Category } from '@shared/categories'
 import { formatDate, today, type IsoDate } from '@shared/dates'
@@ -41,6 +41,7 @@ import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import {
   closeTransactionDialog,
+  duplicateTransaction,
   useTransactionDialogTarget,
   type TransactionDialogTarget,
   type TransactionPrefill
@@ -91,14 +92,19 @@ function TransactionForm({
       ? existing.type
       : (prefill?.type ?? 'expense')
   )
-  const [amount, setAmount] = useState(existing ? money.toInput(existing.amount) : '')
-  const [title, setTitle] = useState(existing?.title ?? '')
-  const [categoryId, setCategoryId] = useState(existing?.categoryId?.toString() ?? '')
+  const [amount, setAmount] = useState(() => {
+    const cents = existing?.amount ?? prefill?.amount
+    return cents === undefined ? '' : money.toInput(cents)
+  })
+  const [title, setTitle] = useState(existing?.title ?? prefill?.title ?? '')
+  const [categoryId, setCategoryId] = useState(
+    (existing?.categoryId ?? prefill?.categoryId)?.toString() ?? ''
+  )
   const [accountId, setAccountId] = useState(
     existing ? String(existing.accountId) : defaultAccountId(accounts, prefill)
   )
   const [date, setDate] = useState<IsoDate>(existing?.date ?? prefill?.date ?? today())
-  const [note, setNote] = useState(existing?.note ?? '')
+  const [note, setNote] = useState(existing?.note ?? prefill?.note ?? '')
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -359,14 +365,24 @@ function TransactionForm({
 
       <DialogFooter className={existing ? 'justify-between' : undefined}>
         {existing && (
-          <Button
-            variant="ghost"
-            className="text-expense hover:text-expense"
-            disabled={pending}
-            onClick={() => setConfirmDelete(true)}
-          >
-            Delete…
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              className="text-expense hover:text-expense"
+              disabled={pending}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Delete…
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={pending}
+              onClick={() => duplicateTransaction(existing)}
+            >
+              <Copy />
+              Duplicate
+            </Button>
+          </div>
         )}
         <div className="flex gap-2">
           <DialogClose asChild>

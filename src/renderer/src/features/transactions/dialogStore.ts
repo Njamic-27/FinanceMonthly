@@ -1,11 +1,20 @@
 import { useSyncExternalStore } from 'react'
 import type { IsoDate } from '@shared/dates'
+import type { Cents } from '@shared/money'
+import type { Transaction } from '@shared/transactions'
 
-/** Values a screen can fill in before opening "Add transaction" (e.g. the Calendar's day). */
+/**
+ * Values a screen can fill in before opening "Add transaction": the Calendar's day, the
+ * filtered account, or a whole transaction to duplicate.
+ */
 export interface TransactionPrefill {
   type?: 'income' | 'expense'
   date?: IsoDate
   accountId?: number
+  categoryId?: number
+  amount?: Cents
+  title?: string
+  note?: string | null
 }
 
 export type TransactionDialogTarget =
@@ -36,4 +45,20 @@ export function useTransactionDialogTarget(): TransactionDialogTarget | null {
     },
     () => target
   )
+}
+
+/** Opens "Add transaction" with a copy of an income or expense, dated today. */
+export function duplicateTransaction(tx: Transaction): void {
+  if (tx.type !== 'income' && tx.type !== 'expense') return
+  openTransactionDialog({
+    kind: 'new',
+    prefill: {
+      type: tx.type,
+      title: tx.title,
+      amount: tx.amount,
+      accountId: tx.accountId,
+      categoryId: tx.categoryId ?? undefined,
+      note: tx.note
+    }
+  })
 }

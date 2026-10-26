@@ -1,16 +1,43 @@
 import {
+  keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
   type UseMutationResult,
   type UseQueryResult
 } from '@tanstack/react-query'
-import type { Transaction, TransactionInput } from '@shared/transactions'
+import type {
+  Transaction,
+  TransactionInput,
+  TransactionPage,
+  TransactionQuery
+} from '@shared/transactions'
 import { invoke } from '@renderer/lib/api'
 
 export const transactionKeys = {
   all: ['transactions'] as const,
-  detail: (id: number) => ['transactions', id] as const
+  detail: (id: number) => ['transactions', id] as const,
+  list: (query: TransactionQuery) => ['transactions', 'list', query] as const
+}
+
+type Cursor = TransactionPage['next']
+
+/** The transaction list for some filters, a page at a time (`fetchNextPage` for more). */
+export function useTransactionList(
+  query: Omit<TransactionQuery, 'after'>
+): UseInfiniteQueryResult<InfiniteData<TransactionPage, Cursor>> {
+  return useInfiniteQuery({
+    queryKey: transactionKeys.list(query),
+    queryFn: ({ pageParam }) =>
+      invoke('transactions:list', pageParam ? { ...query, after: pageParam } : query),
+    initialPageParam: null as Cursor,
+    getNextPageParam: (page) => page.next,
+    // Keep showing the old results while new filters load, instead of flashing empty.
+    placeholderData: keepPreviousData
+  })
 }
 
 export function useTransaction(id: number | null): UseQueryResult<Transaction> {

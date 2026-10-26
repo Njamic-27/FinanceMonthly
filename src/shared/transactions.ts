@@ -59,3 +59,45 @@ export const transactionInputSchema = z
   })
   .strict()
 export type TransactionInput = z.input<typeof transactionInputSchema>
+
+/** The type filter on the Transactions screen. */
+export const transactionKinds = ['income', 'expense', 'transfer'] as const
+export type TransactionKind = (typeof transactionKinds)[number]
+
+const isoDate = z.string().refine(isIsoDate, 'Choose a date')
+
+/** Filters and paging for the transaction list. Results are newest first. */
+export const transactionQuerySchema = z
+  .object({
+    /** Matches title, note or category name. */
+    search: z.string().trim().max(100).optional(),
+    /** Also match this exact amount (the renderer parses the search text with the locale). */
+    amount: z.number().int().positive().max(MAX_CENTS).optional(),
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    /** Transfers match on either side. */
+    accountId: transactionIdSchema.optional(),
+    categoryId: transactionIdSchema.optional(),
+    kind: z.enum(transactionKinds).optional(),
+    /** Continue after this row (the last one of the previous page). */
+    after: z.object({ date: isoDate, id: transactionIdSchema }).optional(),
+    limit: z.number().int().min(1).max(500).optional()
+  })
+  .strict()
+export type TransactionQuery = z.input<typeof transactionQuerySchema>
+
+export interface DayTotal {
+  date: IsoDate
+  income: Cents
+  expenses: Cents
+}
+
+export interface TransactionPage {
+  items: Transaction[]
+  /** Pass as `after` to get the next page; null when there is none. */
+  next: { date: IsoDate; id: number } | null
+  /** Income and expense totals for each day on this page, over all of that day's matches. */
+  dayTotals: DayTotal[]
+  /** Totals over everything matching the filters; only on the first page. */
+  summary: { count: number; income: Cents; expenses: Cents } | null
+}
