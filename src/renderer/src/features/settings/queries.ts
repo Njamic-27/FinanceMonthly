@@ -16,10 +16,28 @@ export function useSettings(): UseQueryResult<Settings> {
   return useQuery({ queryKey: settingsKeys.all, queryFn: () => invoke('settings:get') })
 }
 
-export function useUpdateSettings(): UseMutationResult<Settings, Error, SettingsPatch> {
+/**
+ * Applies the patch to the cached settings straight away, so controls bound to a setting
+ * respond instantly; rolls back if main rejects it.
+ */
+export function useUpdateSettings(): UseMutationResult<
+  Settings,
+  Error,
+  SettingsPatch,
+  { previous?: Settings }
+> {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (patch: SettingsPatch) => invoke('settings:update', patch),
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: settingsKeys.all })
+      const previous = queryClient.getQueryData<Settings>(settingsKeys.all)
+      if (previous) queryClient.setQueryData(settingsKeys.all, { ...previous, ...patch })
+      return { previous }
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) queryClient.setQueryData(settingsKeys.all, context.previous)
+    },
     onSuccess: (settings) => queryClient.setQueryData(settingsKeys.all, settings)
   })
 }

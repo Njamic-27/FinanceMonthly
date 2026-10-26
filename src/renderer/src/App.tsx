@@ -7,6 +7,12 @@ import { queryClient } from './lib/queryClient'
 import { UiPreview } from './dev/UiPreview'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
+import { SettingsPage } from './routes/SettingsPage'
+
+/** Screens that are built; the rest show their placeholder. Keyed by screen path. */
+const pages: Record<string, () => React.JSX.Element> = {
+  '/settings': SettingsPage
+}
 
 function App(): React.JSX.Element {
   return (
@@ -15,13 +21,16 @@ function App(): React.JSX.Element {
         <Routes>
           <Route path="/welcome" element={<OnboardingPage />} />
           <Route element={<AppShell />}>
-            {allScreens.map((screen) => (
-              <Route
-                key={screen.path}
-                path={screen.path}
-                element={<PlaceholderPage screen={screen} />}
-              />
-            ))}
+            {allScreens.map((screen) => {
+              const Page = pages[screen.path]
+              return (
+                <Route
+                  key={screen.path}
+                  path={screen.path}
+                  element={Page ? <Page /> : <PlaceholderPage screen={screen} />}
+                />
+              )
+            })}
             {import.meta.env.DEV && <Route path="/dev/ui" element={<UiPreview />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
