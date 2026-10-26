@@ -105,7 +105,7 @@ export function SummaryCards({
   against
 }: {
   totals: Totals
-  /** Totals of the comparison period; undefined while loading. */
+  /** Totals of the comparison period; undefined while loading or when there's nothing to compare. */
   previous: Totals | undefined
   /** What `previous` covers, as it reads after "more than". */
   against: string

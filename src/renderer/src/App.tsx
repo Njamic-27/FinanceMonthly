@@ -9,6 +9,7 @@ import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CategoriesPage } from './routes/CategoriesPage'
+import { HistoryPage } from './routes/HistoryPage'
 import { OverviewPage } from './routes/OverviewPage'
 import { TransactionsPage } from './routes/TransactionsPage'
 import { SettingsPage } from './routes/SettingsPage'
@@ -23,6 +24,7 @@ const UiPreview = import.meta.env.DEV
 const pages: Record<string, () => React.JSX.Element> = {
   '/transactions': TransactionsPage,
   '/overview': OverviewPage,
+  '/history': HistoryPage,
   '/accounts': AccountsPage,
   '/categories': CategoriesPage,
   '/settings': SettingsPage

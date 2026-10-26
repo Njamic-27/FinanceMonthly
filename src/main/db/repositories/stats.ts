@@ -183,3 +183,15 @@ export function getLargest(db: Database, input: LargestQuery): Transaction[] {
     .all({ from, to, type, limit }) as TransactionRow[]
   return rows.map(toTransaction)
 }
+
+/** The first day with any data: the earliest transaction or account opening; null when empty. */
+export function getFirstDate(db: Database): IsoDate | null {
+  const { first } = db
+    .prepare(
+      `SELECT min(date) AS first FROM (
+         SELECT min(date) AS date FROM transactions
+         UNION ALL SELECT min(opening_date) FROM accounts)`
+    )
+    .get() as { first: IsoDate | null }
+  return first
+}

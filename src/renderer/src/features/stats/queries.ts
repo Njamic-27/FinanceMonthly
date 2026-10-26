@@ -8,6 +8,7 @@ import type {
   StatsSeriesQuery,
   Totals
 } from '@shared/stats'
+import type { IsoDate } from '@shared/dates'
 import type { Transaction } from '@shared/transactions'
 import { useSettings } from '@renderer/features/settings/queries'
 import { invoke } from '@renderer/lib/api'
@@ -20,7 +21,8 @@ export const statsKeys = {
   series: (query: StatsSeriesQuery, weekStart: number | undefined) =>
     ['stats', 'series', query, weekStart] as const,
   categories: (query: CategoryTotalsQuery) => ['stats', 'categories', query] as const,
-  largest: (query: LargestQuery) => ['stats', 'largest', query] as const
+  largest: (query: LargestQuery) => ['stats', 'largest', query] as const,
+  firstDate: ['stats', 'firstDate'] as const
 }
 
 /** Income, expenses, savings and loan movements from `from` to `to`. */
@@ -62,4 +64,9 @@ export function useLargest(query: LargestQuery): UseQueryResult<Transaction[]> {
     queryFn: () => invoke('stats:largest', query),
     placeholderData: keepPreviousData
   })
+}
+
+/** The earliest transaction or account opening date; null with no data yet. */
+export function useFirstDate(): UseQueryResult<IsoDate | null> {
+  return useQuery({ queryKey: statsKeys.firstDate, queryFn: () => invoke('stats:firstDate') })
 }

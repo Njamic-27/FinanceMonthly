@@ -6,7 +6,7 @@ import { createTestDb } from '../testing'
 import { createAccount, listAccounts, setAccountArchived } from './accounts'
 import { listCategories, updateCategory } from './categories'
 import { updateSettings } from './settings'
-import { getCategoryTotals, getLargest, getSeries, getTotals } from './stats'
+import { getCategoryTotals, getFirstDate, getLargest, getSeries, getTotals } from './stats'
 import { createTransaction } from './transactions'
 
 let db: Database.Database
@@ -336,5 +336,20 @@ describe('getLargest', () => {
       ['2026-10-01', 4000],
       ['2026-10-03', 4000]
     ])
+  })
+})
+
+describe('getFirstDate', () => {
+  it('is the earliest account opening or transaction', () => {
+    expect(getFirstDate(db)).toBe('2026-09-01')
+    db.prepare(
+      `INSERT INTO transactions (date, title, amount, type, account_id, category_id)
+       VALUES ('2025-12-24', 'Before', 100, 'expense', ?, ?)`
+    ).run(debit, categoryId('Groceries'))
+    expect(getFirstDate(db)).toBe('2025-12-24')
+  })
+
+  it('is null with no data', () => {
+    expect(getFirstDate(createTestDb())).toBeNull()
   })
 })

@@ -1,5 +1,6 @@
 import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
+import type { IsoDate } from './dates'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
 import type { RecurringItem, RecurringItemInput } from './recurring'
@@ -61,6 +62,8 @@ export interface IpcContract {
   'stats:categories': (query: CategoryTotalsQuery) => CategoryTotal[]
   /** The largest income or expense transactions, largest first. */
   'stats:largest': (query: LargestQuery) => Transaction[]
+  /** The earliest transaction or account opening date; null with no data. */
+  'stats:firstDate': () => IsoDate | null
 
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
@@ -100,6 +103,7 @@ const channels: Record<IpcChannel, true> = {
   'stats:series': true,
   'stats:categories': true,
   'stats:largest': true,
+  'stats:firstDate': true,
   'dev:seed': true,
   'dev:reset': true
 }

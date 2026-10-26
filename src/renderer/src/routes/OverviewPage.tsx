@@ -25,6 +25,7 @@ import { SummaryCards } from '@renderer/features/overview/SummaryCards'
 import { useSettings } from '@renderer/features/settings/queries'
 import {
   useCategoryTotals,
+  useFirstDate,
   useLargest,
   useSeries,
   useTotals
@@ -106,6 +107,9 @@ export function OverviewPage(): React.JSX.Element {
   const period = readOverviewPeriod(params, now, weekStart)
   const { start: from, end: to } = period.range
   const comparison = comparisonFor(period, now, weekStart)
+  // A period from before your data starts would only show things like "100% more".
+  const firstDate = useFirstDate().data
+  const comparable = !!firstDate && firstDate <= comparison.range.start
   const label = formatPeriod(period.kind, period.range, money.locale)
 
   const go = (next: OverviewPeriod): void =>
@@ -187,7 +191,7 @@ export function OverviewPage(): React.JSX.Element {
         <div className={cn('transition-opacity', stale && 'opacity-60')}>
           <SummaryCards
             totals={totals.data}
-            previous={previous.data}
+            previous={comparable ? previous.data : undefined}
             against={comparisonLabel(period, comparison, money.locale)}
           />
 
