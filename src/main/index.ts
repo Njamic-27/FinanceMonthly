@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { closeDatabase, databasePath, initDatabase } from './db'
 
 function createWindow(): void {
   // Create the browser window.
@@ -39,10 +40,24 @@ function createWindow(): void {
   }
 }
 
+// Only one copy of the app may run, so the database is never opened twice.
+// Launching it again brings the existing window to the front instead.
+const isPrimaryInstance = app.requestSingleInstanceLock()
+if (!isPrimaryInstance) app.quit()
+
+app.on('second-instance', () => {
+  const window = BrowserWindow.getAllWindows()[0]
+  if (!window) return
+  if (window.isMinimized()) window.restore()
+  window.focus()
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  if (!isPrimaryInstance) return
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.financije.app')
 
@@ -52,6 +67,17 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  try {
+    initDatabase()
+  } catch (error) {
+    dialog.showErrorBox(
+      'Financije could not open its data',
+      `${error instanceof Error ? error.message : String(error)}\n\nDatabase file: ${databasePath()}`
+    )
+    app.quit()
+    return
+  }
 
   createWindow()
 
@@ -71,5 +97,6 @@ app.on('window-all-closed', () => {
   }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+app.on('will-quit', () => {
+  closeDatabase()
+})

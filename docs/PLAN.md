@@ -179,8 +179,8 @@ Current balance = `starting_amount + Σ savings_deposit − Σ savings_withdrawa
 | due_date                      | TEXT                 |                           |
 | amount                        | INTEGER              |                           |
 | principal_part, interest_part | INTEGER              | from annuity amortization |
-| paid_transaction_id           | INTEGER NULL FK      | set when paid             |
 
+An installment is paid when a transaction links to it via `transactions.loan_installment_id` (unique), so paid status has a single source of truth.
 Outstanding: personal = principal − Σ repayments; bank = Σ principal_part of unpaid rows.
 
 ### installment_plans — credit-card purchases split into N rates
