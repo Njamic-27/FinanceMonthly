@@ -15,7 +15,9 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "install-electron && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win"
+    "build:win": "npm run build && electron-builder --win",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
@@ -42,6 +44,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
     "electron": "^44.7.2",
     "electron-builder": "^26.15.3",
     "electron-vite": "^6.0.0",
@@ -58,6 +61,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^8.3.4",
+    "vitest": "^5.0.5",
     "zod": "^4.6.7"
   },
   "productName": "Financije",

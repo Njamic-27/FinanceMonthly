@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Monitor, Moon, Plus, Sun, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -31,14 +32,49 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import type { ThemeMode } from '@shared/settings'
 import { useSettings, useUpdateSettings } from '@renderer/features/settings/queries'
+import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 
 const moneyKinds = [
-  { name: 'Income', amount: '+€2,350.00', className: 'bg-income-soft text-income' },
-  { name: 'Expenses', amount: '−€1,486.25', className: 'bg-expense-soft text-expense' },
-  { name: 'Savings', amount: '€3,100.00', className: 'bg-savings-soft text-savings' },
-  { name: 'Loans', amount: '€640.00 owed', className: 'bg-loan-soft text-loan' }
-]
+  { name: 'Income', cents: 235000, sign: 'exceptZero', className: 'bg-income-soft text-income' },
+  { name: 'Expenses', cents: -148625, sign: 'auto', className: 'bg-expense-soft text-expense' },
+  { name: 'Savings', cents: 310000, sign: 'auto', className: 'bg-savings-soft text-savings' },
+  { name: 'Loans owed', cents: 64000, sign: 'auto', className: 'bg-loan-soft text-loan' }
+] as const
+
+function AmountParsingDemo(): React.JSX.Element {
+  const money = useCurrency()
+  const [input, setInput] = useState('1.234,56')
+  const cents = money.parse(input)
+  return (
+    <Card>
+      <CardTitle className="mb-1">Amount input</CardTitle>
+      <CardDescription className="mb-4">
+        Type an amount the way you would in a form. Uses the currency and locale from settings (
+        {money.currency}, {money.locale}).
+      </CardDescription>
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        aria-label="Amount to parse"
+        className="amount"
+      />
+      <p className="mt-3 text-sm">
+        {cents === null ? (
+          <span className="text-expense">Not an amount</span>
+        ) : (
+          <>
+            <span className="amount text-base">{money.format(cents)}</span>
+            <span className="text-ink-muted">
+              {' '}
+              · stored as {cents} cents · edits as “{money.toInput(cents)}”
+            </span>
+          </>
+        )}
+      </p>
+    </Card>
+  )
+}
 
 function TransactionFields(): React.JSX.Element {
   return (
@@ -91,6 +127,7 @@ function TransactionFields(): React.JSX.Element {
 
 export function UiPreview(): React.JSX.Element {
   const settings = useSettings()
+  const money = useCurrency()
   const updateSettings = useUpdateSettings()
   const showError = (error: Error): void =>
     toast({ title: 'Settings not saved', description: error.message, variant: 'error' })
@@ -126,7 +163,7 @@ export function UiPreview(): React.JSX.Element {
 
       <section className="mb-6 rounded-panel bg-banner p-7 text-on-banner">
         <p className="font-semibold opacity-80">Total balance</p>
-        <p className="amount mt-1 text-hero">€4,218.60</p>
+        <p className="amount mt-1 text-hero">{money.format(421860)}</p>
         <p className="mt-3 text-sm opacity-80">
           Across Visa Debit, Mastercard Gold and Cash wallet
         </p>
@@ -136,7 +173,7 @@ export function UiPreview(): React.JSX.Element {
         {moneyKinds.map((kind) => (
           <div key={kind.name} className={`rounded-control px-4 py-3 ${kind.className}`}>
             <p className="text-sm font-semibold">{kind.name}</p>
-            <p className="amount mt-0.5 text-lg">{kind.amount}</p>
+            <p className="amount mt-0.5 text-lg">{money.format(kind.cents, kind.sign)}</p>
           </div>
         ))}
       </div>
@@ -213,7 +250,7 @@ export function UiPreview(): React.JSX.Element {
                 onClick={() =>
                   toast({
                     title: 'Netflix renews tomorrow',
-                    description: '€13.99 will be charged to Mastercard Gold.'
+                    description: `${money.format(1399)} will be charged to Mastercard Gold.`
                   })
                 }
               >
@@ -233,6 +270,8 @@ export function UiPreview(): React.JSX.Element {
               </Button>
             </div>
           </Card>
+
+          <AmountParsingDemo />
 
           <Card>
             <CardTitle className="mb-1">Stored settings</CardTitle>
@@ -270,11 +309,11 @@ export function UiPreview(): React.JSX.Element {
               </TabsList>
               <TabsContent value="week">
                 <p className="text-ink-muted">Spent this week</p>
-                <p className="amount text-amount">€312.40</p>
+                <p className="amount text-amount">{money.format(31240)}</p>
               </TabsContent>
               <TabsContent value="month">
                 <p className="text-ink-muted">Spent in October</p>
-                <p className="amount text-amount">€1,486.25</p>
+                <p className="amount text-amount">{money.format(148625)}</p>
               </TabsContent>
             </Tabs>
           </Card>
