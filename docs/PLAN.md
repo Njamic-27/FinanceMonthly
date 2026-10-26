@@ -106,12 +106,14 @@ Seeded defaults: Salary, Bonus, Other income / Groceries, Rent, Utilities, Trans
 | loan_id                | INTEGER NULL FK              | loan_* types                                                                                    |
 | loan_installment_id    | INTEGER NULL FK              | when paying a scheduled installment                                                             |
 | installment_plan_id    | INTEGER NULL FK              | credit-card installment payment                                                                 |
+| planned_date           | TEXT NULL                    | due date of the planned item this transaction settles (may differ from `date` if paid late)     |
 | note                   | TEXT NULL                    |                                                                                                 |
 | created_at, updated_at | TEXT                         |                                                                                                 |
 
 Sign rules: `+` income, savings_withdrawal, loan_in · `−` expense, savings_deposit, loan_out · transfer: `−` account_id, `+` to_account_id.
 Statistics: "Income" = income; "Expenses" = expense; savings and loan movements are reported separately (not counted as spending/income); cash flow includes all.
-Indexes: `(date)`, `(account_id, date)`, `(category_id, date)`, `(type, date)`.
+Indexes: `(date)`, `(account_id, date)`, `(category_id, date)`, `(type, date)`, `(recurring_item_id, planned_date)`.
+A planned occurrence counts as settled when a transaction links to its source with the same `planned_date`.
 
 ### recurring_items — monthly income, recurring expenses and subscriptions
 
@@ -218,14 +220,20 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 2. **Dashboard** — KPI cards (total balance, this month income / expenses / net, total savings, total debt); income vs expenses bars (last 6 months); spending by category donut (this month); balance trend line; upcoming bills & reminders (next 14 days, with "mark paid"); savings goals progress; credit card utilization; 12-month projection teaser.
 3. **Transactions** — searchable, filterable list (date range, account, category, type), grouped by day, inline totals; add/edit/delete modal; duplicate transaction.
 4. **Overview (Weekly / Monthly)** — Week | Month toggle, ‹ › navigation to any past period, summary cards with % change vs previous period, daily spending bars, category breakdown, top expenses, transaction list for the period.
-5. **History** — year selector; grid of 12 months (or 52 weeks) showing income/expense/net with heat colouring; yearly bar chart; click a period → Overview for that period.
-6. **Accounts** — account cards with balances. **Account detail**: transactions for that account, balance chart; for credit cards: limit / used / available bar, statement & due dates, installment plans list, "Pay card" (transfer) action.
-7. **Recurring & Subscriptions** — tabs: Subscriptions (next billing date, monthly & yearly cost, reminder, pause/cancel) · Recurring income · Recurring expenses; "Due now" queue to confirm postings.
-8. **Savings** — goal cards (progress ring, saved/target, ETA from planned monthly), deposit/withdraw dialog, goal detail with history chart.
-9. **Loans** — tabs: Lent · Borrowed · Bank loans; cards with outstanding amount & progress; detail: schedule table (bank), repayments history, "Record payment", payoff date.
-10. **Projections** — horizon (3 / 6 / 12 / 24 months), granularity (weekly / monthly), projected balance line, stacked inflow/outflow bars, milestones (loan paid off, goal reached, balance below zero warning), assumptions panel (include average variable spending, include planned savings), detail table.
-11. **Categories** — manage income & expense categories (name, colour, icon, archive, merge).
-12. **Settings** — currency, locale/number format, week start, theme, notifications, start with Windows / minimize to tray, backup & restore DB, export CSV, reset data.
+5. **Calendar** — month grid starting on the `week_start` day; ‹ › to the previous/next month and a "Today" button; works for any past month and up to 24 months ahead.
+   - Month summary at the top: income, expenses, net, ending balance (actual for past months; for the current and future months, current balance + planned items up to month end).
+   - Each day cell: that day's income and expense totals, plus small dots coloured by type (income, expense, savings, loan).
+   - Planned items (subscriptions, recurring income/expenses, loan installments, credit-card installments) appear on their due days in a lighter "planned" style; unsettled planned items before today are marked overdue.
+   - Clicking a day opens a side panel with that day's transactions and planned items, and an "Add transaction" button prefilled with that date.
+   - Clicking a planned item opens "Confirm as paid" (amount, account and date editable), which creates the linked transaction.
+6. **History** — year selector; grid of 12 months (or 52 weeks) showing income/expense/net with heat colouring; yearly bar chart; click a period → Overview for that period.
+7. **Accounts** — account cards with balances. **Account detail**: transactions for that account, balance chart; for credit cards: limit / used / available bar, statement & due dates, installment plans list, "Pay card" (transfer) action.
+8. **Recurring & Subscriptions** — tabs: Subscriptions (next billing date, monthly & yearly cost, reminder, pause/cancel) · Recurring income · Recurring expenses; "Due now" queue to confirm postings.
+9. **Savings** — goal cards (progress ring, saved/target, ETA from planned monthly), deposit/withdraw dialog, goal detail with history chart.
+10. **Loans** — tabs: Lent · Borrowed · Bank loans; cards with outstanding amount & progress; detail: schedule table (bank), repayments history, "Record payment", payoff date.
+11. **Projections** — horizon (3 / 6 / 12 / 24 months), granularity (weekly / monthly), projected balance line, stacked inflow/outflow bars, milestones (loan paid off, goal reached, balance below zero warning), assumptions panel (include average variable spending, include planned savings), detail table.
+12. **Categories** — manage income & expense categories (name, colour, icon, archive, merge).
+13. **Settings** — currency, locale/number format, week start, theme, notifications, start with Windows / minimize to tray, backup & restore DB, export CSV, reset data.
 
 ---
 
@@ -237,6 +245,8 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 - `amortization.ts` — annuity schedule (principal/interest split, rounding remainder on last row).
 - `projection.ts` — inputs: current liquid balance, recurring items, unpaid loan installments, open installment plans, planned savings, average variable spending (last N months of non-recurring expenses); output per week/month: inflows, outflows by group, net, running balance, milestones.
 
+Main-process service built on these: **planned items** (`src/main/services/planned.ts`) — `plannedItems(from, to)` expands active recurring items and subscriptions (later also credit-card installment plans and unpaid loan installments) into dated entries, and drops those already settled. Calendar, reminders and projections all use it, so they always agree.
+
 ---
 
 ## 5. Step-by-step build plan (each step ends runnable)
@@ -245,26 +255,61 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 
 1. Scaffold with electron-vite (react-ts), `git init`, ESLint + Prettier; window opens with "Hello".
 2. Tailwind, fonts bundled locally, theme tokens (light/dark), base UI components (Button, Input, Select, Dialog, Card, Tabs, Toast).
-3. App shell: sidebar + routes with placeholder pages for every screen.
+3. App shell: sidebar + routes with placeholder pages for every screen (Dashboard, Transactions, Overview, Calendar, History, Accounts, Recurring & Subscriptions, Savings, Loans, Projections, Categories, Settings).
 4. SQLite: better-sqlite3 in main, DB in userData, WAL + FK pragmas, migration runner, migration 001 = full schema above; `install-app-deps` postinstall.
 5. Typed IPC bridge (preload `window.api`, shared contract, error wrapping) + TanStack Query; prove it with settings get/set.
 6. `money.ts` + `dates.ts` with Vitest tests; `useCurrency()` formatting hook.
 
-**Phase 1 — Core ledger** 7. Settings v1: currency, locale, week start, theme. 8. Categories CRUD + seeded defaults. 9. Accounts CRUD (debit / credit / cash, opening balance, credit limit) + balance query. 10. Transaction add/edit/delete modal (income / expense) with validation. 11. Transactions list: grouping by day, filters, search, paging. 12. Transfers (debit → cash, debit → credit card payment). 13. Onboarding wizard on first run.
+**Phase 1 — Core ledger**
 
-**Phase 2 — Views & history** 14. Aggregation queries: totals by period, by category, by day. 15. Overview screen (week/month toggle, navigation, summary, charts, list). 16. History screen (year grid, drill-down). 17. Dashboard v1 (KPI cards, income vs expenses, category donut, balance trend).
+7. Settings v1: currency, locale, week start, theme.
+8. Categories CRUD + seeded defaults.
+9. Accounts CRUD (debit / credit / cash, opening balance, credit limit) + balance query.
+10. Transaction add/edit/delete modal (income / expense) with validation.
+11. Transactions list: grouping by day, filters, search, paging.
+12. Transfers (debit → cash, debit → credit card payment).
+13. Onboarding wizard on first run.
 
-**Phase 3 — Recurring, subscriptions, reminders** 18. `recurrence.ts` + tests. 19. Recurring income/expenses CRUD; posting service on app start (auto-post or "Due now" confirmation queue). 20. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel). 21. Reminder service: upcoming list + Windows notifications (on launch + hourly while running), notification_log; tray & start-with-Windows option.
+**Phase 2 — Views & history**
 
-**Phase 4 — Credit cards** 22. Credit card detail: used / available / utilization, statement & due-date reminders. 23. Installment plans: create, auto-post rates, reserve limit, show on card.
+14. Aggregation queries: totals by period, by category, by day.
+15. Overview screen (week/month toggle, navigation, summary, charts, list).
+16. History screen (year grid, drill-down).
+17. Dashboard v1 (KPI cards, income vs expenses, category donut, balance trend).
 
-**Phase 5 — Savings** 24. Savings goals CRUD, deposit/withdraw, progress & ETA, goal detail chart.
+**Phase 3 — Recurring, subscriptions, calendar, reminders**
 
-**Phase 6 — Loans** 25. Personal loans (lent / borrowed): create (optional disbursement tx), record repayments, outstanding, mark paid off. 26. `amortization.ts` + tests; bank loans with generated schedule, pay installment, payoff date.
+18. `recurrence.ts` + tests.
+19. Recurring income/expenses CRUD; posting service on app start (auto-post or "Due now" confirmation queue).
+20. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel).
+21. Calendar: `plannedItems(from, to)` service + "confirm as paid" action (creates the linked transaction with `planned_date`); month grid with day totals, type dots, planned/overdue styles, month summary with ending balance, day side panel with "Add transaction" on that date; navigation from past months to 24 months ahead.
+22. Reminder service on top of `plannedItems`: upcoming list + Windows notifications (on launch + hourly while running), notification_log; tray & start-with-Windows option.
 
-**Phase 7 — Projections** 27. `projection.ts` + tests (month-end edges, loan ending mid-horizon, paused subscriptions). 28. Projections screen (horizon, granularity, charts, milestones, assumptions, table). 29. Dashboard v2: upcoming bills, savings, debt, card utilization, projection teaser.
+**Phase 4 — Credit cards**
 
-**Phase 8 — Polish & ship** 30. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export. 31. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass. 32. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
+23. Credit card detail: used / available / utilization, statement & due-date reminders.
+24. Installment plans: create, auto-post rates, reserve limit, show on card; add them to `plannedItems` so they appear in the Calendar.
+
+**Phase 5 — Savings**
+
+25. Savings goals CRUD, deposit/withdraw, progress & ETA, goal detail chart.
+
+**Phase 6 — Loans**
+
+26. Personal loans (lent / borrowed): create (optional disbursement tx), record repayments, outstanding, mark paid off.
+27. `amortization.ts` + tests; bank loans with generated schedule, pay installment, payoff date; add unpaid installments to `plannedItems` so they appear in the Calendar.
+
+**Phase 7 — Projections**
+
+28. `projection.ts` + tests (month-end edges, loan ending mid-horizon, paused subscriptions), fed by `plannedItems`.
+29. Projections screen (horizon, granularity, charts, milestones, assumptions, table).
+30. Dashboard v2: upcoming bills, savings, debt, card utilization, projection teaser.
+
+**Phase 8 — Polish & ship**
+
+31. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
+32. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
+33. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
 
 ---
 
