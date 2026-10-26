@@ -4,7 +4,6 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  CircleAlert,
   Copy,
   Wallet,
   type LucideIcon
@@ -20,9 +19,9 @@ import {
   type Transaction
 } from '@shared/transactions'
 import { AmountInput } from '@renderer/components/AmountInput'
-import { ColorChip } from '@renderer/components/ColorChip'
 import { DatePicker } from '@renderer/components/DatePicker'
 import { FieldError } from '@renderer/components/FieldError'
+import { FormError } from '@renderer/components/FormError'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -36,22 +35,14 @@ import {
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
-import { accountTypeIcons } from '@renderer/features/accounts/appearance'
+import { AccountSelect } from '@renderer/features/accounts/AccountSelect'
 import { useAccounts } from '@renderer/features/accounts/queries'
-import { categoryIconComponents } from '@renderer/features/categories/appearance'
+import { CategorySelect } from '@renderer/features/categories/CategorySelect'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
-import { cn } from '@renderer/lib/utils'
 import {
   closeTransactionDialog,
   duplicateTransaction,
@@ -84,40 +75,6 @@ const kindDescriptions: Record<Kind, string> = {
   expense: 'Money you spent.',
   income: 'Money you received.',
   transfer: 'Money moved between your accounts, like cash from an ATM or a card payment.'
-}
-
-interface AccountSelectProps {
-  id: string
-  value: string
-  accounts: Account[]
-  error?: string
-  onChange: (value: string) => void
-}
-
-function AccountSelect({
-  id,
-  value,
-  accounts,
-  error,
-  onChange
-}: AccountSelectProps): React.JSX.Element {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} {...errorProps(id, error)}>
-        <SelectValue placeholder="Choose an account" />
-      </SelectTrigger>
-      <SelectContent>
-        {accounts.map((a) => (
-          <SelectItem key={a.id} value={String(a.id)}>
-            <span className="flex items-center gap-2">
-              <ColorChip color={a.color} icon={accountTypeIcons[a.type]} size="sm" />
-              {a.name}
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
 }
 
 /** The account used last, so a run of entries doesn't need it picked each time. */
@@ -431,31 +388,16 @@ function TransactionForm({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid content-start gap-1.5">
                 <Label htmlFor="tx-category">Category</Label>
-                <Select
+                <CategorySelect
+                  id="tx-category"
                   value={categoryId}
-                  onValueChange={(value) => {
+                  categories={categoryOptions}
+                  error={errors.categoryId}
+                  onChange={(value) => {
                     setCategoryId(value)
                     clearError('categoryId')
                   }}
-                >
-                  <SelectTrigger id="tx-category" {...errorProps('tx-category', errors.categoryId)}>
-                    <SelectValue placeholder="Choose a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        <span className="flex items-center gap-2">
-                          <ColorChip
-                            color={c.color}
-                            icon={categoryIconComponents[c.icon]}
-                            size="sm"
-                          />
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError id="tx-category-error" message={errors.categoryId} />
               </div>
 
@@ -561,27 +503,6 @@ function TransactionForm({
         </div>
       </DialogFooter>
     </form>
-  )
-}
-
-function FormError({
-  message,
-  className
-}: {
-  message: string
-  className?: string
-}): React.JSX.Element {
-  return (
-    <p
-      role="alert"
-      className={cn(
-        'flex gap-2.5 rounded-control bg-expense-soft px-3 py-2.5 text-sm text-ink',
-        className
-      )}
-    >
-      <CircleAlert className="mt-0.5 size-4 shrink-0 text-expense" aria-hidden />
-      {message}
-    </p>
   )
 }
 

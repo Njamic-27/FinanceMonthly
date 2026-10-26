@@ -2,9 +2,11 @@ import { app, shell, BrowserWindow, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { today } from '@shared/dates'
 import { closeDatabase, databasePath, getDb, initDatabase } from './db'
 import { getSettings } from './db/repositories/settings'
 import { registerIpcHandlers } from './ipc'
+import { postDueItems } from './services/posting'
 
 function createWindow(): void {
   // Create the browser window.
@@ -80,6 +82,15 @@ app.whenReady().then(async () => {
     )
     app.quit()
     return
+  }
+
+  // Recurring items that fell due while the app was closed. A failure here is logged, not
+  // fatal: the items stay due and are tried again on the next start.
+  try {
+    const posted = postDueItems(getDb(), today())
+    if (posted > 0) console.log(`Posted ${posted} recurring transaction(s)`)
+  } catch (error) {
+    console.error('[posting] could not post due recurring items:', error)
   }
 
   await registerIpcHandlers()

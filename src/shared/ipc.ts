@@ -3,7 +3,12 @@ import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
-import type { RecurringItem, RecurringItemInput } from './recurring'
+import type {
+  DueOccurrence,
+  PostOccurrenceInput,
+  RecurringItem,
+  RecurringItemInput
+} from './recurring'
 import type { Settings, SettingsPatch } from './settings'
 import type {
   CategoryTotal,
@@ -52,7 +57,17 @@ export interface IpcContract {
   'transactions:delete': (id: number) => void
 
   'recurring:list': () => RecurringItem[]
+  /** Creating or editing an item also posts what is already due, if it posts automatically. */
   'recurring:create': (input: RecurringItemInput) => RecurringItem
+  'recurring:update': (id: number, input: RecurringItemInput) => RecurringItem
+  /** Transactions it posted stay, as ordinary transactions. */
+  'recurring:delete': (id: number) => void
+  /** Occurrences due by today that wait to be confirmed or skipped, oldest first. */
+  'recurring:due': () => DueOccurrence[]
+  /** Confirms an occurrence as paid: creates the linked transaction. */
+  'recurring:post': (input: PostOccurrenceInput) => Transaction
+  /** Skips an item's next due occurrence without posting it. */
+  'recurring:skip': (itemId: number, plannedDate: IsoDate) => RecurringItem
 
   /** Income, expenses, savings and loan movements over a date range. */
   'stats:totals': (range: StatsRange) => Totals
@@ -99,6 +114,11 @@ const channels: Record<IpcChannel, true> = {
   'transactions:delete': true,
   'recurring:list': true,
   'recurring:create': true,
+  'recurring:update': true,
+  'recurring:delete': true,
+  'recurring:due': true,
+  'recurring:post': true,
+  'recurring:skip': true,
   'stats:totals': true,
   'stats:series': true,
   'stats:categories': true,

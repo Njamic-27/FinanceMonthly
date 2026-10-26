@@ -131,7 +131,7 @@ export const navGroups: ScreenGroup[] = [
       },
       {
         path: '/recurring',
-        title: 'Subscriptions',
+        title: 'Recurring',
         icon: Repeat,
         description: 'Subscriptions, regular bills and regular income.',
         features: [
@@ -139,7 +139,7 @@ export const navGroups: ScreenGroup[] = [
           'Monthly and yearly cost',
           'Recurring income like your salary'
         ],
-        step: 21
+        step: 20
       },
       {
         path: '/savings',

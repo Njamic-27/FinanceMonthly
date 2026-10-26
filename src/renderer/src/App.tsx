@@ -12,6 +12,7 @@ import { CategoriesPage } from './routes/CategoriesPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { HistoryPage } from './routes/HistoryPage'
 import { OverviewPage } from './routes/OverviewPage'
+import { RecurringPage } from './routes/RecurringPage'
 import { TransactionsPage } from './routes/TransactionsPage'
 import { SettingsPage } from './routes/SettingsPage'
 
@@ -28,6 +29,7 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/overview': OverviewPage,
   '/history': HistoryPage,
   '/accounts': AccountsPage,
+  '/recurring': RecurringPage,
   '/categories': CategoriesPage,
   '/settings': SettingsPage
 }

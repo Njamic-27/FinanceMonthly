@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3'
-import { formatDate } from '@shared/dates'
+import { formatDate, type IsoDate } from '@shared/dates'
 import type { Account } from '@shared/accounts'
 import { foldText } from '@shared/text'
 import {
@@ -71,7 +71,7 @@ export function getTransaction(db: Database, id: number): Transaction {
 }
 
 /** The values written to a row by the dialog's create and update. */
-interface RowValues {
+export interface RowValues {
   type: EditableType
   title: string
   amount: number
@@ -106,7 +106,11 @@ function usableAccount(db: Database, id: number, date: string, current?: Transac
  * Checks the input against the accounts and categories it names and returns the row values.
  * Archived accounts and categories are refused unless the transaction already uses them.
  */
-function resolve(db: Database, input: TransactionInput, current?: Transaction): RowValues {
+export function checkTransaction(
+  db: Database,
+  input: TransactionInput,
+  current?: Transaction
+): RowValues {
   const valid = transactionInputSchema.parse(input)
 
   // Rows posted from a recurring item or an installment plan settle that item, so they keep
@@ -166,13 +170,31 @@ function resolve(db: Database, input: TransactionInput, current?: Transaction): 
 const editableTypes: readonly TransactionType[] = ['income', 'expense', 'transfer']
 
 export function createTransaction(db: Database, input: TransactionInput): Transaction {
-  const tx = resolve(db, input)
+  const tx = checkTransaction(db, input)
   const { lastInsertRowid } = db
     .prepare(
       `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, category_id, note)
        VALUES (@date, @title, @amount, @type, @accountId, @toAccountId, @categoryId, @note)`
     )
     .run(tx)
+  return getTransaction(db, Number(lastInsertRowid))
+}
+
+/** A transaction that settles a planned occurrence: a recurring item's payment on `plannedDate`. */
+export function createPlannedTransaction(
+  db: Database,
+  input: TransactionInput,
+  link: { recurringItemId: number; plannedDate: IsoDate }
+): Transaction {
+  const tx = checkTransaction(db, input)
+  const { lastInsertRowid } = db
+    .prepare(
+      `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, category_id, note,
+         recurring_item_id, planned_date)
+       VALUES (@date, @title, @amount, @type, @accountId, @toAccountId, @categoryId, @note,
+         @recurringItemId, @plannedDate)`
+    )
+    .run({ ...tx, ...link })
   return getTransaction(db, Number(lastInsertRowid))
 }
 
@@ -184,7 +206,7 @@ export function updateTransaction(db: Database, id: number, input: TransactionIn
       'Savings and loan movements are edited from their own screens.'
     )
   }
-  const tx = resolve(db, input, current)
+  const tx = checkTransaction(db, input, current)
   db.prepare(
     `UPDATE transactions
      SET date = @date, title = @title, amount = @amount, type = @type, account_id = @accountId,

@@ -4,6 +4,7 @@ import { Blocks, PanelLeftClose, PanelLeftOpen, Plus, type LucideIcon } from 'lu
 import { Button } from '@renderer/components/ui/button'
 import { cn } from '@renderer/lib/utils'
 import { BrandMark } from '@renderer/components/BrandMark'
+import { useDueOccurrences } from '@renderer/features/recurring/queries'
 import { footerScreens, navGroups } from './screens'
 
 const COLLAPSED_KEY = 'sidebar-collapsed'
@@ -29,9 +30,11 @@ interface NavItemProps {
   title: string
   icon: LucideIcon
   collapsed: boolean
+  /** Things waiting for the user on that screen, e.g. payments due. */
+  badge?: { count: number; label: string }
 }
 
-function NavItem({ to, title, icon: Icon, collapsed }: NavItemProps): React.JSX.Element {
+function NavItem({ to, title, icon: Icon, collapsed, badge }: NavItemProps): React.JSX.Element {
   return (
     <NavLink
       to={to}
@@ -47,14 +50,35 @@ function NavItem({ to, title, icon: Icon, collapsed }: NavItemProps): React.JSX.
         )
       }
     >
-      <Icon className="size-[1.125rem] shrink-0" />
+      <span className="relative shrink-0">
+        <Icon className="size-[1.125rem]" />
+        {badge && collapsed && (
+          <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary" aria-hidden />
+        )}
+      </span>
       <span className={cn('truncate', collapsed && 'sr-only')}>{title}</span>
+      {badge && (
+        <span
+          className={cn(
+            'ml-auto rounded-full bg-primary px-1.5 text-xs leading-5 font-semibold text-on-primary tabular-nums',
+            collapsed && 'sr-only'
+          )}
+          title={badge.label}
+        >
+          {badge.count}
+          <span className="sr-only"> {badge.label}</span>
+        </span>
+      )}
     </NavLink>
   )
 }
 
 export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  const dueCount = useDueOccurrences().data?.length ?? 0
+  const badges: Record<string, NavItemProps['badge']> = {
+    '/recurring': dueCount > 0 ? { count: dueCount, label: 'due now' } : undefined
+  }
 
   const toggle = (): void => {
     setCollapsed((value) => {
@@ -107,6 +131,7 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
                 title={screen.title}
                 icon={screen.icon}
                 collapsed={collapsed}
+                badge={badges[screen.path]}
               />
             ))}
           </div>

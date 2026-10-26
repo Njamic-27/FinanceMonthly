@@ -4,7 +4,14 @@ import type { RecurringItemInput } from '@shared/recurring'
 import { createTestDb } from '../testing'
 import { createAccount, setAccountArchived } from './accounts'
 import { listCategories } from './categories'
-import { createRecurringItem, listRecurringItems } from './recurring'
+import {
+  createRecurringItem,
+  deleteRecurringItem,
+  getRecurringItem,
+  listRecurringItems,
+  updateRecurringItem
+} from './recurring'
+import { createPlannedTransaction, getTransaction } from './transactions'
 
 let db: Database.Database
 let debit: number
@@ -76,5 +83,85 @@ describe('createRecurringItem', () => {
     expect(() => createRecurringItem(db, salary({ title: ' ' }))).toThrow(/name/)
     expect(() => createRecurringItem(db, salary({ amount: 0 }))).toThrow(/above zero/)
     expect(() => createRecurringItem(db, salary({ anchorDate: '31.10.2026' }))).toThrow()
+    expect(() => createRecurringItem(db, salary({ nextDueDate: '2026-11-29' }))).toThrow(
+      /doesn’t fall on this schedule/
+    )
+    expect(() => createRecurringItem(db, salary({ endDate: '2026-11-01' }))).toThrow(/end date/)
+  })
+
+  it('saves an end date and a note', () => {
+    expect(
+      createRecurringItem(db, salary({ endDate: '2027-06-30', note: '  Until the contract ends ' }))
+    ).toMatchObject({ endDate: '2027-06-30', note: 'Until the contract ends', postedCount: 0 })
+  })
+})
+
+describe('updateRecurringItem', () => {
+  it('replaces the details and schedule', () => {
+    const { id } = createRecurringItem(db, salary())
+    expect(
+      updateRecurringItem(
+        db,
+        id,
+        salary({ amount: 260000, anchorDate: '2026-12-15', nextDueDate: '2026-12-15' })
+      )
+    ).toMatchObject({ amount: 260000, anchorDate: '2026-12-15', nextDueDate: '2026-12-15' })
+  })
+
+  it('keeps an archived account it already uses', () => {
+    const { id } = createRecurringItem(db, salary())
+    setAccountArchived(db, debit, true)
+    expect(updateRecurringItem(db, id, salary({ amount: 1 })).amount).toBe(1)
+  })
+
+  it('stays income or spending once it has posted', () => {
+    const { id } = createRecurringItem(db, salary())
+    const rent = { kind: 'expense', categoryId: categoryId('Rent') } as const
+    expect(updateRecurringItem(db, id, salary(rent)).kind).toBe('expense')
+    updateRecurringItem(db, id, salary())
+
+    createPlannedTransaction(
+      db,
+      {
+        type: 'income',
+        title: 'Salary',
+        amount: 245000,
+        date: '2026-11-30',
+        accountId: debit,
+        categoryId: categoryId('Salary'),
+        note: null
+      },
+      { recurringItemId: id, plannedDate: '2026-11-30' }
+    )
+    expect(() => updateRecurringItem(db, id, salary(rent))).toThrow(/stays income/)
+  })
+})
+
+describe('deleteRecurringItem', () => {
+  it('keeps the transactions it posted, unlinked', () => {
+    const { id } = createRecurringItem(db, salary())
+    const tx = createPlannedTransaction(
+      db,
+      {
+        type: 'income',
+        title: 'Salary',
+        amount: 245000,
+        date: '2026-11-30',
+        accountId: debit,
+        categoryId: categoryId('Salary'),
+        note: null
+      },
+      { recurringItemId: id, plannedDate: '2026-11-30' }
+    )
+    expect(getRecurringItem(db, id).postedCount).toBe(1)
+
+    deleteRecurringItem(db, id)
+    expect(listRecurringItems(db)).toEqual([])
+    expect(getTransaction(db, tx.id)).toMatchObject({
+      amount: 245000,
+      recurringItemId: null,
+      plannedDate: null
+    })
+    expect(() => deleteRecurringItem(db, id)).toThrow(/no longer exists/)
   })
 })
