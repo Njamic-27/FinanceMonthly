@@ -2,7 +2,9 @@ import { app, shell, BrowserWindow, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { closeDatabase, databasePath, initDatabase } from './db'
+import { closeDatabase, databasePath, getDb, initDatabase } from './db'
+import { getSettings } from './db/repositories/settings'
+import { registerIpcHandlers } from './ipc'
 
 function createWindow(): void {
   // Create the browser window.
@@ -18,7 +20,7 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true
     }
   })
 
@@ -70,6 +72,7 @@ app.whenReady().then(() => {
 
   try {
     initDatabase()
+    nativeTheme.themeSource = getSettings(getDb()).theme
   } catch (error) {
     dialog.showErrorBox(
       'Financije could not open its data',
@@ -79,6 +82,7 @@ app.whenReady().then(() => {
     return
   }
 
+  registerIpcHandlers()
   createWindow()
 
   app.on('activate', function () {

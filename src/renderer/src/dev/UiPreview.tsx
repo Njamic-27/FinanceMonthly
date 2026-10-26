@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Monitor, Moon, Plus, Sun, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -30,7 +29,8 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
-import { getTheme, setTheme, type ThemeMode } from '@renderer/lib/theme'
+import type { ThemeMode } from '@shared/settings'
+import { useSettings, useUpdateSettings } from '@renderer/features/settings/queries'
 import { toast } from '@renderer/lib/toast'
 
 const moneyKinds = [
@@ -90,7 +90,10 @@ function TransactionFields(): React.JSX.Element {
 }
 
 export function UiPreview(): React.JSX.Element {
-  const [theme, setThemeState] = useState<ThemeMode>(getTheme())
+  const settings = useSettings()
+  const updateSettings = useUpdateSettings()
+  const showError = (error: Error): void =>
+    toast({ title: 'Settings not saved', description: error.message, variant: 'error' })
 
   return (
     <div>
@@ -102,11 +105,10 @@ export function UiPreview(): React.JSX.Element {
           </p>
         </div>
         <Tabs
-          value={theme}
-          onValueChange={(value) => {
-            setTheme(value as ThemeMode)
-            setThemeState(value as ThemeMode)
-          }}
+          value={settings.data?.theme ?? 'system'}
+          onValueChange={(value) =>
+            updateSettings.mutate({ theme: value as ThemeMode }, { onError: showError })
+          }
         >
           <TabsList aria-label="Theme">
             <TabsTrigger value="system">
@@ -230,6 +232,34 @@ export function UiPreview(): React.JSX.Element {
                 Error toast
               </Button>
             </div>
+          </Card>
+
+          <Card>
+            <CardTitle className="mb-1">Stored settings</CardTitle>
+            <CardDescription className="mb-4">
+              Read from SQLite through IPC. The theme switch above saves to the same table.
+            </CardDescription>
+            {settings.isPending && <p className="text-ink-muted">Loading…</p>}
+            {settings.error && <p className="text-expense">{settings.error.message}</p>}
+            {settings.data && (
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                {Object.entries(settings.data).map(([key, value]) => (
+                  <div key={key} className="contents">
+                    <dt className="text-ink-muted">{key}</dt>
+                    <dd className="font-semibold">{String(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <CardFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updateSettings.mutate({ currency: 'euro' }, { onError: showError })}
+              >
+                Try an invalid currency
+              </Button>
+            </CardFooter>
           </Card>
 
           <Card>
