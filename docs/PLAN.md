@@ -197,6 +197,7 @@ Outstanding: personal = principal − Σ repayments; bank = Σ principal_part of
 | fee_amount         | INTEGER NULL             |              |
 
 Each installment is posted as an `expense` transaction on its date (linked by `installment_plan_id`), so monthly stats show the rate, not the full price; the unbilled remainder reserves the card limit.
+Plans are usually created straight from the Add transaction dialog ("Pay in installments" on a credit card). Splitting is done in whole cents: every installment is `floor(total / N)` and the last one absorbs the remainder (1,000.00 € / 3 = 333.33, 333.33, 333.34).
 
 ### notification_log — prevents duplicate reminders
 
@@ -216,6 +217,10 @@ Each installment is posted as an `expense` transaction on its date (linked by `i
 
 Left sidebar navigation (collapsible), top bar with period navigator where relevant, global "+ Add transaction" button (Ctrl+N).
 
+**Add transaction dialog** (global, also opened from Transactions, Calendar and account pages) — type (expense / income / transfer), title, amount, date, account, category, note.
+
+- When the selected account is a **credit card** and the type is expense, a **"Pay in installments"** toggle appears with a number-of-installments field (2–60). The monthly amount is shown live in the form, e.g. **2,000.00 € / 5 = 400.00 €/month** (with "last installment 333.34 €" when it doesn't divide evenly). Saving creates an installment plan (first installment on the chosen date) instead of a single expense.
+
 1. **Onboarding (first run)** — pick currency & week start → add accounts with opening balances (debit/credit/cash) → review default categories → optional: add salary as recurring income.
 2. **Dashboard** — KPI cards (total balance, this month income / expenses / net, total savings, total debt); income vs expenses bars (last 6 months); spending by category donut (this month); balance trend line; upcoming bills & reminders (next 14 days, with "mark paid"); savings goals progress; credit card utilization; 12-month projection teaser.
 3. **Transactions** — searchable, filterable list (date range, account, category, type), grouped by day, inline totals; add/edit/delete modal; duplicate transaction.
@@ -229,6 +234,7 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 6. **History** — year selector; grid of 12 months (or 52 weeks) showing income/expense/net with heat colouring; yearly bar chart; click a period → Overview for that period.
 7. **Accounts** — account cards with balances. **Account detail**: transactions for that account, balance chart; for credit cards: limit / used / available bar, statement & due dates, installment plans list, "Pay card" (transfer) action.
 8. **Recurring & Subscriptions** — tabs: Subscriptions (next billing date, monthly & yearly cost, reminder, pause/cancel) · Recurring income · Recurring expenses; "Due now" queue to confirm postings.
+   - Add subscription offers **quick presets** — Netflix, Spotify, Claude, YouTube Premium, Disney+, HBO Max, Apple Music, Amazon Prime, iCloud+, Google One, Microsoft 365, ChatGPT, Xbox Game Pass, PlayStation Plus, Adobe Creative Cloud — plus "Custom". A preset fills in only the name (and defaults the category to Subscriptions); the amount, billing date and account are always entered by you.
 9. **Savings** — goal cards (progress ring, saved/target, ETA from planned monthly), deposit/withdraw dialog, goal detail with history chart.
 10. **Loans** — tabs: Lent · Borrowed · Bank loans; cards with outstanding amount & progress; detail: schedule table (bank), repayments history, "Record payment", payoff date.
 11. **Projections** — horizon (3 / 6 / 12 / 24 months), granularity (weekly / monthly), projected balance line, stacked inflow/outflow bars, milestones (loan paid off, goal reached, balance below zero warning), assumptions panel (include average variable spending, include planned savings), detail table.
@@ -242,6 +248,7 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 - `money.ts` — parse/format cents, currency formatting.
 - `dates.ts` — week/month boundaries respecting week_start, period iteration.
 - `recurrence.ts` — `occurrences(item, from, to)` handling month-end (31st → last day), weekly/yearly, interval, end_date.
+- `installments.ts` — split a card purchase into N installments in whole cents (last one takes the remainder) and list their dates.
 - `amortization.ts` — annuity schedule (principal/interest split, rounding remainder on last row).
 - `projection.ts` — inputs: current liquid balance, recurring items, unpaid loan installments, open installment plans, planned savings, average variable spending (last N months of non-recurring expenses); output per week/month: inflows, outflows by group, net, running balance, milestones.
 
@@ -265,7 +272,7 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 7. Settings v1: currency, locale, week start, theme.
 8. Categories CRUD + seeded defaults.
 9. Accounts CRUD (debit / credit / cash, opening balance, credit limit) + balance query.
-10. Transaction add/edit/delete modal (income / expense) with validation.
+10. Add transaction dialog (add/edit/delete; income / expense) with validation; layout leaves room for card-only options that step 24 fills in.
 11. Transactions list: grouping by day, filters, search, paging.
 12. Transfers (debit → cash, debit → credit card payment).
 13. Onboarding wizard on first run.
@@ -281,14 +288,14 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 
 18. `recurrence.ts` + tests.
 19. Recurring income/expenses CRUD; posting service on app start (auto-post or "Due now" confirmation queue).
-20. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel).
+20. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel); Add subscription with quick presets (`src/shared/subscription-presets.ts`) that pre-fill the name only.
 21. Calendar: `plannedItems(from, to)` service + "confirm as paid" action (creates the linked transaction with `planned_date`); month grid with day totals, type dots, planned/overdue styles, month summary with ending balance, day side panel with "Add transaction" on that date; navigation from past months to 24 months ahead.
 22. Reminder service on top of `plannedItems`: upcoming list + Windows notifications (on launch + hourly while running), notification_log; tray & start-with-Windows option.
 
 **Phase 4 — Credit cards**
 
 23. Credit card detail: used / available / utilization, statement & due-date reminders.
-24. Installment plans: create, auto-post rates, reserve limit, show on card; add them to `plannedItems` so they appear in the Calendar.
+24. Installment plans: `installments.ts` split + tests; extend the Add transaction dialog with "Pay in installments" (credit card only) showing the live monthly amount; create plan, auto-post rates, reserve limit, show on card; add them to `plannedItems` so they appear in the Calendar.
 
 **Phase 5 — Savings**
 
