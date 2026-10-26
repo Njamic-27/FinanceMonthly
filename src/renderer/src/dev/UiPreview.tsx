@@ -34,6 +34,7 @@ import type { ThemeMode } from '@shared/settings'
 import { useSettings, useUpdateSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
+import { DemoDataCard } from './DemoDataCard'
 
 const moneyKinds = [
   { name: 'Income', cents: 235000, sign: 'exceptZero', className: 'bg-income-soft text-income' },
@@ -160,6 +161,10 @@ export function UiPreview(): React.JSX.Element {
           </TabsList>
         </Tabs>
       </header>
+
+      <div className="mb-8">
+        <DemoDataCard />
+      </div>
 
       <section className="mb-6 rounded-panel bg-banner p-7 text-on-banner">
         <p className="font-semibold opacity-80">Total balance</p>

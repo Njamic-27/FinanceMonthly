@@ -1,16 +1,22 @@
+import { lazy, Suspense } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Route, Routes } from 'react-router'
 import { AppShell } from './app/AppShell'
 import { allScreens } from './app/screens'
 import { Toaster } from './components/ui/toaster'
 import { queryClient } from './lib/queryClient'
-import { UiPreview } from './dev/UiPreview'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CategoriesPage } from './routes/CategoriesPage'
 import { TransactionsPage } from './routes/TransactionsPage'
 import { SettingsPage } from './routes/SettingsPage'
+
+// The UI kit and its dev tools (seed / reset) exist only in development builds: in
+// production this is null and the dev module is left out of the bundle.
+const UiPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/UiPreview').then((m) => ({ default: m.UiPreview })))
+  : null
 
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
@@ -37,7 +43,16 @@ function App(): React.JSX.Element {
                 />
               )
             })}
-            {import.meta.env.DEV && <Route path="/dev/ui" element={<UiPreview />} />}
+            {UiPreview && (
+              <Route
+                path="/dev/ui"
+                element={
+                  <Suspense>
+                    <UiPreview />
+                  </Suspense>
+                }
+              />
+            )}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

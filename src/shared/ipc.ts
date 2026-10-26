@@ -1,5 +1,6 @@
 import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
+import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
 import type { Settings, SettingsPatch } from './settings'
 import type {
@@ -38,6 +39,11 @@ export interface IpcContract {
   'transactions:create': (input: TransactionInput) => Transaction
   'transactions:update': (id: number, input: TransactionInput) => Transaction
   'transactions:delete': (id: number) => void
+
+  /** Development builds only: empties finance-dev.db and fills it with demo data. */
+  'dev:seed': () => SeedSummary
+  /** Development builds only: empties finance-dev.db, back to a first run. */
+  'dev:reset': () => void
 }
 
 export type IpcChannel = keyof IpcContract
@@ -65,11 +71,15 @@ const channels: Record<IpcChannel, true> = {
   'transactions:get': true,
   'transactions:create': true,
   'transactions:update': true,
-  'transactions:delete': true
+  'transactions:delete': true,
+  'dev:seed': true,
+  'dev:reset': true
 }
 
 export function isIpcChannel(value: unknown): value is IpcChannel {
-  return typeof value === 'string' && Object.hasOwn(channels, value)
+  if (typeof value !== 'string' || !Object.hasOwn(channels, value)) return false
+  // Development tools never get through the preload of a production build.
+  return import.meta.env.DEV || !value.startsWith('dev:')
 }
 
 /** The API the preload exposes as `window.api`. */
