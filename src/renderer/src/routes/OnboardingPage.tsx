@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
-import { Check, Plus, X } from 'lucide-react'
+import { Check, CircleCheck, Plus, X } from 'lucide-react'
 import { accountTypeLabels, accountTypes, type Account, type AccountType } from '@shared/accounts'
 import type { Category, CategoryType } from '@shared/categories'
 import { formatDate, monthlySchedule, today } from '@shared/dates'
@@ -92,6 +92,23 @@ function StepFooter({
       </div>
       <div className="flex items-center gap-2">{children}</div>
     </div>
+  )
+}
+
+/**
+ * Confirms what just happened, in place of a toast: toasts stacked up over the step's buttons.
+ * Always mounted so screen readers announce each new message.
+ */
+function StepNotice({ message }: { message: string | null }): React.JSX.Element {
+  return (
+    <p role="status" className="mt-4 flex min-h-6 items-center gap-2 text-sm text-ink-muted">
+      {message && (
+        <>
+          <CircleCheck className="size-4 shrink-0 text-income" aria-hidden />
+          {message}
+        </>
+      )}
+    </p>
   )
 }
 
@@ -190,6 +207,7 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
   const money = useCurrency()
   const accounts = useAccounts()
   const [dialog, setDialog] = useState<AccountDialogTarget | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const active = (accounts.data ?? []).filter((a) => !a.isArchived)
 
   const shown = (a: Account): string =>
@@ -234,6 +252,7 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
           No accounts yet. Start with the card you use most.
         </p>
       )}
+      <StepNotice message={notice} />
 
       <StepFooter onBack={onBack}>
         {active.length === 0 && (
@@ -248,6 +267,7 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
         target={dialog}
         accounts={accounts.data ?? []}
         onClose={() => setDialog(null)}
+        onDone={setNotice}
       />
     </>
   )
@@ -257,12 +277,14 @@ function CategoryChips({
   type,
   categories,
   onEdit,
-  onAdd
+  onAdd,
+  onRemoved
 }: {
   type: CategoryType
   categories: Category[]
   onEdit: (category: Category) => void
   onAdd: () => void
+  onRemoved: (message: string) => void
 }): React.JSX.Element {
   const deleteCategory = useDeleteCategory()
   return (
@@ -288,7 +310,10 @@ function CategoryChips({
               title="Remove"
               disabled={deleteCategory.isPending}
               onClick={() =>
-                deleteCategory.mutate(c.id, { onError: showError(`${c.name} not removed`) })
+                deleteCategory.mutate(c.id, {
+                  onSuccess: () => onRemoved(`${c.name} removed`),
+                  onError: showError(`${c.name} not removed`)
+                })
               }
               className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
             >
@@ -310,6 +335,7 @@ function CategoryChips({
 function CategoriesStep({ onBack, onNext }: StepProps): React.JSX.Element {
   const categories = useCategories()
   const [dialog, setDialog] = useState<CategoryDialogTarget | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const active = (categories.data ?? []).filter((c) => !c.isArchived)
 
   return (
@@ -322,9 +348,11 @@ function CategoriesStep({ onBack, onNext }: StepProps): React.JSX.Element {
             categories={active.filter((c) => c.type === type)}
             onEdit={(category) => setDialog({ kind: 'edit', category })}
             onAdd={() => setDialog({ kind: 'new', type })}
+            onRemoved={setNotice}
           />
         ))}
       </div>
+      <StepNotice message={notice} />
       <StepFooter onBack={onBack}>
         <Button onClick={onNext}>Continue</Button>
       </StepFooter>
@@ -332,6 +360,7 @@ function CategoriesStep({ onBack, onNext }: StepProps): React.JSX.Element {
         target={dialog}
         categories={categories.data ?? []}
         onClose={() => setDialog(null)}
+        onDone={setNotice}
       />
     </>
   )

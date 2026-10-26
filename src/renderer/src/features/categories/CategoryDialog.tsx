@@ -49,6 +49,8 @@ interface CategoryDialogProps {
   /** All categories, for merge targets and the default colour of a new one. */
   categories: Category[]
   onClose: () => void
+  /** Reports success in place of a toast, e.g. inline in the setup wizard. */
+  onDone?: (message: string) => void
 }
 
 const showError = (title: string) => (error: Error) =>
@@ -100,9 +102,15 @@ type Mode = 'form' | 'merge' | 'delete'
 function CategoryForm({
   target,
   categories,
-  onClose
+  onClose,
+  onDone
 }: CategoryDialogProps & { target: CategoryDialogTarget }): React.JSX.Element {
   const existing = target.kind === 'edit' ? target.category : null
+  const done = (message: string): void => {
+    if (onDone) onDone(message)
+    else toast({ title: message, variant: 'success' })
+    onClose()
+  }
   const type = existing?.type ?? (target.kind === 'new' ? target.type : 'expense')
 
   const [mode, setMode] = useState<Mode>('form')
@@ -146,10 +154,7 @@ function CategoryForm({
       updateCategory.mutate(
         { id: existing.id, patch: { name: parsed.data, color, icon } },
         {
-          onSuccess: () => {
-            toast({ title: 'Category saved', variant: 'success' })
-            onClose()
-          },
+          onSuccess: () => done('Category saved'),
           onError: nameErrorOr('Category not saved')
         }
       )
@@ -157,10 +162,7 @@ function CategoryForm({
       createCategory.mutate(
         { name: parsed.data, type, color, icon },
         {
-          onSuccess: (created) => {
-            toast({ title: `${created.name} added`, variant: 'success' })
-            onClose()
-          },
+          onSuccess: (created) => done(`${created.name} added`),
           onError: nameErrorOr('Category not added')
         }
       )
@@ -175,10 +177,7 @@ function CategoryForm({
       mergeCategory.mutate(
         { sourceId: existing.id, targetId: Number(mergeTargetId) },
         {
-          onSuccess: (merged) => {
-            toast({ title: `${existing.name} merged into ${merged.name}`, variant: 'success' })
-            onClose()
-          },
+          onSuccess: (merged) => done(`${existing.name} merged into ${merged.name}`),
           onError: showError('Categories not merged')
         }
       )
@@ -223,10 +222,7 @@ function CategoryForm({
   if (existing && mode === 'delete') {
     const remove = (): void =>
       deleteCategory.mutate(existing.id, {
-        onSuccess: () => {
-          toast({ title: `${existing.name} deleted`, variant: 'success' })
-          onClose()
-        },
+        onSuccess: () => done(`${existing.name} deleted`),
         onError: showError('Category not deleted')
       })
     return (
@@ -254,13 +250,7 @@ function CategoryForm({
     updateCategory.mutate(
       { id: existing.id, patch: { isArchived } },
       {
-        onSuccess: () => {
-          toast({
-            title: `${existing.name} ${isArchived ? 'archived' : 'restored'}`,
-            variant: 'success'
-          })
-          onClose()
-        },
+        onSuccess: () => done(`${existing.name} ${isArchived ? 'archived' : 'restored'}`),
         onError: showError(isArchived ? 'Category not archived' : 'Category not restored')
       }
     )
@@ -374,7 +364,8 @@ function CategoryForm({
 export function CategoryDialog({
   target,
   categories,
-  onClose
+  onClose,
+  onDone
 }: CategoryDialogProps): React.JSX.Element {
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
@@ -385,6 +376,7 @@ export function CategoryDialog({
             target={target}
             categories={categories}
             onClose={onClose}
+            onDone={onDone}
           />
         )}
       </DialogContent>

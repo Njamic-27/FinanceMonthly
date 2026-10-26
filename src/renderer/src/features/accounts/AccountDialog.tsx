@@ -43,6 +43,8 @@ interface AccountDialogProps {
   /** All accounts, for the default colour of a new one. */
   accounts: Account[]
   onClose: () => void
+  /** Reports success in place of a toast, e.g. inline in the setup wizard. */
+  onDone?: (message: string) => void
 }
 
 type Field = 'name' | 'balance' | 'openingDate' | 'creditLimit' | 'statementDay' | 'paymentDueDay'
@@ -74,10 +76,16 @@ const showError = (title: string) => (error: Error) =>
 function AccountForm({
   target,
   accounts,
-  onClose
+  onClose,
+  onDone
 }: AccountDialogProps & { target: AccountDialogTarget }): React.JSX.Element {
   const money = useCurrency()
   const existing = target.kind === 'edit' ? target.account : null
+  const done = (message: string): void => {
+    if (onDone) onDone(message)
+    else toast({ title: message, variant: 'success' })
+    onClose()
+  }
 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [type, setType] = useState<AccountType>(
@@ -170,19 +178,13 @@ function AccountForm({
       updateAccount.mutate(
         { id: existing.id, input: parsed.data },
         {
-          onSuccess: () => {
-            toast({ title: 'Account saved', variant: 'success' })
-            onClose()
-          },
+          onSuccess: () => done('Account saved'),
           onError: nameErrorOr('Account not saved')
         }
       )
     } else {
       createAccount.mutate(parsed.data, {
-        onSuccess: (created) => {
-          toast({ title: `${created.name} added`, variant: 'success' })
-          onClose()
-        },
+        onSuccess: (created) => done(`${created.name} added`),
         onError: nameErrorOr('Account not added')
       })
     }
@@ -191,10 +193,7 @@ function AccountForm({
   if (existing && confirmDelete) {
     const remove = (): void =>
       deleteAccount.mutate(existing.id, {
-        onSuccess: () => {
-          toast({ title: `${existing.name} deleted`, variant: 'success' })
-          onClose()
-        },
+        onSuccess: () => done(`${existing.name} deleted`),
         onError: showError('Account not deleted')
       })
     return (
@@ -222,13 +221,7 @@ function AccountForm({
     archiveAccount.mutate(
       { id: existing.id, archived },
       {
-        onSuccess: () => {
-          toast({
-            title: `${existing.name} ${archived ? 'archived' : 'restored'}`,
-            variant: 'success'
-          })
-          onClose()
-        },
+        onSuccess: () => done(`${existing.name} ${archived ? 'archived' : 'restored'}`),
         onError: showError(archived ? 'Account not archived' : 'Account not restored')
       }
     )
@@ -440,7 +433,8 @@ function AccountForm({
 export function AccountDialog({
   target,
   accounts,
-  onClose
+  onClose,
+  onDone
 }: AccountDialogProps): React.JSX.Element {
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
@@ -451,6 +445,7 @@ export function AccountDialog({
             target={target}
             accounts={accounts}
             onClose={onClose}
+            onDone={onDone}
           />
         )}
       </DialogContent>
