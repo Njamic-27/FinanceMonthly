@@ -2,11 +2,13 @@ import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react
 import type {
   CategoryTotal,
   CategoryTotalsQuery,
+  LargestQuery,
   PeriodTotals,
   StatsRange,
   StatsSeriesQuery,
   Totals
 } from '@shared/stats'
+import type { Transaction } from '@shared/transactions'
 import { useSettings } from '@renderer/features/settings/queries'
 import { invoke } from '@renderer/lib/api'
 
@@ -17,7 +19,8 @@ export const statsKeys = {
   totals: (range: StatsRange) => ['stats', 'totals', range] as const,
   series: (query: StatsSeriesQuery, weekStart: number | undefined) =>
     ['stats', 'series', query, weekStart] as const,
-  categories: (query: CategoryTotalsQuery) => ['stats', 'categories', query] as const
+  categories: (query: CategoryTotalsQuery) => ['stats', 'categories', query] as const,
+  largest: (query: LargestQuery) => ['stats', 'largest', query] as const
 }
 
 /** Income, expenses, savings and loan movements from `from` to `to`. */
@@ -48,6 +51,15 @@ export function useCategoryTotals(query: CategoryTotalsQuery): UseQueryResult<Ca
   return useQuery({
     queryKey: statsKeys.categories(query),
     queryFn: () => invoke('stats:categories', query),
+    placeholderData: keepPreviousData
+  })
+}
+
+/** The largest income or expense transactions, largest first. */
+export function useLargest(query: LargestQuery): UseQueryResult<Transaction[]> {
+  return useQuery({
+    queryKey: statsKeys.largest(query),
+    queryFn: () => invoke('stats:largest', query),
     placeholderData: keepPreviousData
   })
 }

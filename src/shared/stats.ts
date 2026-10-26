@@ -80,6 +80,12 @@ export const statsSeriesQuerySchema = z
   .superRefine(checkRange)
 export type StatsSeriesQuery = z.input<typeof statsSeriesQuerySchema>
 
+export const largestQuerySchema = z
+  .object({ ...range, type: z.enum(['income', 'expense']), limit: z.number().int().min(1).max(50) })
+  .strict()
+  .superRefine(checkRange)
+export type LargestQuery = z.input<typeof largestQuerySchema>
+
 export const categoryTotalsQuerySchema = z
   .object({ ...range, type: z.enum(['income', 'expense']) })
   .strict()

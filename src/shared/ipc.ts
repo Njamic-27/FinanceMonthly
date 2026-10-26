@@ -7,6 +7,7 @@ import type { Settings, SettingsPatch } from './settings'
 import type {
   CategoryTotal,
   CategoryTotalsQuery,
+  LargestQuery,
   PeriodTotals,
   StatsRange,
   StatsSeriesQuery,
@@ -58,6 +59,8 @@ export interface IpcContract {
   'stats:series': (query: StatsSeriesQuery) => PeriodTotals[]
   /** Income or expenses per category, largest first. */
   'stats:categories': (query: CategoryTotalsQuery) => CategoryTotal[]
+  /** The largest income or expense transactions, largest first. */
+  'stats:largest': (query: LargestQuery) => Transaction[]
 
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
@@ -96,6 +99,7 @@ const channels: Record<IpcChannel, true> = {
   'stats:totals': true,
   'stats:series': true,
   'stats:categories': true,
+  'stats:largest': true,
   'dev:seed': true,
   'dev:reset': true
 }

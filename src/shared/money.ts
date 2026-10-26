@@ -36,6 +36,16 @@ export function formatMoney(
   return formatter(locale, { style: 'currency', currency, signDisplay }).format(cents / 100)
 }
 
+/** "€1.2K", "€50" — short amounts for chart axes. */
+export function formatMoneyCompact(cents: Cents, { currency, locale }: MoneyFormat): string {
+  return formatter(locale, {
+    style: 'currency',
+    currency,
+    notation: 'compact',
+    maximumFractionDigits: 1
+  }).format(cents / 100)
+}
+
 /** The locale's decimal separator, e.g. "." for en-GB and "," for hr-HR. */
 export function decimalSeparator(locale: string): string {
   return (

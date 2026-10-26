@@ -20,7 +20,7 @@ import { getAccount } from './accounts'
 import { getCategory } from './categories'
 import { getSettings } from './settings'
 
-interface TransactionRow {
+export interface TransactionRow {
   id: number
   date: string
   title: string
@@ -40,7 +40,7 @@ interface TransactionRow {
   updated_at: string
 }
 
-function toTransaction(row: TransactionRow): Transaction {
+export function toTransaction(row: TransactionRow): Transaction {
   return {
     id: row.id,
     date: row.date,

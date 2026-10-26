@@ -6,7 +6,7 @@ import { createTestDb } from '../testing'
 import { createAccount, listAccounts, setAccountArchived } from './accounts'
 import { listCategories, updateCategory } from './categories'
 import { updateSettings } from './settings'
-import { getCategoryTotals, getSeries, getTotals } from './stats'
+import { getCategoryTotals, getLargest, getSeries, getTotals } from './stats'
 import { createTransaction } from './transactions'
 
 let db: Database.Database
@@ -313,5 +313,28 @@ describe('getCategoryTotals', () => {
     expect(getCategoryTotals(db, { from: '2026-10-01', to: '2026-10-31', type: 'income' })).toEqual(
       [{ categoryId: categoryId('Salary'), total: 245000, count: 1 }]
     )
+  })
+})
+
+describe('getLargest', () => {
+  it('lists the largest of one type in the range, earliest first on ties', () => {
+    add('expense', 4000, '2026-10-03', 'Groceries')
+    add('expense', 9000, '2026-10-04', 'Rent')
+    add('expense', 4000, '2026-10-01', 'Eating out')
+    add('expense', 1000, '2026-10-02', 'Groceries')
+    add('expense', 50000, '2026-11-01', 'Shopping')
+    add('income', 245000, '2026-10-01', 'Salary')
+
+    const largest = getLargest(db, {
+      from: '2026-10-01',
+      to: '2026-10-31',
+      type: 'expense',
+      limit: 3
+    })
+    expect(largest.map((t) => [t.date, t.amount])).toEqual([
+      ['2026-10-04', 9000],
+      ['2026-10-01', 4000],
+      ['2026-10-03', 4000]
+    ])
   })
 })

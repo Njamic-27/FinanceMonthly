@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatMoneyCompact,
   decimalSeparator,
   currencyAffix,
   formatAmountInput,
@@ -116,5 +117,13 @@ describe('currencyAffix', () => {
     expect(currencyAffix('EUR', 'hr-HR')).toEqual({ symbol: '€', position: 'suffix' })
     expect(currencyAffix('USD', 'en-US')).toEqual({ symbol: '$', position: 'prefix' })
     expect(currencyAffix('USD', 'hr-HR')).toEqual({ symbol: 'USD', position: 'suffix' })
+  })
+})
+
+describe('formatMoneyCompact', () => {
+  it('shortens large amounts for chart axes', () => {
+    const eur = { currency: 'EUR', locale: 'en-GB' }
+    expect(formatMoneyCompact(5000, eur)).toBe('€50')
+    expect(formatMoneyCompact(120000, eur)).toBe('€1.2k')
   })
 })

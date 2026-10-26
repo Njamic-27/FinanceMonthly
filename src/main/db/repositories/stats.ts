@@ -2,17 +2,21 @@ import type { Database } from 'better-sqlite3'
 import { eachDay, periodsBetween, type DateRange, type IsoDate } from '@shared/dates'
 import {
   categoryTotalsQuerySchema,
+  largestQuerySchema,
   statsRangeSchema,
   statsSeriesQuerySchema,
   type CategoryTotal,
   type CategoryTotalsQuery,
+  type LargestQuery,
   type PeriodTotals,
   type StatsRange,
   type StatsSeriesQuery,
   type Totals
 } from '@shared/stats'
 import { signedAmountSql } from '../ledger'
+import type { Transaction } from '@shared/transactions'
 import { getSettings } from './settings'
+import { toTransaction, type TransactionRow } from './transactions'
 
 interface TotalsRow {
   income: number
@@ -165,4 +169,17 @@ export function getCategoryTotals(db: Database, input: CategoryTotalsQuery): Cat
        GROUP BY t.category_id ORDER BY total DESC, t.category_id`
     )
     .all({ from, to, type }) as CategoryTotal[]
+}
+
+/** The largest income or expense transactions from `from` to `to`; the earliest first on ties. */
+export function getLargest(db: Database, input: LargestQuery): Transaction[] {
+  const { from, to, type, limit } = largestQuerySchema.parse(input)
+  const rows = db
+    .prepare(
+      `SELECT t.* FROM transactions t
+       WHERE t.type = @type AND t.date BETWEEN @from AND @to
+       ORDER BY t.amount DESC, t.date, t.id LIMIT @limit`
+    )
+    .all({ from, to, type, limit }) as TransactionRow[]
+  return rows.map(toTransaction)
 }
