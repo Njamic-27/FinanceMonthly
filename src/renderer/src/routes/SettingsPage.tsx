@@ -30,8 +30,8 @@ const themeOptions: SegmentedOption<ThemeMode>[] = [
 ]
 
 const laterSettings = [
-  'Reminders for bills and subscriptions, start with Windows and minimise to tray (step 22)',
-  'Backup and restore, CSV export and reset data (step 31)'
+  'Reminders for bills and subscriptions, start with Windows and minimise to tray (step 23)',
+  'Backup and restore, CSV export and reset data (step 32)'
 ]
 
 interface SettingRowProps {

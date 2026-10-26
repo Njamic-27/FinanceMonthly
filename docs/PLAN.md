@@ -272,51 +272,56 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 7. Settings v1: currency, locale, week start, theme.
 8. Categories CRUD + seeded defaults.
 9. Accounts CRUD (debit / credit / cash, opening balance, credit limit) + balance query.
-10. Add transaction dialog (add/edit/delete; income / expense) with validation; layout leaves room for card-only options that step 24 fills in.
+10. Add transaction dialog (add/edit/delete; income / expense) with validation; layout leaves room for card-only options that step 25 fills in.
 11. Transactions list: grouping by day, filters, search, paging.
 12. Transfers (debit → cash, debit → credit card payment).
-13. Onboarding wizard on first run.
+13. **Dev only — seed demo data.** Two buttons on the UI kit page (`/dev/ui`):
+    - **Seed demo data** fills `finance-dev.db` with ~12 months of realistic data ending today: monthly salary, rent, weekly groceries, eating out, ATM transfers debit → cash, subscriptions (Netflix, Spotify, Claude) as recurring items with their past charges, a credit-card purchase in 5 installments (installment plan + posted rates), a savings goal with monthly deposits and a personal loan (lent) with a partial repayment. Deterministic (fixed random seed); marks onboarding done.
+    - **Reset dev database** empties `finance-dev.db` and re-runs migrations, back to a first run.
+    - The seeder (`src/main/dev/seed.ts`) writes rows straight against the schema, so later steps update it whenever they add rules for that data.
+    - Never in production: the dev IPC handlers are registered only behind `import.meta.env.DEV` (so the code is dropped from the production bundle), they refuse to run unless the open database is `finance-dev.db`, and the UI kit route exists only in dev builds.
+14. Onboarding wizard on first run.
 
 **Phase 2 — Views & history**
 
-14. Aggregation queries: totals by period, by category, by day.
-15. Overview screen (week/month toggle, navigation, summary, charts, list).
-16. History screen (year grid, drill-down).
-17. Dashboard v1 (KPI cards, income vs expenses, category donut, balance trend).
+15. Aggregation queries: totals by period, by category, by day.
+16. Overview screen (week/month toggle, navigation, summary, charts, list).
+17. History screen (year grid, drill-down).
+18. Dashboard v1 (KPI cards, income vs expenses, category donut, balance trend).
 
 **Phase 3 — Recurring, subscriptions, calendar, reminders**
 
-18. `recurrence.ts` + tests.
-19. Recurring income/expenses CRUD; posting service on app start (auto-post or "Due now" confirmation queue).
-20. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel); Add subscription with quick presets (`src/shared/subscription-presets.ts`) that pre-fill the name only.
-21. Calendar: `plannedItems(from, to)` service + "confirm as paid" action (creates the linked transaction with `planned_date`); month grid with day totals, type dots, planned/overdue styles, month summary with ending balance, day side panel with "Add transaction" on that date; navigation from past months to 24 months ahead.
-22. Reminder service on top of `plannedItems`: upcoming list + Windows notifications (on launch + hourly while running), notification_log; tray & start-with-Windows option.
+19. `recurrence.ts` + tests.
+20. Recurring income/expenses CRUD; posting service on app start (auto-post or "Due now" confirmation queue).
+21. Subscriptions tab (billing date, reminder, monthly/yearly cost, pause/cancel); Add subscription with quick presets (`src/shared/subscription-presets.ts`) that pre-fill the name only.
+22. Calendar: `plannedItems(from, to)` service + "confirm as paid" action (creates the linked transaction with `planned_date`); month grid with day totals, type dots, planned/overdue styles, month summary with ending balance, day side panel with "Add transaction" on that date; navigation from past months to 24 months ahead.
+23. Reminder service on top of `plannedItems`: upcoming list + Windows notifications (on launch + hourly while running), notification_log; tray & start-with-Windows option.
 
 **Phase 4 — Credit cards**
 
-23. Credit card detail: used / available / utilization, statement & due-date reminders.
-24. Installment plans: `installments.ts` split + tests; extend the Add transaction dialog with "Pay in installments" (credit card only) showing the live monthly amount; create plan, auto-post rates, reserve limit, show on card; add them to `plannedItems` so they appear in the Calendar.
+24. Credit card detail: used / available / utilization, statement & due-date reminders.
+25. Installment plans: `installments.ts` split + tests; extend the Add transaction dialog with "Pay in installments" (credit card only) showing the live monthly amount; create plan, auto-post rates, reserve limit, show on card; add them to `plannedItems` so they appear in the Calendar.
 
 **Phase 5 — Savings**
 
-25. Savings goals CRUD, deposit/withdraw, progress & ETA, goal detail chart.
+26. Savings goals CRUD, deposit/withdraw, progress & ETA, goal detail chart.
 
 **Phase 6 — Loans**
 
-26. Personal loans (lent / borrowed): create (optional disbursement tx), record repayments, outstanding, mark paid off.
-27. `amortization.ts` + tests; bank loans with generated schedule, pay installment, payoff date; add unpaid installments to `plannedItems` so they appear in the Calendar.
+27. Personal loans (lent / borrowed): create (optional disbursement tx), record repayments, outstanding, mark paid off.
+28. `amortization.ts` + tests; bank loans with generated schedule, pay installment, payoff date; add unpaid installments to `plannedItems` so they appear in the Calendar.
 
 **Phase 7 — Projections**
 
-28. `projection.ts` + tests (month-end edges, loan ending mid-horizon, paused subscriptions), fed by `plannedItems`.
-29. Projections screen (horizon, granularity, charts, milestones, assumptions, table).
-30. Dashboard v2: upcoming bills, savings, debt, card utilization, projection teaser.
+29. `projection.ts` + tests (month-end edges, loan ending mid-horizon, paused subscriptions), fed by `plannedItems`.
+30. Projections screen (horizon, granularity, charts, milestones, assumptions, table).
+31. Dashboard v2: upcoming bills, savings, debt, card utilization, projection teaser.
 
 **Phase 8 — Polish & ship**
 
-31. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
-32. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
-33. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
+32. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
+33. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
+34. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
 
 ---
 
@@ -324,7 +329,7 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 
 - `npm run dev` after every step — the new screen/feature works by hand with sample data.
 - `npm test` (Vitest) for money, dates, recurrence, amortization and projection modules.
-- Dev-only "seed demo data" command to fill ~12 months of realistic transactions for checking charts, history and projections.
+- Dev-only "Seed demo data" button (step 13) to fill ~12 months of realistic data for checking charts, history and projections.
 - Before release: `npm run build && npm run dist`, install the generated `.exe`, create data, upgrade to a newer build, confirm data and migrations persist.
 
 ## Assumptions (easy to change)

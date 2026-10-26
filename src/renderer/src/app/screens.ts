@@ -44,7 +44,7 @@ export const navGroups: ScreenGroup[] = [
           'Spending by category and balance trend',
           'Upcoming bills, savings goals and card usage'
         ],
-        step: 17
+        step: 18
       },
       {
         path: '/transactions',
@@ -73,7 +73,7 @@ export const navGroups: ScreenGroup[] = [
           'Totals compared with the previous period',
           'Daily spending, category breakdown and top expenses'
         ],
-        step: 15
+        step: 16
       },
       {
         path: '/calendar',
@@ -86,7 +86,7 @@ export const navGroups: ScreenGroup[] = [
           'Month summary with ending balance',
           'Open a day to add a transaction or confirm a planned payment'
         ],
-        step: 21
+        step: 22
       },
       {
         path: '/history',
@@ -98,7 +98,7 @@ export const navGroups: ScreenGroup[] = [
           'Yearly chart',
           'Open any period in Overview'
         ],
-        step: 16
+        step: 17
       },
       {
         path: '/projections',
@@ -110,7 +110,7 @@ export const navGroups: ScreenGroup[] = [
           'Based on income, recurring expenses, subscriptions and loan installments',
           'Milestones like loans paid off and goals reached'
         ],
-        step: 29
+        step: 30
       }
     ]
   },
@@ -139,7 +139,7 @@ export const navGroups: ScreenGroup[] = [
           'Monthly and yearly cost',
           'Recurring income like your salary'
         ],
-        step: 20
+        step: 21
       },
       {
         path: '/savings',
@@ -151,7 +151,7 @@ export const navGroups: ScreenGroup[] = [
           'Deposits and withdrawals',
           'Estimated date you reach each goal'
         ],
-        step: 25
+        step: 26
       },
       {
         path: '/loans',
@@ -163,7 +163,7 @@ export const navGroups: ScreenGroup[] = [
           'Bank loan installment schedule',
           'Record repayments and see the payoff date'
         ],
-        step: 26
+        step: 27
       }
     ]
   }
