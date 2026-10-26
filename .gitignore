@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+
+# Build output
+out
+dist
+release
+*.tsbuildinfo
+
+# Local databases
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Misc
+.DS_Store
+.eslintcache
+*.log*
+.env
+.env.*
