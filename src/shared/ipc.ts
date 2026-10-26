@@ -2,6 +2,7 @@ import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { SerializedError } from './errors'
 import type { Settings, SettingsPatch } from './settings'
+import type { Transaction, TransactionInput } from './transactions'
 
 /**
  * Every call the renderer can make to the main process. Main registers a handler per
@@ -25,6 +26,11 @@ export interface IpcContract {
   'accounts:update': (id: number, input: AccountInput) => Account
   'accounts:archive': (id: number, archived: boolean) => Account
   'accounts:delete': (id: number) => void
+
+  'transactions:get': (id: number) => Transaction
+  'transactions:create': (input: TransactionInput) => Transaction
+  'transactions:update': (id: number, input: TransactionInput) => Transaction
+  'transactions:delete': (id: number) => void
 }
 
 export type IpcChannel = keyof IpcContract
@@ -47,7 +53,11 @@ const channels: Record<IpcChannel, true> = {
   'accounts:create': true,
   'accounts:update': true,
   'accounts:archive': true,
-  'accounts:delete': true
+  'accounts:delete': true,
+  'transactions:get': true,
+  'transactions:create': true,
+  'transactions:update': true,
+  'transactions:delete': true
 }
 
 export function isIpcChannel(value: unknown): value is IpcChannel {

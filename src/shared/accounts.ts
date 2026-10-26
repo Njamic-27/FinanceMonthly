@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Cents } from './money'
+import { MAX_CENTS, type Cents } from './money'
 import { isIsoDate, type IsoDate } from './dates'
 import { paletteColors, type PaletteColor } from './palette'
 
@@ -41,8 +41,6 @@ export interface Account {
 
 export const accountIdSchema = z.number().int().positive()
 
-/** Cents, kept well inside Number.MAX_SAFE_INTEGER so sums can't lose precision. */
-const MAX_CENTS = 1e13
 const cents = z.number().int().min(-MAX_CENTS).max(MAX_CENTS)
 const dayOfMonth = z
   .number()

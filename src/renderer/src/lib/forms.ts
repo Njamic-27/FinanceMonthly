@@ -9,3 +9,11 @@ export function fieldErrors(error: ZodError): Record<string, string> {
   }
   return errors
 }
+
+/** Marks an input invalid and links it to its message (`<FieldError id={`${id}-error`}>`). */
+export function errorProps(
+  id: string,
+  message?: string
+): { 'aria-invalid'?: true; 'aria-describedby'?: string } {
+  return message ? { 'aria-invalid': true, 'aria-describedby': `${id}-error` } : {}
+}

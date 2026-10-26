@@ -94,6 +94,13 @@ describe('parseAmount', () => {
     expect(parseAmount('1,234', 'hr-HR')).toBeNull()
   })
 
+  it.each(['12,5,0', '1,23,456', '12,34.5', '1234,567.89', '1.234.56,7', ',123'])(
+    'rejects digit groups that are not threes: %j',
+    (input) => {
+      expect(parseAmount(input, 'en-GB')).toBeNull()
+    }
+  )
+
   it.each(['', '   ', 'abc', '12.345.6,7.8', '1.234', '1e5', '--5', '12a3', '1-2', '€', '.'])(
     'rejects %j',
     (input) => {

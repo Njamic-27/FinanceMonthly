@@ -4,6 +4,9 @@
  */
 export type Cents = number
 
+/** Largest amount accepted anywhere, kept well inside Number.MAX_SAFE_INTEGER so sums stay exact. */
+export const MAX_CENTS = 1e13
+
 export interface MoneyFormat {
   currency: string
   locale: string
@@ -84,10 +87,18 @@ export function parseAmount(input: string, locale: string): Cents | null {
     if (count === 1 && (digitsAfter !== 3 || sep === decimalSeparator(locale))) decimal = sep
   }
 
-  const group = decimal === '.' ? ',' : decimal === ',' ? '.' : null
-  const [whole, fraction = '', ...rest] = (
-    group ? s.split(group).join('') : s.replace(/[.,]/g, '')
-  ).split(decimal ?? '\0')
+  // Whichever separator isn't the decimal one groups digits: "1,234,567" or "1.234,56".
+  const group = decimal === '.' || (!decimal && lastComma !== -1) ? ',' : '.'
+  const [integer, fraction = '', ...rest] = s.split(decimal ?? '\0')
+  const groups = integer.split(group)
+  // Grouped digits come in threes after the first group, so "12,5,0" isn't an amount.
+  if (
+    groups.length > 1 &&
+    groups.some((g, i) => (i === 0 ? !/^\d{1,3}$/.test(g) : g.length !== 3))
+  ) {
+    return null
+  }
+  const whole = groups.join('')
   if (rest.length > 0 || fraction.length > 2 || !/^\d*$/.test(whole) || !/^\d*$/.test(fraction)) {
     return null
   }

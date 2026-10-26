@@ -13,6 +13,8 @@ import { ActionRow } from '@renderer/components/ActionRow'
 import { AmountInput } from '@renderer/components/AmountInput'
 import { ColorChip } from '@renderer/components/ColorChip'
 import { ColorPicker } from '@renderer/components/ColorPicker'
+import { DatePicker } from '@renderer/components/DatePicker'
+import { FieldError } from '@renderer/components/FieldError'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -28,7 +30,7 @@ import { Label } from '@renderer/components/ui/label'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { ApiError } from '@renderer/lib/api'
-import { fieldErrors } from '@renderer/lib/forms'
+import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { accountTypeIcons } from './appearance'
 import { useArchiveAccount, useCreateAccount, useDeleteAccount, useUpdateAccount } from './queries'
@@ -67,20 +69,6 @@ const typeOptions = accountTypes.map((type) => ({
 
 const showError = (title: string) => (error: Error) =>
   toast({ title, description: error.message, variant: 'error' })
-
-function FieldError({ id, message }: { id: string; message?: string }): React.JSX.Element | null {
-  if (!message) return null
-  return (
-    <p id={id} className="text-sm text-expense">
-      {message}
-    </p>
-  )
-}
-
-/** Props that link an input to its error message. */
-function errorProps(id: string, message?: string): React.ComponentProps<'input'> {
-  return message ? { 'aria-invalid': true, 'aria-describedby': `${id}-error` } : {}
-}
 
 function AccountForm({
   target,
@@ -316,13 +304,12 @@ function AccountForm({
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="account-date">On</Label>
-              <Input
+              <DatePicker
                 id="account-date"
-                type="date"
                 value={openingDate}
                 {...errorProps('account-date', errors.openingDate)}
-                onChange={(event) => {
-                  setOpeningDate(event.target.value)
+                onChange={(date) => {
+                  setOpeningDate(date)
                   clearError('openingDate')
                 }}
               />
