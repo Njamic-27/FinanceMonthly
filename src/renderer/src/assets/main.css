@@ -149,6 +149,11 @@
     letter-spacing: -0.015em;
   }
 
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+
   ::selection {
     @apply bg-primary-soft text-ink;
   }

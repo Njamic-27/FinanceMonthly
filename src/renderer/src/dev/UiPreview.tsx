@@ -93,12 +93,12 @@ export function UiPreview(): React.JSX.Element {
   const [theme, setThemeState] = useState<ThemeMode>(getTheme())
 
   return (
-    <main className="mx-auto max-w-5xl px-8 py-10">
+    <div>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-hero font-bold">UI kit</h1>
           <p className="mt-2 text-ink-muted">
-            Base components and theme tokens. The app shell replaces this page in step 3.
+            Base components and theme tokens. Only available in development.
           </p>
         </div>
         <Tabs
@@ -250,6 +250,6 @@ export function UiPreview(): React.JSX.Element {
           </Card>
         </div>
       </div>
-    </main>
+    </div>
   )
 }
