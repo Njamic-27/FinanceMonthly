@@ -12,12 +12,14 @@ import type {
   RecurringItem,
   RecurringItemInput
 } from '@shared/recurring'
+import type { UpcomingPayment } from '@shared/planned'
 import type { Transaction } from '@shared/transactions'
 import { invoke } from '@renderer/lib/api'
 
 export const recurringKeys = {
   all: ['recurring'] as const,
-  due: ['recurring', 'due'] as const
+  due: ['recurring', 'due'] as const,
+  upcoming: ['recurring', 'upcoming'] as const
 }
 
 export function useRecurringItems(): UseQueryResult<RecurringItem[]> {
@@ -27,6 +29,14 @@ export function useRecurringItems(): UseQueryResult<RecurringItem[]> {
 /** Occurrences due by today that wait to be confirmed or skipped, oldest first. */
 export function useDueOccurrences(): UseQueryResult<DueOccurrence[]> {
   return useQuery({ queryKey: recurringKeys.due, queryFn: () => invoke('recurring:due') })
+}
+
+/** Planned payments in the next 14 days, with their reminders. */
+export function useUpcomingPayments(): UseQueryResult<UpcomingPayment[]> {
+  return useQuery({
+    queryKey: recurringKeys.upcoming,
+    queryFn: () => invoke('reminders:upcoming')
+  })
 }
 
 /**

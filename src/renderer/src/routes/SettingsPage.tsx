@@ -2,6 +2,7 @@ import { Info, Monitor, Moon, Sun } from 'lucide-react'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Label } from '@renderer/components/ui/label'
+import { Switch } from '@renderer/components/ui/switch'
 import { SegmentedControl, type SegmentedOption } from '@renderer/components/ui/segmented-control'
 import {
   Select,
@@ -29,10 +30,7 @@ const themeOptions: SegmentedOption<ThemeMode>[] = [
   { value: 'dark', label: 'Dark', icon: Moon }
 ]
 
-const laterSettings = [
-  'Reminders for bills and subscriptions, start with Windows and minimise to tray (step 23)',
-  'Backup and restore, CSV export and reset data (step 32)'
-]
+const laterSettings = ['Backup and restore, CSV export and reset data (step 32)']
 
 interface SettingRowProps {
   id: string
@@ -60,6 +58,39 @@ function SettingRow({
         <div className="w-72 shrink-0">{children}</div>
       </div>
       {footer}
+    </div>
+  )
+}
+
+interface ToggleRowProps {
+  id: string
+  label: string
+  description: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+}
+
+function ToggleRow({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange
+}: ToggleRowProps): React.JSX.Element {
+  return (
+    <div className="flex items-center justify-between gap-8 py-4 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <Label htmlFor={id}>{label}</Label>
+        <p id={`${id}-description`} className="mt-0.5 text-sm text-ink-muted">
+          {description}
+        </p>
+      </div>
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        aria-describedby={`${id}-description`}
+      />
     </div>
   )
 }
@@ -185,6 +216,47 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
         />
       </Card>
 
+      <Card>
+        <CardHeader className="block">
+          <CardTitle>Reminders and startup</CardTitle>
+          <CardDescription>
+            Reminders arrive while Financije is open or running in the tray.
+          </CardDescription>
+        </CardHeader>
+        <div className="divide-y divide-line">
+          <ToggleRow
+            id="setting-notifications"
+            label="Payment reminders"
+            description="A Windows notification before bills and subscriptions are due. Set how many days before on each one under Recurring."
+            checked={settings.notificationsEnabled}
+            onCheckedChange={(on) =>
+              save(
+                { notificationsEnabled: on },
+                on ? 'Reminders turned on' : 'Reminders turned off'
+              )
+            }
+          />
+          <ToggleRow
+            id="setting-tray"
+            label="Keep running in the tray"
+            description="Closing the window leaves Financije in the tray, so reminders still arrive. Quit from the tray icon’s menu."
+            checked={settings.closeToTray}
+            onCheckedChange={(on) => save({ closeToTray: on })}
+          />
+          <ToggleRow
+            id="setting-start"
+            label="Start with Windows"
+            description={
+              settings.closeToTray
+                ? 'Starts in the tray when you sign in, so reminders arrive without opening it.'
+                : 'Starts when you sign in, so reminders arrive without opening it.'
+            }
+            checked={settings.startWithWindows}
+            onCheckedChange={(on) => save({ startWithWindows: on })}
+          />
+        </div>
+      </Card>
+
       <section className="rounded-panel border border-dashed border-line p-5">
         <h2 className="font-semibold">More settings on the way</h2>
         <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm text-ink-muted marker:text-primary">
@@ -202,7 +274,7 @@ export function SettingsPage(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader title="Settings" description="Currency, formats and theme." />
+      <PageHeader title="Settings" description="Currency, formats, theme and reminders." />
       {settings.data ? (
         <SettingsForm settings={settings.data} />
       ) : settings.isError ? (

@@ -32,6 +32,17 @@ export interface PlannedItem {
 export const signedPlanned = (item: Pick<PlannedItem, 'amount' | 'group'>): Cents =>
   item.group === 'income' ? item.amount : -item.amount
 
+/** A planned payment coming up soon, with its reminder. */
+export interface UpcomingPayment {
+  planned: PlannedItem
+  /** Days before the due date the reminder goes off; null for no reminder. */
+  reminderDaysBefore: number | null
+  /** The day the reminder goes off, or null. */
+  remindOn: IsoDate | null
+  /** Whether the reminder notification has been shown. */
+  notified: boolean
+}
+
 /** One day of the Calendar grid: what actually happened that day. */
 export interface CalendarDay {
   date: IsoDate

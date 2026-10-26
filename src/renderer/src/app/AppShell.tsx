@@ -4,10 +4,12 @@ import { useSettings } from '@renderer/features/settings/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { TransactionDialog } from '@renderer/features/transactions/TransactionDialog'
 import { Sidebar } from './Sidebar'
+import { useMainEvents } from './useMainEvents'
 
 export function AppShell(): React.JSX.Element | null {
   const settings = useSettings()
   const location = useLocation()
+  useMainEvents()
 
   // Ctrl+N opens "Add transaction" from anywhere in the app.
   useEffect(() => {

@@ -14,6 +14,7 @@ import {
   skipOccurrence,
   syncItem
 } from '../services/posting'
+import { upcomingPayments } from '../services/reminders'
 import { handle } from './handle'
 
 export function registerRecurringHandlers(): void {
@@ -30,6 +31,7 @@ export function registerRecurringHandlers(): void {
   handle('recurring:setActive', (id, active) => setItemActive(getDb(), id, active, today()))
   handle('recurring:cancel', (id) => cancelItem(getDb(), id, today()))
   handle('recurring:delete', (id) => deleteRecurringItem(getDb(), id))
+  handle('reminders:upcoming', () => upcomingPayments(getDb(), today()))
   handle('recurring:due', () => dueOccurrences(getDb(), today()))
   handle('recurring:post', (input) => postOccurrence(getDb(), input))
   handle('recurring:skip', (itemId, plannedDate) => skipOccurrence(getDb(), itemId, plannedDate))

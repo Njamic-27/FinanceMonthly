@@ -12,7 +12,12 @@ export const settingsSchema = z.object({
   weekStart: z.number().int().min(0).max(6),
   theme: z.enum(themeModes),
   onboardingDone: z.boolean(),
+  /** Windows notifications for payment reminders. */
   notificationsEnabled: z.boolean(),
+  /** Closing the window keeps Financije running in the tray, so reminders still arrive. */
+  closeToTray: z.boolean(),
+  /** Start (in the tray) when you sign in to Windows. Only the installed app can do this. */
+  startWithWindows: z.boolean(),
   projectionIncludeVariable: z.boolean(),
   projectionVariableMonths: z.number().int().min(1).max(12),
   projectionIncludeSavings: z.boolean()
@@ -30,6 +35,8 @@ export const defaultSettings: Settings = {
   theme: 'system',
   onboardingDone: false,
   notificationsEnabled: true,
+  closeToTray: true,
+  startWithWindows: false,
   projectionIncludeVariable: true,
   projectionVariableMonths: 3,
   projectionIncludeSavings: true

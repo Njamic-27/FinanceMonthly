@@ -2,13 +2,13 @@ import { app, shell, BrowserWindow, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { today } from '@shared/dates'
 import { closeDatabase, databasePath, getDb, initDatabase } from './db'
 import { getSettings } from './db/repositories/settings'
 import { registerIpcHandlers } from './ipc'
-import { postDueItems } from './services/posting'
+import { startScheduler } from './app/scheduler'
+import { applySystemSettings, manageWindow, showMainWindow, startedHidden } from './app/shell'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -27,7 +27,9 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    // Started by Windows at sign-in: stay in the tray, or at least stay out of the way.
+    if (!startedHidden) mainWindow.show()
+    else if (!getSettings(getDb()).closeToTray) mainWindow.showInactive()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -42,6 +44,7 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  return mainWindow
 }
 
 // Only one copy of the app may run, so the database is never opened twice.
@@ -49,12 +52,7 @@ function createWindow(): void {
 const isPrimaryInstance = app.requestSingleInstanceLock()
 if (!isPrimaryInstance) app.quit()
 
-app.on('second-instance', () => {
-  const window = BrowserWindow.getAllWindows()[0]
-  if (!window) return
-  if (window.isMinimized()) window.restore()
-  window.focus()
-})
+app.on('second-instance', () => showMainWindow())
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -84,17 +82,12 @@ app.whenReady().then(async () => {
     return
   }
 
-  // Recurring items that fell due while the app was closed. A failure here is logged, not
-  // fatal: the items stay due and are tried again on the next start.
-  try {
-    const posted = postDueItems(getDb(), today())
-    if (posted > 0) console.log(`Posted ${posted} recurring transaction(s)`)
-  } catch (error) {
-    console.error('[posting] could not post due recurring items:', error)
-  }
-
   await registerIpcHandlers()
-  createWindow()
+  manageWindow(createWindow(), icon)
+  applySystemSettings(getSettings(getDb()))
+  // Posts payments that fell due while the app was closed, shows due reminders, and keeps
+  // doing so every hour.
+  startScheduler(icon)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

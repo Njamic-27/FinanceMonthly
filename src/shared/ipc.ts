@@ -1,7 +1,7 @@
 import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
-import type { CalendarMonth, CalendarQuery } from './planned'
+import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
 import type {
@@ -85,6 +85,9 @@ export interface IpcContract {
   /** The earliest transaction or account opening date; null with no data. */
   'stats:firstDate': () => IsoDate | null
 
+  /** Planned payments in the next 14 days, with their reminders. */
+  'reminders:upcoming': () => UpcomingPayment[]
+
   /** A month of the Calendar: day totals, planned payments and the month's summary. */
   'calendar:month': (query: CalendarQuery) => CalendarMonth
 
@@ -134,6 +137,7 @@ const channels: Record<IpcChannel, true> = {
   'stats:categories': true,
   'stats:largest': true,
   'stats:firstDate': true,
+  'reminders:upcoming': true,
   'calendar:month': true,
   'dev:seed': true,
   'dev:reset': true
@@ -145,7 +149,28 @@ export function isIpcChannel(value: unknown): value is IpcChannel {
   return import.meta.env.DEV || !value.startsWith('dev:')
 }
 
+/** Messages main sends to the renderer on its own, not in reply to a call. */
+export interface IpcEvents {
+  /** Main changed data by itself (posted due payments on its timer): refetch everything. */
+  'data:changed': () => void
+  /** Open a screen, e.g. after a reminder notification is clicked. `path` is a route. */
+  'app:navigate': (path: string) => void
+}
+
+export type IpcEvent = keyof IpcEvents
+
+const events: Record<IpcEvent, true> = { 'data:changed': true, 'app:navigate': true }
+
+export function isIpcEvent(value: unknown): value is IpcEvent {
+  return typeof value === 'string' && Object.hasOwn(events, value)
+}
+
 /** The API the preload exposes as `window.api`. */
 export interface PreloadApi {
   invoke<C extends IpcChannel>(channel: C, ...args: IpcArgs<C>): Promise<IpcResponse<IpcResult<C>>>
+  /** Listens for a main-process event; returns a function that stops listening. */
+  on<E extends IpcEvent>(
+    event: E,
+    listener: (...args: Parameters<IpcEvents[E]>) => void
+  ): () => void
 }

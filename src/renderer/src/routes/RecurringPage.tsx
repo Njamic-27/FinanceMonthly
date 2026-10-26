@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/u
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
+import { ComingUp } from '@renderer/features/recurring/ComingUp'
 import { DueNow } from '@renderer/features/recurring/DueNow'
 import { useDueOccurrences, useRecurringItems } from '@renderer/features/recurring/queries'
 import { kindLabels, reminderLabel } from '@renderer/features/recurring/appearance'
@@ -177,97 +178,102 @@ export function RecurringPage(): React.JSX.Element {
         }
       />
 
-      <DueNow due={due.data ?? []} />
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,48rem)_minmax(16rem,1fr)]">
+        <div className="min-w-0">
+          <DueNow due={due.data ?? []} />
 
-      {items.isError ? (
-        <Card className="max-w-3xl">
-          <CardTitle>Recurring items could not be loaded</CardTitle>
-          <CardDescription className="mt-1">
-            {items.error.message} Restart Financije to try again.
-          </CardDescription>
-        </Card>
-      ) : (
-        <Tabs
-          value={tab}
-          onValueChange={(value) => setTab(value as RecurringKind)}
-          className="max-w-3xl"
-        >
-          <TabsList aria-label="Kind">
-            {tabs.map(({ kind, label }) => (
-              <TabsTrigger key={kind} value={kind}>
-                {label}
-                <span className="text-ink-muted tabular-nums">
-                  {all.filter((i) => i.kind === kind && !hasEnded(i)).length || ''}
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {items.isError ? (
+            <Card className="max-w-3xl">
+              <CardTitle>Recurring items could not be loaded</CardTitle>
+              <CardDescription className="mt-1">
+                {items.error.message} Restart Financije to try again.
+              </CardDescription>
+            </Card>
+          ) : (
+            <Tabs
+              value={tab}
+              onValueChange={(value) => setTab(value as RecurringKind)}
+              className="max-w-3xl"
+            >
+              <TabsList aria-label="Kind">
+                {tabs.map(({ kind, label }) => (
+                  <TabsTrigger key={kind} value={kind}>
+                    {label}
+                    <span className="text-ink-muted tabular-nums">
+                      {all.filter((i) => i.kind === kind && !hasEnded(i)).length || ''}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-          {tabs.map(({ kind, empty, total, nouns }) => {
-            // Running ones first, then paused ones.
-            const current = all
-              .filter((i) => i.kind === kind && !hasEnded(i))
-              .sort((a, b) => Number(b.isActive) - Number(a.isActive))
-            const running = current.filter((i) => i.isActive)
-            const ended = all.filter((i) => i.kind === kind && hasEnded(i))
-            return (
-              <TabsContent key={kind} value={kind} className="grid gap-6">
-                {running.length > 0 && (
-                  <CostSummary
-                    items={running}
-                    label={total}
-                    nouns={nouns}
-                    income={kind === 'income'}
-                  />
-                )}
-                {current.length > 0 ? (
-                  <Card className="p-3">
-                    <ul className="divide-y divide-line">
-                      {current.map((item) => (
-                        <ItemRow
-                          key={item.id}
-                          item={item}
-                          onOpen={() => setDialog({ kind: 'edit', item })}
-                        />
-                      ))}
-                    </ul>
-                  </Card>
-                ) : (
-                  items.isSuccess && (
-                    <section className="flex flex-col items-start gap-4 rounded-panel border border-dashed border-line p-8">
-                      <p className="text-ink-muted">{empty}</p>
-                      <Button onClick={add}>
-                        <Plus />
-                        Add {kindLabels[kind].noun}
-                      </Button>
-                    </section>
-                  )
-                )}
+              {tabs.map(({ kind, empty, total, nouns }) => {
+                // Running ones first, then paused ones.
+                const current = all
+                  .filter((i) => i.kind === kind && !hasEnded(i))
+                  .sort((a, b) => Number(b.isActive) - Number(a.isActive))
+                const running = current.filter((i) => i.isActive)
+                const ended = all.filter((i) => i.kind === kind && hasEnded(i))
+                return (
+                  <TabsContent key={kind} value={kind} className="grid gap-6">
+                    {running.length > 0 && (
+                      <CostSummary
+                        items={running}
+                        label={total}
+                        nouns={nouns}
+                        income={kind === 'income'}
+                      />
+                    )}
+                    {current.length > 0 ? (
+                      <Card className="p-3">
+                        <ul className="divide-y divide-line">
+                          {current.map((item) => (
+                            <ItemRow
+                              key={item.id}
+                              item={item}
+                              onOpen={() => setDialog({ kind: 'edit', item })}
+                            />
+                          ))}
+                        </ul>
+                      </Card>
+                    ) : (
+                      items.isSuccess && (
+                        <section className="flex flex-col items-start gap-4 rounded-panel border border-dashed border-line p-8">
+                          <p className="text-ink-muted">{empty}</p>
+                          <Button onClick={add}>
+                            <Plus />
+                            Add {kindLabels[kind].noun}
+                          </Button>
+                        </section>
+                      )
+                    )}
 
-                {ended.length > 0 && (
-                  <section>
-                    <h2 className="mb-1 text-lg font-semibold">Ended</h2>
-                    <p className="mb-3 text-sm text-ink-muted">
-                      Past their end date. What they added stays in your transactions.
-                    </p>
-                    <Card className="p-3">
-                      <ul className="divide-y divide-line">
-                        {ended.map((item) => (
-                          <ItemRow
-                            key={item.id}
-                            item={item}
-                            onOpen={() => setDialog({ kind: 'edit', item })}
-                          />
-                        ))}
-                      </ul>
-                    </Card>
-                  </section>
-                )}
-              </TabsContent>
-            )
-          })}
-        </Tabs>
-      )}
+                    {ended.length > 0 && (
+                      <section>
+                        <h2 className="mb-1 text-lg font-semibold">Ended</h2>
+                        <p className="mb-3 text-sm text-ink-muted">
+                          Past their end date. What they added stays in your transactions.
+                        </p>
+                        <Card className="p-3">
+                          <ul className="divide-y divide-line">
+                            {ended.map((item) => (
+                              <ItemRow
+                                key={item.id}
+                                item={item}
+                                onOpen={() => setDialog({ kind: 'edit', item })}
+                              />
+                            ))}
+                          </ul>
+                        </Card>
+                      </section>
+                    )}
+                  </TabsContent>
+                )
+              })}
+            </Tabs>
+          )}
+        </div>
+        <ComingUp className="xl:sticky xl:top-6" />
+      </div>
 
       <RecurringDialog target={dialog} onClose={() => setDialog(null)} />
     </>
