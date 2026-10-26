@@ -8,6 +8,7 @@ import { queryClient } from './lib/queryClient'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
 import { AccountsPage } from './routes/AccountsPage'
+import { CalendarPage } from './routes/CalendarPage'
 import { CategoriesPage } from './routes/CategoriesPage'
 import { DashboardPage } from './routes/DashboardPage'
 import { HistoryPage } from './routes/HistoryPage'
@@ -27,6 +28,7 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/': DashboardPage,
   '/transactions': TransactionsPage,
   '/overview': OverviewPage,
+  '/calendar': CalendarPage,
   '/history': HistoryPage,
   '/accounts': AccountsPage,
   '/recurring': RecurringPage,

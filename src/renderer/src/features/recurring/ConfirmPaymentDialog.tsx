@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Account } from '@shared/accounts'
-import { formatDate, type IsoDate } from '@shared/dates'
+import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
 import type { RecurringItem } from '@shared/recurring'
 import { AmountInput } from '@renderer/components/AmountInput'
@@ -49,7 +49,11 @@ function ConfirmForm({
   const [accountId, setAccountId] = useState(
     usable.some((a) => a.id === item.accountId) ? String(item.accountId) : ''
   )
-  const [date, setDate] = useState<IsoDate>(plannedDate)
+  // A payment confirmed before it falls due was paid early: today, not its due date.
+  const [date, setDate] = useState<IsoDate>(() => {
+    const now = today()
+    return plannedDate > now ? now : plannedDate
+  })
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const postOccurrence = usePostOccurrence()

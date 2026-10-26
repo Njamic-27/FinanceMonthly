@@ -99,6 +99,19 @@ const balanceChangesSql = /* sql */ `
   FROM transactions t JOIN accounts a ON a.id = t.to_account_id
   WHERE a.is_archived = 0 AND t.date >= a.opening_date`
 
+/**
+ * Total balance of active accounts at the end of `date`, the same total Accounts shows for
+ * today. Transactions dated after today count once their date is reached.
+ */
+export function getBalanceAt(db: Database, date: IsoDate): number {
+  const { balance } = db
+    .prepare(
+      `SELECT coalesce(sum(delta), 0) AS balance FROM (${balanceChangesSql}) WHERE date <= ?`
+    )
+    .get(date) as { balance: number }
+  return balance
+}
+
 /** Totals for every transaction from `from` to `to`, inclusive. */
 export function getTotals(db: Database, input: StatsRange): Totals {
   const { from, to } = statsRangeSchema.parse(input)

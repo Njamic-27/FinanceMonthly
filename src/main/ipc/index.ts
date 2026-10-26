@@ -1,4 +1,5 @@
 import { registerAccountHandlers } from './accounts'
+import { registerCalendarHandlers } from './calendar'
 import { registerCategoryHandlers } from './categories'
 import { registerRecurringHandlers } from './recurring'
 import { registerSettingsHandlers } from './settings'
@@ -12,6 +13,7 @@ export async function registerIpcHandlers(): Promise<void> {
   registerTransactionHandlers()
   registerRecurringHandlers()
   registerStatsHandlers()
+  registerCalendarHandlers()
 
   // Seed and reset exist only in development builds: in production `import.meta.env.DEV` is
   // false at build time, so this branch and the dev module are left out of the bundle.

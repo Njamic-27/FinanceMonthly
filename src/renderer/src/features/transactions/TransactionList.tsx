@@ -155,7 +155,8 @@ export function TransactionList({
   }
 
   return (
-    <div className="grid gap-6">
+    // minmax(0, 1fr): long titles truncate instead of widening narrow places like a side panel.
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {days.map(({ date, items }) => {
         const totals = dayTotals.get(date)
         return (

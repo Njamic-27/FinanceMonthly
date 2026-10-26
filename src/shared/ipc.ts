@@ -1,6 +1,7 @@
 import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
+import type { CalendarMonth, CalendarQuery } from './planned'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
 import type {
@@ -84,6 +85,9 @@ export interface IpcContract {
   /** The earliest transaction or account opening date; null with no data. */
   'stats:firstDate': () => IsoDate | null
 
+  /** A month of the Calendar: day totals, planned payments and the month's summary. */
+  'calendar:month': (query: CalendarQuery) => CalendarMonth
+
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
   /** Development builds only: empties finance-dev.db, back to a first run. */
@@ -130,6 +134,7 @@ const channels: Record<IpcChannel, true> = {
   'stats:categories': true,
   'stats:largest': true,
   'stats:firstDate': true,
+  'calendar:month': true,
   'dev:seed': true,
   'dev:reset': true
 }
