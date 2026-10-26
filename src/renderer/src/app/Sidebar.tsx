@@ -3,6 +3,7 @@ import { NavLink } from 'react-router'
 import { Blocks, PanelLeftClose, PanelLeftOpen, Plus, type LucideIcon } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { cn } from '@renderer/lib/utils'
+import { BrandMark } from '@renderer/components/BrandMark'
 import { footerScreens, navGroups } from './screens'
 
 const COLLAPSED_KEY = 'sidebar-collapsed'
@@ -21,21 +22,6 @@ function writeCollapsed(value: boolean): void {
   } catch {
     // Storage unavailable — the sidebar just won't remember its state.
   }
-}
-
-function BrandMark(): React.JSX.Element {
-  return (
-    <svg viewBox="0 0 32 32" className="size-8 shrink-0" aria-hidden="true">
-      <rect width="32" height="32" rx="9" className="fill-primary" />
-      <path
-        d="M7 13.5c3-2.4 6-2.4 9 0s6 2.4 9 0M7 19.5c3-2.4 6-2.4 9 0s6 2.4 9 0"
-        fill="none"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        className="stroke-on-primary"
-      />
-    </svg>
-  )
 }
 
 interface NavItemProps {

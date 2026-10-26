@@ -2,6 +2,7 @@ import type { Account, AccountInput } from './accounts'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
+import type { RecurringItem, RecurringItemInput } from './recurring'
 import type { Settings, SettingsPatch } from './settings'
 import type {
   Transaction,
@@ -40,6 +41,9 @@ export interface IpcContract {
   'transactions:update': (id: number, input: TransactionInput) => Transaction
   'transactions:delete': (id: number) => void
 
+  'recurring:list': () => RecurringItem[]
+  'recurring:create': (input: RecurringItemInput) => RecurringItem
+
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
   /** Development builds only: empties finance-dev.db, back to a first run. */
@@ -72,6 +76,8 @@ const channels: Record<IpcChannel, true> = {
   'transactions:create': true,
   'transactions:update': true,
   'transactions:delete': true,
+  'recurring:list': true,
+  'recurring:create': true,
   'dev:seed': true,
   'dev:reset': true
 }

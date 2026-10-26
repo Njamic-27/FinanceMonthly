@@ -35,7 +35,8 @@ import { toast } from '@renderer/lib/toast'
 import { accountTypeIcons } from './appearance'
 import { useArchiveAccount, useCreateAccount, useDeleteAccount, useUpdateAccount } from './queries'
 
-export type AccountDialogTarget = { kind: 'new' } | { kind: 'edit'; account: Account }
+export type AccountDialogTarget =
+  { kind: 'new'; type?: AccountType } | { kind: 'edit'; account: Account }
 
 interface AccountDialogProps {
   target: AccountDialogTarget | null
@@ -79,7 +80,9 @@ function AccountForm({
   const existing = target.kind === 'edit' ? target.account : null
 
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [type, setType] = useState<AccountType>(existing?.type ?? 'debit')
+  const [type, setType] = useState<AccountType>(
+    existing?.type ?? (target.kind === 'new' ? target.type : undefined) ?? 'debit'
+  )
   const [name, setName] = useState(existing?.name ?? '')
   const [color, setColor] = useState<PaletteColor>(
     existing?.color ?? nextPaletteColor(accounts.filter((a) => !a.isArchived).map((a) => a.color))

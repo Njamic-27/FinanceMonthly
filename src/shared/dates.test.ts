@@ -14,7 +14,9 @@ import {
   periodsBetween,
   shiftPeriod,
   startOfWeek,
-  today
+  today,
+  dayOfMonth,
+  monthlySchedule
 } from './dates'
 
 const MONDAY = 1
@@ -135,5 +137,31 @@ describe('formatting', () => {
     expect(plain(formatPeriod('week', { start: '2026-10-19', end: '2026-10-25' }, 'en-GB'))).toBe(
       '19 – 25 Oct 2026'
     )
+  })
+})
+
+describe('dayOfMonth', () => {
+  it('moves to the last day of shorter months', () => {
+    expect(dayOfMonth('2026-11-02', 10)).toBe('2026-11-10')
+    expect(dayOfMonth('2026-11-02', 31)).toBe('2026-11-30')
+    expect(dayOfMonth('2026-02-14', 30)).toBe('2026-02-28')
+    expect(dayOfMonth('2028-02-14', 30)).toBe('2028-02-29')
+  })
+})
+
+describe('monthlySchedule', () => {
+  it.each([
+    // day, today, anchor, next due
+    [10, '2026-11-02', '2026-11-10', '2026-11-10'],
+    [10, '2026-11-10', '2026-11-10', '2026-11-10'],
+    [10, '2026-11-11', '2026-12-10', '2026-12-10'],
+    [31, '2026-11-02', '2026-10-31', '2026-11-30'],
+    [31, '2026-12-01', '2026-12-31', '2026-12-31'],
+    [30, '2026-02-05', '2026-01-30', '2026-02-28'],
+    [29, '2026-02-28', '2026-01-29', '2026-02-28'],
+    [31, '2026-03-01', '2026-03-31', '2026-03-31'],
+    [1, '2026-12-15', '2027-01-01', '2027-01-01']
+  ])('payday %i on %s: anchor %s, next due %s', (day, today, anchorDate, nextDueDate) => {
+    expect(monthlySchedule(day, today)).toEqual({ anchorDate, nextDueDate })
   })
 })

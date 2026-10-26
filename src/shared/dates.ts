@@ -84,6 +84,32 @@ export function endOfMonth(value: IsoDate): IsoDate {
   return toIsoDate(endOfMonthFns(parseIsoDate(value)))
 }
 
+/** Day `day` of the month containing `value`, or the month's last day if it is shorter (31 → 30 Nov). */
+export function dayOfMonth(value: IsoDate, day: number): IsoDate {
+  const start = startOfMonth(value)
+  return `${start.slice(0, 8)}${String(Math.min(day, daysInMonth(start))).padStart(2, '0')}`
+}
+
+/**
+ * Where a monthly schedule on `day` (1–31) stands on `today`:
+ * - `nextDueDate`: the first payday on or after today, moved to the month's last day in shorter
+ *   months (payday 31 → 30 November);
+ * - `anchorDate`: the latest date on or before it that falls exactly on `day`, so the schedule
+ *   keeps its real day of the month (31 October, not 30 November).
+ */
+export function monthlySchedule(
+  day: number,
+  today: IsoDate
+): { anchorDate: IsoDate; nextDueDate: IsoDate } {
+  let nextDueDate = dayOfMonth(today, day)
+  if (nextDueDate < today) nextDueDate = dayOfMonth(addMonths(startOfMonth(today), 1), day)
+  let anchorDate = nextDueDate
+  while (Number(anchorDate.slice(8)) !== day) {
+    anchorDate = dayOfMonth(addMonths(startOfMonth(anchorDate), -1), day)
+  }
+  return { anchorDate, nextDueDate }
+}
+
 export function startOfWeek(value: IsoDate, weekStart: WeekStart): IsoDate {
   return toIsoDate(startOfWeekFns(parseIsoDate(value), { weekStartsOn: weekStart as Day }))
 }

@@ -117,23 +117,23 @@ A planned occurrence counts as settled when a transaction links to its source wi
 
 ### recurring_items — monthly income, recurring expenses and subscriptions
 
-| column               | type         | notes                                                             |
-| -------------------- | ------------ | ----------------------------------------------------------------- |
-| id                   | INTEGER PK   |                                                                   |
-| kind                 | TEXT         | `income` \| `expense` \| `subscription`                           |
-| title                | TEXT         | "Salary", "Rent", "Netflix"                                       |
-| amount               | INTEGER      |                                                                   |
-| account_id           | INTEGER FK   | account it is paid from / to                                      |
-| category_id          | INTEGER FK   |                                                                   |
-| frequency            | TEXT         | `weekly` \| `monthly` \| `yearly`                                 |
-| interval             | INTEGER      | every N periods (default 1)                                       |
-| anchor_date          | TEXT         | first occurrence; defines billing day                             |
-| end_date             | TEXT NULL    |                                                                   |
-| next_due_date        | TEXT         | maintained by posting service                                     |
-| auto_post            | INTEGER      | 1 = create transaction automatically when due; 0 = ask to confirm |
-| reminder_days_before | INTEGER NULL | subscriptions / bills                                             |
-| url, note            | TEXT NULL    |                                                                   |
-| is_active            | INTEGER      | paused/cancelled subscriptions                                    |
+| column               | type         | notes                                                                                                |
+| -------------------- | ------------ | ---------------------------------------------------------------------------------------------------- |
+| id                   | INTEGER PK   |                                                                                                      |
+| kind                 | TEXT         | `income` \| `expense` \| `subscription`                                                              |
+| title                | TEXT         | "Salary", "Rent", "Netflix"                                                                          |
+| amount               | INTEGER      |                                                                                                      |
+| account_id           | INTEGER FK   | account it is paid from / to                                                                         |
+| category_id          | INTEGER FK   |                                                                                                      |
+| frequency            | TEXT         | `weekly` \| `monthly` \| `yearly`                                                                    |
+| interval             | INTEGER      | every N periods (default 1)                                                                          |
+| anchor_date          | TEXT         | defines the billing day; may precede next_due_date (31 Oct for a payday on the 31st next due 30 Nov) |
+| end_date             | TEXT NULL    |                                                                                                      |
+| next_due_date        | TEXT         | first occurrence not posted yet; maintained by posting service                                       |
+| auto_post            | INTEGER      | 1 = create transaction automatically when due; 0 = ask to confirm                                    |
+| reminder_days_before | INTEGER NULL | subscriptions / bills                                                                                |
+| url, note            | TEXT NULL    |                                                                                                      |
+| is_active            | INTEGER      | paused/cancelled subscriptions                                                                       |
 
 ### savings_goals
 
