@@ -30,6 +30,8 @@ export interface Transaction {
   loanInstallmentId: number | null
   installmentPlanId: number | null
   plannedDate: IsoDate | null
+  /** The monthly summary of a Month sheet row: what its individual transactions don't hold. */
+  isMonthTotal: boolean
   note: string | null
   createdAt: string
   updatedAt: string

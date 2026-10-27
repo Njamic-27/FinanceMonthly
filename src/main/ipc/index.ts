@@ -3,6 +3,7 @@ import { registerCalendarHandlers } from './calendar'
 import { registerCategoryHandlers } from './categories'
 import { registerInstallmentHandlers } from './installments'
 import { registerLoanHandlers } from './loans'
+import { registerMonthHandlers } from './month'
 import { registerProjectionHandlers } from './projection'
 import { registerRecurringHandlers } from './recurring'
 import { registerSavingsHandlers } from './savings'
@@ -21,6 +22,7 @@ export async function registerIpcHandlers(): Promise<void> {
   registerLoanHandlers()
   registerStatsHandlers()
   registerCalendarHandlers()
+  registerMonthHandlers()
   registerProjectionHandlers()
 
   // Seed and reset exist only in development builds: in production `import.meta.env.DEV` is

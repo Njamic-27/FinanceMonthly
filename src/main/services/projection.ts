@@ -17,12 +17,14 @@ import {
   getBalanceAt,
   getBalanceChanges
 } from '../db/repositories/stats'
+import { monthsWithTypedSpending } from './monthSheet'
 import { openPlannedItems } from './planned'
 
 /**
  * Where the total balance is heading over the next 3 to 24 months: today's balance, every
  * planned payment (the same ones the Calendar shows), transactions already entered for later,
- * and, as Settings say, average everyday spending and the savings plans.
+ * and, as Settings say, average everyday spending (except in months whose spending was typed
+ * on the Month sheet) and the savings plans.
  */
 export function buildProjection(
   db: Database,
@@ -85,6 +87,7 @@ export function buildProjection(
     planned: openPlannedItems(db, end, today),
     recorded: getBalanceChanges(db, today, end),
     variableMonthly: settings.projectionIncludeVariable ? variableMonthly : null,
+    typedMonths: monthsWithTypedSpending(db, today),
     savings,
     payoffs
   })

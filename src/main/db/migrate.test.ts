@@ -22,6 +22,7 @@ describe('migrate', () => {
       'installment_plans',
       'loan_installments',
       'loans',
+      'month_rows',
       'notification_log',
       'recurring_items',
       'savings_goals',

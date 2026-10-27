@@ -63,6 +63,11 @@ export interface ProjectionInput {
   recorded: { date: IsoDate; delta: Cents }[]
   /** Average everyday spending per month, spread evenly over the days after today; null for none. */
   variableMonthly: Cents | null
+  /**
+   * Months ('YYYY-MM') whose spending was typed on the Month sheet: those amounts count
+   * instead, so no average spending is added in them.
+   */
+  typedMonths?: string[]
   /** Savings plans to follow; empty to leave savings out. */
   savings: SavingsPlan[]
   payoffs: Payoff[]
@@ -176,10 +181,11 @@ export function project(input: ProjectionInput): Projection {
 
   // Average spending, a day's share each day after today, in whole cents with no drift.
   if (input.variableMonthly && input.variableMonthly > 0 && end > today) {
+    const typed = new Set(input.typedMonths)
     let spread = 0
     eachDay(addDays(today, 1), end).forEach((date, i) => {
       const upTo = Math.round(((input.variableMonthly as number) * (i + 1)) / DAYS_PER_MONTH)
-      at(date).variable += upTo - spread
+      if (!typed.has(date.slice(0, 7))) at(date).variable += upTo - spread
       spread = upTo
     })
   }

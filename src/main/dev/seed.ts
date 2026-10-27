@@ -466,6 +466,14 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
       })
     }
 
+    // Month sheet rows: every category with everyday spending or income of its own
+    db.prepare(
+      `INSERT INTO month_rows (section, category_id, default_account_id, sort_order)
+       SELECT c.type, c.id, @debit, c.sort_order FROM categories c
+       WHERE EXISTS (SELECT 1 FROM transactions t WHERE t.category_id = c.id
+                       AND t.recurring_item_id IS NULL AND t.installment_plan_id IS NULL)`
+    ).run({ debit })
+
     updateSettings(db, { onboardingDone: true })
 
     return {

@@ -147,6 +147,26 @@ export function mergeCategory(db: Database, sourceId: number, targetId: number):
   }
 
   db.transaction(() => {
+    // A month can hold one summary per category: where both have one, the target's takes in
+    // the source's.
+    const sameMonthSummary = (category: string): string => /* sql */ `
+      SELECT s.amount FROM transactions s
+      WHERE s.is_month_total = 1 AND s.category_id = @${category}
+        AND substr(s.date, 1, 7) = substr(transactions.date, 1, 7)`
+    const ids = { source: source.id, target: target.id }
+    db.prepare(
+      `UPDATE transactions SET amount = amount + (${sameMonthSummary('source')})
+       WHERE is_month_total = 1 AND category_id = @target AND EXISTS (${sameMonthSummary('source')})`
+    ).run(ids)
+    db.prepare(
+      `DELETE FROM transactions
+       WHERE is_month_total = 1 AND category_id = @source AND EXISTS (${sameMonthSummary('target')})`
+    ).run(ids)
+    // The target keeps its Month sheet row, or takes over the source's.
+    db.prepare(
+      `UPDATE month_rows SET category_id = @target
+       WHERE category_id = @source AND NOT EXISTS (SELECT 1 FROM month_rows WHERE category_id = @target)`
+    ).run(ids)
     for (const table of referencingTables) {
       db.prepare(`UPDATE ${table} SET category_id = ? WHERE category_id = ?`).run(
         target.id,

@@ -212,7 +212,10 @@ export function updateSavingsMovement(
   db.prepare(
     `UPDATE transactions SET date = @date, amount = @amount, type = @type, account_id = @accountId,
        savings_goal_id = @goalId, note = @note,
-       title = CASE WHEN savings_goal_id = @goalId THEN title ELSE @title END
+       title = CASE WHEN savings_goal_id = @goalId THEN title ELSE @title END,
+       -- A monthly summary moved to another goal or month becomes an ordinary movement there.
+       is_month_total = is_month_total AND type = @type AND savings_goal_id = @goalId
+         AND substr(date, 1, 7) = substr(@date, 1, 7)
      WHERE id = @id`
   ).run({ ...movement, type: typeFor[movement.type], title: goal.name, id })
   return getTransaction(db, id)

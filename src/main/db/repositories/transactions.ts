@@ -35,6 +35,7 @@ export interface TransactionRow {
   loan_installment_id: number | null
   installment_plan_id: number | null
   planned_date: string | null
+  is_month_total: number
   note: string | null
   created_at: string
   updated_at: string
@@ -56,6 +57,7 @@ export function toTransaction(row: TransactionRow): Transaction {
     loanInstallmentId: row.loan_installment_id,
     installmentPlanId: row.installment_plan_id,
     plannedDate: row.planned_date,
+    isMonthTotal: row.is_month_total === 1,
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -207,10 +209,13 @@ export function updateTransaction(db: Database, id: number, input: TransactionIn
     )
   }
   const tx = checkTransaction(db, input, current)
+  // A monthly summary moved to another row or month becomes an ordinary transaction there.
   db.prepare(
     `UPDATE transactions
      SET date = @date, title = @title, amount = @amount, type = @type, account_id = @accountId,
-         to_account_id = @toAccountId, category_id = @categoryId, note = @note
+         to_account_id = @toAccountId, category_id = @categoryId, note = @note,
+         is_month_total = is_month_total AND type = @type AND category_id IS @categoryId
+           AND to_account_id IS @toAccountId AND substr(date, 1, 7) = substr(@date, 1, 7)
      WHERE id = @id`
   ).run({ ...tx, id })
   return getTransaction(db, id)

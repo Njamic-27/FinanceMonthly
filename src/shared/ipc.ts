@@ -12,6 +12,7 @@ import type {
   RepaymentInput,
   SettleLoanInput
 } from './loans'
+import type { MonthCellInput, MonthSheet, MonthSheetQuery } from './month'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { ProjectionQuery, ProjectionResult } from './projection'
 import type { SeedSummary } from './dev'
@@ -154,6 +155,13 @@ export interface IpcContract {
   /** A month of the Calendar: day totals, planned payments and the month's summary. */
   'calendar:month': (query: CalendarQuery) => CalendarMonth
 
+  /** A month of the Month sheet: its sections, rows and totals, and the Calendar's summary. */
+  'month:sheet': (query: MonthSheetQuery) => MonthSheet
+  /** Typing an amount into a row: sets its monthly summary, or confirms or changes a payment. */
+  'month:setCell': (input: MonthCellInput) => void
+  /** Fills the month's empty rows with last month's amounts; returns how many it filled. */
+  'month:copyFromLastMonth': (query: MonthSheetQuery) => number
+
   /** Where the total balance is heading, by week or month, with milestones. */
   'projection:get': (query: ProjectionQuery) => ProjectionResult
 
@@ -235,6 +243,9 @@ const channels: Record<IpcChannel, true> = {
   'stats:firstDate': true,
   'reminders:upcoming': true,
   'calendar:month': true,
+  'month:sheet': true,
+  'month:setCell': true,
+  'month:copyFromLastMonth': true,
   'projection:get': true,
   'dev:seed': true,
   'dev:reset': true

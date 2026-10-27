@@ -206,6 +206,51 @@ describe('installment plans and loans', () => {
   })
 })
 
+describe('month sheet', () => {
+  const summary = (date: string, categoryId = GROCERIES): Database.RunResult =>
+    run(
+      `INSERT INTO transactions (date, title, amount, type, account_id, category_id, is_month_total)
+       VALUES (?, 'Groceries', 1000, 'expense', ?, ?, 1)`,
+      date,
+      DEBIT,
+      categoryId
+    )
+
+  it('keeps one monthly summary per category and month', () => {
+    expect(() => summary('2026-10-20')).not.toThrow()
+    expect(() => summary('2026-10-31')).toThrow(/UNIQUE/)
+    expect(() => summary('2026-11-30')).not.toThrow()
+    expect(() => summary('2026-10-31', SUBSCRIPTIONS)).not.toThrow()
+    // Ordinary transactions are as many as you like.
+    expect(() => insertTx({ type: 'expense', category_id: GROCERIES })).not.toThrow()
+  })
+
+  it('keeps one card payment summary per card and month', () => {
+    const payment = (): Database.RunResult =>
+      run(
+        `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, is_month_total)
+         VALUES ('2026-10-20', 'Mastercard payment', 1000, 'transfer', ?, ?, 1)`,
+        DEBIT,
+        CARD
+      )
+    expect(() => payment()).not.toThrow()
+    expect(() => payment()).toThrow(/UNIQUE/)
+  })
+
+  it('has one row per category, removed with the category', () => {
+    const row = (): Database.RunResult =>
+      run(
+        `INSERT INTO month_rows (section, category_id, default_account_id) VALUES ('expense', ?, ?)`,
+        GROCERIES,
+        DEBIT
+      )
+    expect(() => row()).not.toThrow()
+    expect(() => row()).toThrow(/UNIQUE/)
+    run('DELETE FROM categories WHERE id = ?', GROCERIES)
+    expect(db.prepare('SELECT count(*) AS n FROM month_rows').get()).toEqual({ n: 0 })
+  })
+})
+
 describe('integrity', () => {
   it('has no foreign-key or integrity problems', () => {
     expect(db.pragma('foreign_key_check')).toEqual([])
