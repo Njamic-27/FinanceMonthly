@@ -3,6 +3,7 @@ import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
 import type { InstallmentPlan, InstallmentPlanInput } from './installments'
+import type { Loan, PersonalLoanInput, RepaymentInput, SettleLoanInput } from './loans'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
@@ -103,6 +104,22 @@ export interface IpcContract {
   /** What a goal held at the end of each day, up to today. */
   'savings:series': (goalId: number) => BalancePoint[]
 
+  /** Every loan: active ones first. */
+  'loans:list': () => Loan[]
+  /** Money lent to or borrowed from a person; optionally records the money moving. */
+  'loans:create': (input: PersonalLoanInput) => Loan
+  'loans:update': (id: number, input: PersonalLoanInput) => Loan
+  /** Deletes the loan and every transaction recorded for it. */
+  'loans:delete': (id: number) => void
+  /** Every transaction recorded for a loan, newest first. */
+  'loans:transactions': (id: number) => Transaction[]
+  'loans:addRepayment': (input: RepaymentInput) => Transaction
+  'loans:updateRepayment': (id: number, input: RepaymentInput) => Transaction
+  'loans:deleteRepayment': (id: number) => void
+  /** Closes a loan with something still owed: paid in full, or written off. */
+  'loans:settle': (id: number, input: SettleLoanInput) => Loan
+  'loans:reopen': (id: number) => Loan
+
   /** Income, expenses, savings and loan movements over a date range. */
   'stats:totals': (range: StatsRange) => Totals
   /** The same per day, week or month, with the total balance at the end of each. */
@@ -176,6 +193,16 @@ const channels: Record<IpcChannel, true> = {
   'savings:updateMovement': true,
   'savings:deleteMovement': true,
   'savings:series': true,
+  'loans:list': true,
+  'loans:create': true,
+  'loans:update': true,
+  'loans:delete': true,
+  'loans:transactions': true,
+  'loans:addRepayment': true,
+  'loans:updateRepayment': true,
+  'loans:deleteRepayment': true,
+  'loans:settle': true,
+  'loans:reopen': true,
   'stats:totals': true,
   'stats:series': true,
   'stats:categories': true,
