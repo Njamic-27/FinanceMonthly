@@ -66,6 +66,7 @@ function AccountCard({
           <CreditUsage
             className="mt-4"
             owed={Math.max(0, -account.balance)}
+            reserved={account.reserved ?? 0}
             limit={account.creditLimit ?? 0}
             available={account.available ?? 0}
           />

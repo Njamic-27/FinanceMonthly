@@ -9,6 +9,7 @@ import {
   type PostOccurrenceInput,
   type RecurringItem
 } from '@shared/recurring'
+import { installmentSchedule, installmentTitle } from '@shared/installments'
 import type { Transaction, TransactionInput } from '@shared/transactions'
 import { AppError } from '../errors'
 import {
@@ -18,6 +19,7 @@ import {
   setEndDate,
   setNextDueDate
 } from '../db/repositories/recurring'
+import { chargedDates, listInstallmentPlans } from '../db/repositories/installments'
 import { getSettings } from '../db/repositories/settings'
 import { checkTransaction, createPlannedTransaction } from '../db/repositories/transactions'
 
@@ -215,4 +217,42 @@ export function cancelItem(db: Database, itemId: number, today: IsoDate): Recurr
     }
   })()
   return getRecurringItem(db, itemId)
+}
+
+/**
+ * Charges every installment whose date has come: an expense on the card, titled
+ * "Laptop (2/5)" and linked to its plan and date. Runs with the recurring items on launch and
+ * every hour. Installments always post, even to an archived card or category: the purchase
+ * was made. Returns how many were charged.
+ */
+export function postDueInstallments(db: Database, today: IsoDate): number {
+  const insert = db.prepare(
+    `INSERT INTO transactions (date, title, amount, type, account_id, category_id,
+       installment_plan_id, planned_date)
+     VALUES (@date, @title, @amount, 'expense', @accountId, @categoryId, @planId, @date)`
+  )
+  let posted = 0
+  for (const plan of listInstallmentPlans(db)) {
+    if (plan.nextDate === null || plan.nextDate > today) continue
+    const charged = chargedDates(db, plan.id)
+    db.transaction(() => {
+      for (const { seq, date, amount } of installmentSchedule(
+        plan.totalAmount,
+        plan.count,
+        plan.firstDate
+      )) {
+        if (date > today || charged.has(date)) continue
+        insert.run({
+          date,
+          title: installmentTitle(plan.title, seq, plan.count),
+          amount,
+          accountId: plan.accountId,
+          categoryId: plan.categoryId,
+          planId: plan.id
+        })
+        posted++
+      }
+    })()
+  }
+  return posted
 }

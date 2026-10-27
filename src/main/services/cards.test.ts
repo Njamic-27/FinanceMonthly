@@ -78,6 +78,7 @@ describe('cardStatus', () => {
       limit: 300000,
       owed: 17000,
       available: 283000,
+      reserved: 0,
       utilization: 17000 / 300000,
       cycle: {
         lastStatement: '2026-10-25',

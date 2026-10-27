@@ -25,7 +25,9 @@ function withReminders(db: Database, today: IsoDate, days: number): UpcomingPaym
     "SELECT 1 FROM notification_log WHERE source_type = 'recurring' AND source_id = ? AND due_date = ?"
   )
   return plannedItems(db, today, addDays(today, days - 1), today).map((planned) => {
-    const daysBefore = reminders.get(planned.sourceId) ?? null
+    // Only recurring items have reminders; installments post by themselves.
+    const daysBefore =
+      planned.source === 'recurring' ? (reminders.get(planned.sourceId) ?? null) : null
     return {
       planned,
       reminderDaysBefore: daysBefore,

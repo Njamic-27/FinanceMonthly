@@ -82,7 +82,19 @@ export function CardOverview({
         )}
       </div>
 
-      <CreditUsage owed={status.owed} limit={status.limit} available={status.available} />
+      <div>
+        <CreditUsage
+          owed={status.owed}
+          reserved={status.reserved}
+          limit={status.limit}
+          available={status.available}
+        />
+        {status.reserved > 0 && (
+          <p className="mt-1 text-sm text-ink-muted">
+            {money.format(status.reserved)} is held for installments still to come.
+          </p>
+        )}
+      </div>
 
       <dl className="grid grid-cols-3 gap-4 border-y border-line py-4">
         <div>

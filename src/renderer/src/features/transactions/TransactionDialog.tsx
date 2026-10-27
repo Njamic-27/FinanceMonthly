@@ -20,6 +20,7 @@ import {
 } from '@shared/transactions'
 import { AmountInput } from '@renderer/components/AmountInput'
 import { DatePicker } from '@renderer/components/DatePicker'
+import { installmentPlanInputSchema, type InstallmentPlan } from '@shared/installments'
 import { FieldError } from '@renderer/components/FieldError'
 import { FormError } from '@renderer/components/FormError'
 import { Button } from '@renderer/components/ui/button'
@@ -39,6 +40,9 @@ import { Textarea } from '@renderer/components/ui/textarea'
 import { AccountSelect } from '@renderer/features/accounts/AccountSelect'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { CategorySelect } from '@renderer/features/categories/CategorySelect'
+import { parseCount } from '@renderer/features/installments/count'
+import { InstallmentsField } from '@renderer/features/installments/InstallmentsField'
+import { useCreateInstallmentPlan } from '@renderer/features/installments/queries'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
@@ -58,7 +62,8 @@ import {
 } from './queries'
 
 type Kind = EditableType
-type Field = 'amount' | 'title' | 'categoryId' | 'accountId' | 'toAccountId' | 'date' | 'note'
+type Field =
+  'amount' | 'title' | 'categoryId' | 'accountId' | 'toAccountId' | 'date' | 'note' | 'count'
 
 const kindOptions: { value: Kind; label: string; icon: LucideIcon }[] = [
   { value: 'expense', label: 'Expense', icon: ArrowUpRight },
@@ -127,12 +132,18 @@ function TransactionForm({
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [inInstallments, setInInstallments] = useState(false)
+  const [count, setCount] = useState('3')
 
   const createTransaction = useCreateTransaction()
   const updateTransaction = useUpdateTransaction()
   const deleteTransaction = useDeleteTransaction()
+  const createPlan = useCreateInstallmentPlan()
   const pending =
-    createTransaction.isPending || updateTransaction.isPending || deleteTransaction.isPending
+    createTransaction.isPending ||
+    updateTransaction.isPending ||
+    deleteTransaction.isPending ||
+    createPlan.isPending
 
   // Archived ones stay listed only when this transaction already uses them.
   const accountOptions = accounts.filter(
@@ -153,6 +164,11 @@ function TransactionForm({
       undefined
     )
   const owedOnCard = toAccount?.type === 'credit' ? Math.max(0, -toAccount.balance) : 0
+  // A new purchase on a credit card can be split into installments.
+  const canSplit = !existing && kind === 'expense' && account?.type === 'credit'
+  const splitting = canSplit && inInstallments
+  // An installment already charged belongs to its purchase: it's deleted with the whole plan.
+  const isInstallment = existing?.installmentPlanId != null
 
   const clearError = (field: Field): void => {
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -194,6 +210,50 @@ function TransactionForm({
       found.date = `${opening.name} starts on ${formatDate(opening.openingDate, money.locale)}. Choose that day or later.`
     }
 
+    // The main process re-checks everything; its message belongs in the form, not a toast.
+    const onError = (error: Error): void => setFormError(error.message)
+
+    if (splitting) {
+      const plan = installmentPlanInputSchema.safeParse({
+        accountId: Number(accountId),
+        title,
+        categoryId: categoryId ? Number(categoryId) : undefined,
+        totalAmount: cents ?? 0,
+        count: parseCount(count) ?? Number(count),
+        firstDate: date,
+        note
+      })
+      if (!plan.success) {
+        const { totalAmount, firstDate, ...rest } = fieldErrors(plan.error)
+        found = {
+          ...rest,
+          ...(totalAmount && { amount: totalAmount }),
+          ...(firstDate && { date: firstDate }),
+          ...found
+        }
+      }
+      if (!plan.success || Object.values(found).some(Boolean)) {
+        setErrors(found)
+        return
+      }
+      createPlan.mutate(
+        { ...plan.data, note: plan.data.note ?? null },
+        {
+          onSuccess: (created: InstallmentPlan) => {
+            lastAccountId = created.accountId
+            toast({
+              title: `${created.title} in ${created.count} installments`,
+              description: `${money.format(created.installment)} a month from ${formatDate(created.firstDate, money.locale, { day: 'numeric', month: 'short' })}`,
+              variant: 'success'
+            })
+            closeTransactionDialog()
+          },
+          onError
+        }
+      )
+      return
+    }
+
     const common = {
       title,
       amount: cents ?? 0,
@@ -223,8 +283,6 @@ function TransactionForm({
       })
       closeTransactionDialog()
     }
-    // The main process re-checks everything; its message belongs in the form, not a toast.
-    const onError = (error: Error): void => setFormError(error.message)
 
     if (existing) {
       updateTransaction.mutate({ id: existing.id, input }, { onSuccess: saved('saved'), onError })
@@ -431,7 +489,23 @@ function TransactionForm({
           </>
         )}
 
-        {/* Step 25: "Pay in installments" for an expense on a credit card goes here. */}
+        {canSplit && (
+          <InstallmentsField
+            enabled={inInstallments}
+            onEnabledChange={(on) => {
+              setInInstallments(on)
+              clearError('count')
+            }}
+            count={count}
+            onCountChange={(value) => {
+              setCount(value)
+              clearError('count')
+            }}
+            total={money.parse(amount)}
+            firstDate={date}
+            error={errors.count}
+          />
+        )}
 
         <div className="grid gap-1.5">
           <Label htmlFor="tx-title">
@@ -472,8 +546,15 @@ function TransactionForm({
 
       {formError && <FormError message={formError} className="mt-5" />}
 
-      <DialogFooter className={existing ? 'justify-between' : undefined}>
-        {existing && (
+      {isInstallment && (
+        <p className="mt-5 text-sm text-ink-muted">
+          One installment of a purchase on the card. To remove it, delete the whole purchase from
+          the card’s page.
+        </p>
+      )}
+
+      <DialogFooter className={existing && !isInstallment ? 'justify-between' : undefined}>
+        {existing && !isInstallment && (
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -498,7 +579,7 @@ function TransactionForm({
             <Button variant="outline">Cancel</Button>
           </DialogClose>
           <Button type="submit" disabled={pending}>
-            {existing ? 'Save transaction' : 'Add transaction'}
+            {existing ? 'Save transaction' : splitting ? 'Add in installments' : 'Add transaction'}
           </Button>
         </div>
       </DialogFooter>

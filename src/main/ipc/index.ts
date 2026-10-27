@@ -1,6 +1,7 @@
 import { registerAccountHandlers } from './accounts'
 import { registerCalendarHandlers } from './calendar'
 import { registerCategoryHandlers } from './categories'
+import { registerInstallmentHandlers } from './installments'
 import { registerRecurringHandlers } from './recurring'
 import { registerSettingsHandlers } from './settings'
 import { registerStatsHandlers } from './stats'
@@ -11,6 +12,7 @@ export async function registerIpcHandlers(): Promise<void> {
   registerCategoryHandlers()
   registerAccountHandlers()
   registerTransactionHandlers()
+  registerInstallmentHandlers()
   registerRecurringHandlers()
   registerStatsHandlers()
   registerCalendarHandlers()

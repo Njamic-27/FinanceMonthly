@@ -2,20 +2,20 @@ import { z } from 'zod'
 import { isIsoDate, type DateRange, type IsoDate } from './dates'
 import type { Cents } from './money'
 
-/** Where a planned item comes from. Installment plans and loan installments join later. */
-export type PlannedSource = 'recurring'
+/** Where a planned item comes from. Loan installments join in step 28. */
+export type PlannedSource = 'recurring' | 'installment_plan'
 
 /** The money kind, for colours and the sign: income adds to the balance, the rest takes away. */
 export type PlannedGroup = 'income' | 'expense' | 'savings' | 'loan'
 
 /**
- * A payment expected on a date that no transaction settles yet: recurring income, a bill or
- * a subscription (PLAN.md §4, planned items). The Calendar, reminders and projections all
+ * A payment expected on a date that no transaction settles yet: recurring income, a bill,
+ * a subscription or a credit card installment (PLAN.md §4, planned items). The Calendar, reminders and projections all
  * read these, so they always agree.
  */
 export interface PlannedItem {
   source: PlannedSource
-  /** The recurring item's id. */
+  /** The recurring item's or the installment plan's id. */
   sourceId: number
   /** The day it falls due; settling it records this as the transaction's planned date. */
   date: IsoDate

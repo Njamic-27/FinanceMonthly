@@ -217,7 +217,14 @@ export function updateTransaction(db: Database, id: number, input: TransactionIn
 }
 
 export function deleteTransaction(db: Database, id: number): void {
-  getTransaction(db, id)
+  const tx = getTransaction(db, id)
+  // On its own it would only be charged again on the next run of the posting service.
+  if (tx.installmentPlanId !== null) {
+    throw new AppError(
+      'validation',
+      'This is one installment of a purchase. Delete the whole purchase from the card’s page instead.'
+    )
+  }
   db.prepare('DELETE FROM transactions WHERE id = ?').run(id)
 }
 

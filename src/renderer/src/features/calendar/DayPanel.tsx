@@ -32,7 +32,11 @@ function PlannedRow({
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{item.title}</p>
         <p className={cn('text-sm text-ink-muted', item.overdue && 'text-expense')}>
-          {item.overdue ? 'Overdue' : 'Planned'}
+          {item.source === 'installment_plan'
+            ? 'Installment, charged automatically'
+            : item.overdue
+              ? 'Overdue'
+              : 'Planned'}
           {account && ` · ${account.name}`}
         </p>
       </div>
@@ -42,7 +46,11 @@ function PlannedRow({
           {money.format(item.amount)}
         </span>
         <Button variant="secondary" size="sm" onClick={onConfirm}>
-          {isIncome ? 'Mark received…' : 'Mark paid…'}
+          {item.source === 'installment_plan'
+            ? 'View card'
+            : isIncome
+              ? 'Mark received…'
+              : 'Mark paid…'}
         </Button>
       </div>
     </li>

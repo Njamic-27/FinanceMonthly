@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, startOfMonth, today, type IsoDate } from '@shared/dates'
 import type { PlannedItem } from '@shared/planned'
@@ -43,7 +43,13 @@ export function CalendarPage(): React.JSX.Element {
   const [confirming, setConfirming] = useState<ConfirmPaymentTarget | null>(null)
 
   const go = (next: IsoDate): void => setParams(calendarParams(next), { replace: true })
+  const navigate = useNavigate()
+  // A recurring payment is confirmed here; an installment charges itself, so it opens its card.
   const confirm = (planned: PlannedItem): void => {
+    if (planned.source === 'installment_plan') {
+      navigate(`/accounts/${planned.accountId}`)
+      return
+    }
     const item = recurring.find((r) => r.id === planned.sourceId)
     if (item) setConfirming({ item, plannedDate: planned.date })
   }

@@ -33,8 +33,10 @@ export interface Account {
    * are ≤ 0 while you owe money on them.
    */
   balance: Cents
-  /** Credit cards only: limit + balance. Unbilled installments are reserved from step 25. */
+  /** Credit cards only: limit + balance − `reserved`. */
   available: Cents | null
+  /** Credit cards only: installments bought on the card and not charged yet. */
+  reserved: Cents | null
   /** Transactions, recurring items, loans and installment plans that use the account. */
   usageCount: number
 }

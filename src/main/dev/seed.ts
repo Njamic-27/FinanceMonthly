@@ -8,6 +8,7 @@ import {
   type IsoDate
 } from '@shared/dates'
 import type { SeedSummary } from '@shared/dev'
+import { installmentSchedule, installmentTitle } from '@shared/installments'
 import type { Cents } from '@shared/money'
 import { nextOccurrence, occurrences, type Schedule } from '@shared/recurrence'
 import type { TransactionType } from '@shared/transactions'
@@ -317,21 +318,19 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
         first: planFirst
       }
     )
-    const rate = Math.floor(planTotal / planCount)
-    monthly(planFirst, today)
-      .dates.slice(0, planCount)
-      .forEach((date, i) => {
-        txs.push({
-          date,
-          title: `Laptop (${i + 1}/${planCount})`,
-          amount: i === planCount - 1 ? planTotal - rate * (planCount - 1) : rate,
-          type: 'expense',
-          account: card,
-          category: 'Shopping',
-          plan,
-          planned: date
-        })
+    for (const { seq, date, amount } of installmentSchedule(planTotal, planCount, planFirst)) {
+      if (date > today) break
+      txs.push({
+        date,
+        title: installmentTitle('Laptop', seq, planCount),
+        amount,
+        type: 'expense',
+        account: card,
+        category: 'Shopping',
+        plan,
+        planned: date
       })
+    }
 
     // A savings goal with monthly deposits
     const goalStart = onDay(addMonths(startOfMonth(today), -7), 11)

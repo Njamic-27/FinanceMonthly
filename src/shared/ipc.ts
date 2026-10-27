@@ -2,6 +2,7 @@ import type { Account, AccountInput } from './accounts'
 import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
+import type { InstallmentPlan, InstallmentPlanInput } from './installments'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
@@ -61,6 +62,13 @@ export interface IpcContract {
   'transactions:create': (input: TransactionInput) => Transaction
   'transactions:update': (id: number, input: TransactionInput) => Transaction
   'transactions:delete': (id: number) => void
+
+  /** Installment plans on one card, or on every card; the newest first. */
+  'installments:list': (accountId?: number) => InstallmentPlan[]
+  /** Buys something on a card in installments; installments already due are charged now. */
+  'installments:create': (input: InstallmentPlanInput) => InstallmentPlan
+  /** Deletes the purchase and every installment charged for it. */
+  'installments:delete': (id: number) => void
 
   'recurring:list': () => RecurringItem[]
   /** Creating or editing an item also posts what is already due, if it posts automatically. */
@@ -130,6 +138,9 @@ const channels: Record<IpcChannel, true> = {
   'transactions:create': true,
   'transactions:update': true,
   'transactions:delete': true,
+  'installments:list': true,
+  'installments:create': true,
+  'installments:delete': true,
   'recurring:list': true,
   'recurring:create': true,
   'recurring:update': true,

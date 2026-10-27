@@ -3,7 +3,7 @@ import { today } from '@shared/dates'
 import { getDb } from '../db'
 import { listAccounts } from '../db/repositories/accounts'
 import { getSettings } from '../db/repositories/settings'
-import { postDueItems } from '../services/posting'
+import { postDueInstallments, postDueItems } from '../services/posting'
 import { dueCardReminders, markCardNotified } from '../services/cards'
 import { dueReminders, markNotified } from '../services/reminders'
 import { showCardReminders, showReminders } from './notifications'
@@ -22,9 +22,9 @@ export function runScheduledWork(): void {
   const db = getDb()
   const now = today()
   try {
-    const posted = postDueItems(db, now)
+    const posted = postDueItems(db, now) + postDueInstallments(db, now)
     if (posted > 0) {
-      console.log(`Posted ${posted} recurring transaction(s)`)
+      console.log(`Posted ${posted} recurring or installment transaction(s)`)
       sendToRenderer('data:changed')
     }
   } catch (error) {

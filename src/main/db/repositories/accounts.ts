@@ -26,6 +26,7 @@ interface AccountRow {
   sort_order: number
   balance: number
   usage_count: number
+  reserved: number
 }
 
 /** Rows that point at an account, by table and column. */
@@ -51,7 +52,14 @@ const selectAccounts = /* sql */ `
            AS balance,
          ${references
            .map(([table, column]) => `(SELECT count(*) FROM ${table} r WHERE r.${column} = a.id)`)
-           .join(' + ')} AS usage_count
+           .join(' + ')} AS usage_count,
+         -- Installments not charged yet. They post in order, so with k of n charged the rest
+         -- is the total less k regular installments (the last one takes the leftover cents).
+         coalesce((SELECT sum(CASE WHEN k >= n THEN 0 ELSE total - k * (total / n) END)
+                   FROM (SELECT p.total_amount AS total, p.installments_count AS n,
+                                (SELECT count(*) FROM transactions t
+                                 WHERE t.installment_plan_id = p.id) AS k
+                         FROM installment_plans p WHERE p.account_id = a.id)), 0) AS reserved
   FROM accounts a`
 
 function toAccount(row: AccountRow): Account {
@@ -69,7 +77,8 @@ function toAccount(row: AccountRow): Account {
     isArchived: row.is_archived === 1,
     sortOrder: row.sort_order,
     balance: row.balance,
-    available: isCredit ? (row.credit_limit ?? 0) + row.balance : null,
+    available: isCredit ? (row.credit_limit ?? 0) + row.balance - row.reserved : null,
+    reserved: isCredit ? row.reserved : null,
     usageCount: row.usage_count
   }
 }

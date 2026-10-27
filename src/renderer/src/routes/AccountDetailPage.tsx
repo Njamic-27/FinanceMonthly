@@ -13,6 +13,7 @@ import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { CardOverview } from '@renderer/features/accounts/CardOverview'
 import { useAccounts, useAccountSeries, useCardStatus } from '@renderer/features/accounts/queries'
 import { useCategories } from '@renderer/features/categories/queries'
+import { InstallmentPlans } from '@renderer/features/installments/InstallmentPlans'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { writeFilters } from '@renderer/features/transactions/filters'
 import { useTransactionList } from '@renderer/features/transactions/queries'
@@ -163,12 +164,10 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
             <BalanceTile account={account} />
           )}
         </div>
-        {/* Installment plans for credit cards arrive in step 25. */}
-        <BalanceTrend
-          className="lg:col-span-3"
-          points={points}
-          title={isCredit ? 'Owed' : 'Balance'}
-        />
+        <div className="grid gap-4 lg:col-span-3">
+          <BalanceTrend points={points} title={isCredit ? 'Owed' : 'Balance'} />
+          {isCredit && <InstallmentPlans accountId={account.id} />}
+        </div>
       </div>
 
       <AccountTransactions account={account} />

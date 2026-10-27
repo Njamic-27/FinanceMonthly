@@ -68,8 +68,10 @@ export interface CardStatus {
   limit: Cents
   /** What you owe on the card today; 0 when it's paid off or in credit. */
   owed: Cents
-  /** Limit minus what's owed. Unbilled installments are reserved from step 25. */
+  /** Limit minus what's owed and what's reserved for installments. */
   available: Cents
+  /** Installments bought on the card and not charged yet: they hold part of the limit. */
+  reserved: Cents
   /** owed / limit: 0.25 is 25%; above 1 when over the limit. */
   utilization: number
   cycle: CardCycle

@@ -16,10 +16,12 @@ import {
   type CalendarQuery,
   type PlannedItem
 } from '@shared/planned'
+import { installmentSchedule, installmentTitle } from '@shared/installments'
 import { occurrences } from '@shared/recurrence'
 import { postedType } from '@shared/recurring'
 import { AppError } from '../errors'
 import { listAccounts } from '../db/repositories/accounts'
+import { chargedDates, listInstallmentPlans } from '../db/repositories/installments'
 import { listRecurringItems } from '../db/repositories/recurring'
 import { getSettings } from '../db/repositories/settings'
 import { getBalanceAt, getSeries, getTotals } from '../db/repositories/stats'
@@ -32,6 +34,7 @@ import { cardDueMarkers } from './cards'
  * Every planned payment due from `from` to `to`, by date. Active recurring items expand into
  * their occurrences from their next due date on (earlier ones were posted or skipped), minus
  * those a transaction already settles, such as one paid early. Paused items have none.
+ * Installment plans add each installment not charged yet.
  */
 export function plannedItems(
   db: Database,
@@ -66,6 +69,30 @@ export function plannedItems(
       })
     }
   }
+  // Installments not charged yet. They post by themselves on their date, so one before today
+  // is only overdue if posting failed.
+  for (const plan of listInstallmentPlans(db)) {
+    if (plan.nextDate === null || plan.lastDate < from || plan.nextDate > to) continue
+    const charged = chargedDates(db, plan.id)
+    for (const { seq, date, amount } of installmentSchedule(
+      plan.totalAmount,
+      plan.count,
+      plan.firstDate
+    )) {
+      if (date < from || date > to || charged.has(date)) continue
+      planned.push({
+        source: 'installment_plan',
+        sourceId: plan.id,
+        date,
+        title: installmentTitle(plan.title, seq, plan.count),
+        amount,
+        group: 'expense',
+        accountId: plan.accountId,
+        categoryId: plan.categoryId,
+        overdue: date < today
+      })
+    }
+  }
   return planned.sort(
     (a, b) =>
       a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.sourceId - b.sourceId
@@ -84,10 +111,15 @@ export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): n
       .filter((a) => !a.isArchived)
       .map((a) => a.id)
   )
-  const earliest = listRecurringItems(db).reduce<IsoDate>(
-    (min, item) => (item.isActive && item.nextDueDate < min ? item.nextDueDate : min),
-    date
-  )
+  // From the oldest payment still open (an overdue one), or today.
+  const starts = [
+    today,
+    ...listRecurringItems(db)
+      .filter((item) => item.isActive)
+      .map((item) => item.nextDueDate),
+    ...listInstallmentPlans(db).flatMap((plan) => plan.nextDate ?? [])
+  ]
+  const earliest = starts.reduce((min, d) => (d < min ? d : min))
   return plannedItems(db, earliest, date, today)
     .filter((p) => active.has(p.accountId))
     .reduce((balance, p) => balance + signedPlanned(p), getBalanceAt(db, date))
