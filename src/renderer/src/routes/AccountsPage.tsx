@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Plus, Wallet } from 'lucide-react'
 import { accountTypeLabels, type Account } from '@shared/accounts'
 import { ColorChip } from '@renderer/components/ColorChip'
@@ -8,40 +9,12 @@ import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { AccountDialog, type AccountDialogTarget } from '@renderer/features/accounts/AccountDialog'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { BalanceBanner } from '@renderer/features/accounts/BalanceBanner'
+import { CreditUsage } from '@renderer/features/accounts/CreditUsage'
 import { useAccounts, useArchiveAccount } from '@renderer/features/accounts/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
-
-function CreditUsage({ account }: { account: Account }): React.JSX.Element {
-  const money = useCurrency()
-  const limit = account.creditLimit ?? 0
-  const owed = Math.max(0, -account.balance)
-  const share = limit > 0 ? Math.min(1, owed / limit) : 0
-  const over = owed - limit
-
-  return (
-    <div className="mt-4">
-      <div
-        role="meter"
-        aria-label="Credit used"
-        aria-valuemin={0}
-        aria-valuemax={limit}
-        aria-valuenow={Math.min(owed, limit)}
-        aria-valuetext={`${money.format(owed)} of ${money.format(limit)}`}
-        className="h-2 overflow-hidden rounded-full bg-surface-2"
-      >
-        <div className="h-full rounded-full bg-loan" style={{ width: `${share * 100}%` }} />
-      </div>
-      <p className={cn('mt-2 text-sm text-ink-muted', over > 0 && 'text-expense')}>
-        {over > 0
-          ? `Over the limit by ${money.format(over)}`
-          : `${money.format(account.available ?? 0)} available of ${money.format(limit)}`}
-      </p>
-    </div>
-  )
-}
 
 function AccountCard({
   account,
@@ -71,7 +44,6 @@ function AccountCard({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Edit ${account.name}`}
         className="flex flex-1 cursor-pointer flex-col rounded-panel p-5 text-left focus-visible:outline-2 focus-visible:outline-primary"
       >
         <span className="flex items-center gap-3">
@@ -90,7 +62,14 @@ function AccountCard({
         >
           {money.format(isCredit && account.balance > 0 ? account.balance : figure)}
         </span>
-        {isCredit && <CreditUsage account={account} />}
+        {isCredit && (
+          <CreditUsage
+            className="mt-4"
+            owed={Math.max(0, -account.balance)}
+            limit={account.creditLimit ?? 0}
+            available={account.available ?? 0}
+          />
+        )}
       </button>
       {owed > 0 && (
         <div className="-mt-1 px-5 pb-5">
@@ -122,6 +101,7 @@ export function AccountsPage(): React.JSX.Element {
   const archiveAccount = useArchiveAccount()
   const money = useCurrency()
   const [dialog, setDialog] = useState<AccountDialogTarget | null>(null)
+  const navigate = useNavigate()
   const all = accounts.data ?? []
   const active = all.filter((a) => !a.isArchived)
   const archived = all.filter((a) => a.isArchived)
@@ -188,7 +168,7 @@ export function AccountsPage(): React.JSX.Element {
                 key={account.id}
                 account={account}
                 payFrom={active.find((a) => a.type === 'debit')}
-                onOpen={() => setDialog({ kind: 'edit', account })}
+                onOpen={() => navigate(`/accounts/${account.id}`)}
               />
             ))}
           </div>
@@ -210,7 +190,7 @@ export function AccountsPage(): React.JSX.Element {
                 >
                   <button
                     type="button"
-                    onClick={() => setDialog({ kind: 'edit', account })}
+                    onClick={() => navigate(`/accounts/${account.id}`)}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
                   >
                     <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />

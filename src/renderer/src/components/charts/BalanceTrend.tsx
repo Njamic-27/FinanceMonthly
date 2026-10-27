@@ -9,32 +9,29 @@ import {
   YAxis
 } from 'recharts'
 import { formatDate, type IsoDate } from '@shared/dates'
-import type { PeriodTotals } from '@shared/stats'
+import type { BalancePoint } from '@shared/cards'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 
-interface Point {
-  date: IsoDate
-  balance: number
-}
-
 const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
 
 /**
- * Total balance at the end of each day: one line, so the title names it and no legend is
+ * A balance at the end of each day: one line, so the title names it and no legend is
  * needed. The last point is marked and labelled; every other day is on hover.
  */
 export function BalanceTrend({
-  days,
+  points: data,
+  title = 'Balance',
   className
 }: {
-  /** A day series ending today; `balance` is the total at the end of each day. */
-  days: PeriodTotals[]
+  /** One point per day, ending today. */
+  points: BalancePoint[]
+  /** What the line is, e.g. "Owed" for a credit card. */
+  title?: string
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
-  const data: Point[] = days.map((d) => ({ date: d.start, balance: d.balance }))
   const first = data[0]
   const last = data.at(-1)
   const change = first && last ? last.balance - first.balance : 0
@@ -48,7 +45,7 @@ export function BalanceTrend({
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <div>
-          <CardTitle>Balance</CardTitle>
+          <CardTitle>{title}</CardTitle>
           {first && (
             <CardDescription>
               {change === 0
@@ -86,7 +83,9 @@ export function BalanceTrend({
               cursor={{ stroke: 'var(--ink-muted)', strokeWidth: 1 }}
               isAnimationActive={false}
               content={({ active, payload }) => {
-                const point = active ? (payload?.[0]?.payload as Point | undefined) : undefined
+                const point = active
+                  ? (payload?.[0]?.payload as BalancePoint | undefined)
+                  : undefined
                 if (!point) return null
                 return (
                   <div className="rounded-control border border-line bg-surface px-3 py-2 shadow-float">
@@ -139,7 +138,7 @@ export function BalanceTrend({
       </div>
 
       <table className="sr-only">
-        <caption>Balance on the first of each month and today</caption>
+        <caption>{title} on the first of each month and today</caption>
         <tbody>
           {data
             .filter((d) => d.date.endsWith('-01') || d === last)

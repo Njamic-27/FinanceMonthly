@@ -4,8 +4,9 @@ import { getDb } from '../db'
 import { listAccounts } from '../db/repositories/accounts'
 import { getSettings } from '../db/repositories/settings'
 import { postDueItems } from '../services/posting'
+import { dueCardReminders, markCardNotified } from '../services/cards'
 import { dueReminders, markNotified } from '../services/reminders'
-import { showReminders } from './notifications'
+import { showCardReminders, showReminders } from './notifications'
 import { sendToRenderer } from './shell'
 
 const HOUR = 60 * 60 * 1000
@@ -35,15 +36,19 @@ export function runScheduledWork(): void {
     const settings = getSettings(db)
     if (!settings.notificationsEnabled) return
     const reminders = dueReminders(db, now)
-    if (reminders.length === 0) return
+    const cardReminders = dueCardReminders(db, now)
+    if (reminders.length === 0 && cardReminders.length === 0) return
     const accounts = new Map(listAccounts(db).map((a) => [a.id, a.name]))
-    if (showReminders(reminders, accounts, settings, now, icon)) {
+    if (reminders.length > 0 && showReminders(reminders, accounts, settings, now, icon)) {
       markNotified(
         db,
         reminders.map((r) => r.planned)
       )
-      sendToRenderer('data:changed')
     }
+    if (cardReminders.length > 0 && showCardReminders(cardReminders, settings, now, icon)) {
+      markCardNotified(db, cardReminders)
+    }
+    sendToRenderer('data:changed')
   } catch (error) {
     console.error('[scheduler] could not show reminders:', error)
   }

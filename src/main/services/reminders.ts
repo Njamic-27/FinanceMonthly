@@ -64,7 +64,8 @@ export function markNotified(db: Database, items: PlannedItem[]): void {
 /** More reminders than this at once are rolled into one notification. */
 const SEPARATE = 3
 
-function when(date: IsoDate, today: IsoDate, locale: string): string {
+/** "today", "tomorrow" or "on Friday 30 Oct", for notification titles. */
+export function when(date: IsoDate, today: IsoDate, locale: string): string {
   const days = daysBetween(today, date)
   if (days === 0) return 'today'
   if (days === 1) return 'tomorrow'

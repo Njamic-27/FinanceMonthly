@@ -6,6 +6,7 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type { Account, AccountInput } from '@shared/accounts'
+import type { AccountSeriesQuery, BalancePoint, CardStatus } from '@shared/cards'
 import { statsKeys } from '@renderer/features/stats/queries'
 import { invoke } from '@renderer/lib/api'
 
@@ -16,6 +17,26 @@ export const accountKeys = {
 /** Every account, archived ones included, with balances as of today. */
 export function useAccounts(): UseQueryResult<Account[]> {
   return useQuery({ queryKey: accountKeys.all, queryFn: () => invoke('accounts:list') })
+}
+
+// Card status and balance series live under 'stats', so every change that refreshes
+// statistics (transactions, account edits) refreshes them too.
+
+/** A credit card's usage, statement cycle and what to pay next. */
+export function useCardStatus(id: number, enabled = true): UseQueryResult<CardStatus> {
+  return useQuery({
+    queryKey: [...statsKeys.all, 'card', id],
+    queryFn: () => invoke('accounts:card', id),
+    enabled
+  })
+}
+
+/** One account's balance at the end of each day. */
+export function useAccountSeries(query: AccountSeriesQuery): UseQueryResult<BalancePoint[]> {
+  return useQuery({
+    queryKey: [...statsKeys.all, 'account-series', query],
+    queryFn: () => invoke('accounts:series', query)
+  })
 }
 
 function useInvalidateAccounts(): () => Promise<void> {

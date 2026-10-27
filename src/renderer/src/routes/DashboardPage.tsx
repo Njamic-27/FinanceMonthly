@@ -8,7 +8,7 @@ import { Button } from '@renderer/components/ui/button'
 import { BalanceBanner } from '@renderer/features/accounts/BalanceBanner'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCategories } from '@renderer/features/categories/queries'
-import { BalanceTrend } from '@renderer/features/dashboard/BalanceTrend'
+import { BalanceTrend } from '@renderer/components/charts/BalanceTrend'
 import { CategoryDonut } from '@renderer/features/dashboard/CategoryDonut'
 import {
   comparisonFor,
@@ -162,7 +162,10 @@ export function DashboardPage(): React.JSX.Element {
                   months={months.data ?? []}
                 />
               </div>
-              <BalanceTrend className="mt-4" days={days.data ?? []} />
+              <BalanceTrend
+                className="mt-4"
+                points={(days.data ?? []).map((d) => ({ date: d.start, balance: d.balance }))}
+              />
             </>
           )}
         </>

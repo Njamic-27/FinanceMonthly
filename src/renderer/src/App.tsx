@@ -7,6 +7,7 @@ import { Toaster } from './components/ui/toaster'
 import { queryClient } from './lib/queryClient'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PlaceholderPage } from './routes/PlaceholderPage'
+import { AccountDetailPage } from './routes/AccountDetailPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CalendarPage } from './routes/CalendarPage'
 import { CategoriesPage } from './routes/CategoriesPage'
@@ -53,6 +54,7 @@ function App(): React.JSX.Element {
                 />
               )
             })}
+            <Route path="/accounts/:id" element={<AccountDetailPage />} />
             {UiPreview && (
               <Route
                 path="/dev/ui"

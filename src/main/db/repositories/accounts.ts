@@ -6,7 +6,8 @@ import {
   type AccountInput,
   type AccountType
 } from '@shared/accounts'
-import { today, type IsoDate } from '@shared/dates'
+import { accountSeriesQuerySchema, type AccountSeriesQuery, type BalancePoint } from '@shared/cards'
+import { eachDay, today, type IsoDate } from '@shared/dates'
 import { isPaletteColor, neutralPaletteColor } from '@shared/palette'
 import { AppError } from '../../errors'
 import { signedAmountSql } from '../ledger'
@@ -168,4 +169,38 @@ export function deleteAccount(db: Database, id: number): void {
     )
   }
   db.prepare('DELETE FROM accounts WHERE id = ?').run(id)
+}
+
+/**
+ * The account's balance at the end of each day from `from` to `to`, the same balance its
+ * card shows: the opening balance from the opening date on, plus each transaction since.
+ */
+export function getAccountBalanceSeries(db: Database, input: AccountSeriesQuery): BalancePoint[] {
+  const { accountId, from, to } = accountSeriesQuerySchema.parse(input)
+  const account = getAccount(db, accountId)
+  const changes = db
+    .prepare(
+      `SELECT date, sum(delta) AS delta FROM (
+         SELECT @opening AS date, @openingBalance AS delta
+         UNION ALL
+         SELECT t.date, ${signedAmountSql('t')} FROM transactions t
+         WHERE t.account_id = @id AND t.date >= @opening
+         UNION ALL
+         SELECT t.date, t.amount FROM transactions t
+         WHERE t.to_account_id = @id AND t.date >= @opening
+       ) WHERE date <= @to GROUP BY date ORDER BY date`
+    )
+    .all({
+      id: account.id,
+      opening: account.openingDate,
+      openingBalance: account.openingBalance,
+      to
+    }) as { date: IsoDate; delta: number }[]
+
+  let balance = 0
+  let next = 0
+  return eachDay(from, to).map((date) => {
+    while (next < changes.length && changes[next].date <= date) balance += changes[next++].delta
+    return { date, balance }
+  })
 }

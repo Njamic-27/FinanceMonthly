@@ -1,4 +1,5 @@
 import type { Account, AccountInput } from './accounts'
+import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
@@ -49,6 +50,10 @@ export interface IpcContract {
   'accounts:update': (id: number, input: AccountInput) => Account
   'accounts:archive': (id: number, archived: boolean) => Account
   'accounts:delete': (id: number) => void
+  /** A credit card's usage, statement cycle and what to pay next. */
+  'accounts:card': (id: number) => CardStatus
+  /** One account's balance at the end of each day. */
+  'accounts:series': (query: AccountSeriesQuery) => BalancePoint[]
 
   /** Newest first, one page at a time. */
   'transactions:list': (query: TransactionQuery) => TransactionPage
@@ -118,6 +123,8 @@ const channels: Record<IpcChannel, true> = {
   'accounts:update': true,
   'accounts:archive': true,
   'accounts:delete': true,
+  'accounts:card': true,
+  'accounts:series': true,
   'transactions:list': true,
   'transactions:get': true,
   'transactions:create': true,
