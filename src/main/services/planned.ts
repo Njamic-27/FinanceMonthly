@@ -141,7 +141,12 @@ export function plannedItems(
  * Payments into or from archived accounts are left out, as the total balance leaves those
  * accounts out.
  */
-export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): number {
+/**
+ * Every planned payment still open up to `to`: overdue ones (from the oldest) and those to
+ * come. Payments into or from archived accounts are left out, as the total balance leaves
+ * those accounts out. The expected balance and projections both start from this.
+ */
+export function openPlannedItems(db: Database, to: IsoDate, today: IsoDate): PlannedItem[] {
   const active = new Set(
     listAccounts(db)
       .filter((a) => !a.isArchived)
@@ -166,9 +171,14 @@ export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): n
     ).first ?? [])
   ]
   const earliest = starts.reduce((min, d) => (d < min ? d : min))
-  return plannedItems(db, earliest, date, today)
-    .filter((p) => active.has(p.accountId))
-    .reduce((balance, p) => balance + signedPlanned(p), getBalanceAt(db, date))
+  return plannedItems(db, earliest, to, today).filter((p) => active.has(p.accountId))
+}
+
+export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): number {
+  return openPlannedItems(db, date, today).reduce(
+    (balance, p) => balance + signedPlanned(p),
+    getBalanceAt(db, date)
+  )
 }
 
 /** Everything the Calendar shows for one month. */

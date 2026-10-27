@@ -13,6 +13,7 @@ import type {
   SettleLoanInput
 } from './loans'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
+import type { ProjectionQuery, ProjectionResult } from './projection'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
 import type {
@@ -153,6 +154,9 @@ export interface IpcContract {
   /** A month of the Calendar: day totals, planned payments and the month's summary. */
   'calendar:month': (query: CalendarQuery) => CalendarMonth
 
+  /** Where the total balance is heading, by week or month, with milestones. */
+  'projection:get': (query: ProjectionQuery) => ProjectionResult
+
   /** Development builds only: empties finance-dev.db and fills it with demo data. */
   'dev:seed': () => SeedSummary
   /** Development builds only: empties finance-dev.db, back to a first run. */
@@ -231,6 +235,7 @@ const channels: Record<IpcChannel, true> = {
   'stats:firstDate': true,
   'reminders:upcoming': true,
   'calendar:month': true,
+  'projection:get': true,
   'dev:seed': true,
   'dev:reset': true
 }

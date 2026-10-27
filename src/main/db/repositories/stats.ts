@@ -1,5 +1,12 @@
 import type { Database } from 'better-sqlite3'
-import { eachDay, periodsBetween, type DateRange, type IsoDate } from '@shared/dates'
+import {
+  addMonths,
+  eachDay,
+  periodsBetween,
+  startOfMonth,
+  type DateRange,
+  type IsoDate
+} from '@shared/dates'
 import {
   categoryTotalsQuerySchema,
   largestQuerySchema,
@@ -110,6 +117,52 @@ export function getBalanceAt(db: Database, date: IsoDate): number {
     )
     .get(date) as { balance: number }
   return balance
+}
+
+/**
+ * How the total balance changes on each day after `after` up to `to`: transactions already
+ * entered for those days (and accounts opening then).
+ */
+export function getBalanceChanges(
+  db: Database,
+  after: IsoDate,
+  to: IsoDate
+): { date: IsoDate; delta: number }[] {
+  return db
+    .prepare(
+      `SELECT date, sum(delta) AS delta FROM (${balanceChangesSql})
+       WHERE date > ? AND date <= ? GROUP BY date ORDER BY date`
+    )
+    .all(after, to) as { date: IsoDate; delta: number }[]
+}
+
+/**
+ * Average everyday spending per month over the `months` full months before this one: expenses
+ * not posted by a recurring item or an installment plan (those are planned separately).
+ * Months before your first data don't count; null when there's no full month yet.
+ */
+export function getAverageVariableSpending(
+  db: Database,
+  months: number,
+  today: IsoDate
+): number | null {
+  const thisMonth = startOfMonth(today)
+  const first = getFirstDate(db)
+  if (!first || startOfMonth(first) >= thisMonth) return null
+  const from = [addMonths(thisMonth, -months), startOfMonth(first)].reduce((a, b) =>
+    a > b ? a : b
+  )
+  const counted =
+    (Number(thisMonth.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
+    (Number(thisMonth.slice(5, 7)) - Number(from.slice(5, 7)))
+  const { total } = db
+    .prepare(
+      `SELECT coalesce(sum(amount), 0) AS total FROM transactions
+       WHERE type = 'expense' AND recurring_item_id IS NULL AND installment_plan_id IS NULL
+         AND date >= ? AND date < ?`
+    )
+    .get(from, thisMonth) as { total: number }
+  return Math.round(total / counted)
 }
 
 /** Totals for every transaction from `from` to `to`, inclusive. */

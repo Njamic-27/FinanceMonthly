@@ -3,6 +3,7 @@ import { registerCalendarHandlers } from './calendar'
 import { registerCategoryHandlers } from './categories'
 import { registerInstallmentHandlers } from './installments'
 import { registerLoanHandlers } from './loans'
+import { registerProjectionHandlers } from './projection'
 import { registerRecurringHandlers } from './recurring'
 import { registerSavingsHandlers } from './savings'
 import { registerSettingsHandlers } from './settings'
@@ -20,6 +21,7 @@ export async function registerIpcHandlers(): Promise<void> {
   registerLoanHandlers()
   registerStatsHandlers()
   registerCalendarHandlers()
+  registerProjectionHandlers()
 
   // Seed and reset exist only in development builds: in production `import.meta.env.DEV` is
   // false at build time, so this branch and the dev module are left out of the bundle.
