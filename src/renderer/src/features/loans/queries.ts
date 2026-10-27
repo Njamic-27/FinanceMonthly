@@ -5,13 +5,22 @@ import {
   type UseMutationResult,
   type UseQueryResult
 } from '@tanstack/react-query'
-import type { Loan, PersonalLoanInput, RepaymentInput, SettleLoanInput } from '@shared/loans'
+import type {
+  BankLoanInput,
+  Loan,
+  LoanInstallment,
+  PayInstallmentInput,
+  PersonalLoanInput,
+  RepaymentInput,
+  SettleLoanInput
+} from '@shared/loans'
 import type { Transaction } from '@shared/transactions'
 import { invoke } from '@renderer/lib/api'
 
 export const loanKeys = {
   all: ['loans'] as const,
-  transactions: (id: number) => ['loans', 'transactions', id] as const
+  transactions: (id: number) => ['loans', 'transactions', id] as const,
+  schedule: (id: number) => ['loans', 'schedule', id] as const
 }
 
 /** Every loan, active ones first. */
@@ -23,6 +32,15 @@ export function useLoanTransactions(id: number): UseQueryResult<Transaction[]> {
   return useQuery({
     queryKey: loanKeys.transactions(id),
     queryFn: () => invoke('loans:transactions', id)
+  })
+}
+
+/** A bank loan's installments in order, with their payments. */
+export function useLoanSchedule(id: number, enabled = true): UseQueryResult<LoanInstallment[]> {
+  return useQuery({
+    queryKey: loanKeys.schedule(id),
+    queryFn: () => invoke('loans:schedule', id),
+    enabled
   })
 }
 
@@ -72,3 +90,24 @@ export const useSettleLoan = (): UseMutationResult<
 
 export const useReopenLoan = (): UseMutationResult<Loan, Error, number> =>
   useLoanMutation((id: number) => invoke('loans:reopen', id))
+
+export const useCreateBankLoan = (): UseMutationResult<Loan, Error, BankLoanInput> =>
+  useLoanMutation((input: BankLoanInput) => invoke('loans:createBank', input))
+
+export const useUpdateBankLoan = (): UseMutationResult<
+  Loan,
+  Error,
+  { id: number; input: BankLoanInput }
+> => useLoanMutation(({ id, input }) => invoke('loans:updateBank', id, input))
+
+export const usePayInstallment = (): UseMutationResult<
+  Transaction,
+  Error,
+  { installmentId: number; input: PayInstallmentInput }
+> =>
+  useLoanMutation(({ installmentId, input }) =>
+    invoke('loans:payInstallment', installmentId, input)
+  )
+
+export const useUnpayInstallment = (): UseMutationResult<void, Error, number> =>
+  useLoanMutation((installmentId: number) => invoke('loans:unpayInstallment', installmentId))

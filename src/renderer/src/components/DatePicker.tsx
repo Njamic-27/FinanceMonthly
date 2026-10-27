@@ -38,6 +38,7 @@ interface DatePickerProps {
   onChange: (value: IsoDate) => void
   /** Earliest selectable date. */
   min?: IsoDate
+  disabled?: boolean
   'aria-invalid'?: boolean
   'aria-describedby'?: string
   className?: string
@@ -53,6 +54,7 @@ export function DatePicker({
   value,
   onChange,
   min,
+  disabled,
   className,
   ...aria
 }: DatePickerProps): React.JSX.Element {
@@ -78,8 +80,9 @@ export function DatePicker({
         <button
           id={id}
           type="button"
+          disabled={disabled}
           className={cn(
-            'flex h-10 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border border-line bg-surface px-3 text-left text-body text-ink transition-colors hover:border-ink-muted/40 focus-visible:border-primary focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-primary aria-invalid:border-expense',
+            'flex h-10 w-full disabled:cursor-not-allowed disabled:opacity-50 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border border-line bg-surface px-3 text-left text-body text-ink transition-colors hover:border-ink-muted/40 focus-visible:border-primary focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-primary aria-invalid:border-expense',
             className
           )}
           {...aria}

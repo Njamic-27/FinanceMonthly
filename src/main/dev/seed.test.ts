@@ -54,7 +54,7 @@ describe('seedDemoData', () => {
       recurringItems: 5,
       installmentPlans: 1,
       savingsGoals: 1,
-      loans: 1
+      loans: 2
     })
     const dates = rows().map((t) => t.date)
     expect(dates.every((d) => d >= '2025-10-01' && d <= TODAY)).toBe(true)
@@ -133,10 +133,9 @@ describe('seedDemoData', () => {
     expect(savings).toHaveLength(8) // 11 March to 11 October
     expect(savings.every((s) => s.amount === 15000)).toBe(true)
     expect(
-      rows("SELECT * FROM transactions WHERE type LIKE 'loan_%' ORDER BY date").map((r) => [
-        r.type,
-        r.amount
-      ])
+      rows(
+        "SELECT * FROM transactions WHERE type LIKE 'loan_%' AND loan_installment_id IS NULL ORDER BY date"
+      ).map((r) => [r.type, r.amount])
     ).toEqual([
       ['loan_out', 30000],
       ['loan_in', 10000]
@@ -161,5 +160,25 @@ describe('seedDemoData', () => {
   it('only fills an empty database', () => {
     seedDemoData(db, TODAY)
     expect(() => seedDemoData(db, TODAY)).toThrow(/empty database/)
+  })
+
+  it('pays the car loan’s installments due so far, from the schedule', () => {
+    seedDemoData(db, TODAY)
+    const paid = rows(
+      'SELECT t.* FROM transactions t JOIN loan_installments li ON li.id = t.loan_installment_id ORDER BY t.date'
+    )
+    // 20 March to 20 October
+    expect(paid.map((t) => t.date)).toEqual([
+      '2026-03-20',
+      '2026-04-20',
+      '2026-05-20',
+      '2026-06-20',
+      '2026-07-20',
+      '2026-08-20',
+      '2026-09-20',
+      '2026-10-20'
+    ])
+    expect(paid[0]).toMatchObject({ title: 'Car loan (1/48)', type: 'loan_out' })
+    expect(db.prepare('SELECT count(*) AS n FROM loan_installments').get()).toEqual({ n: 48 })
   })
 })

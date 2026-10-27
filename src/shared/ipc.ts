@@ -3,7 +3,15 @@ import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
 import type { InstallmentPlan, InstallmentPlanInput } from './installments'
-import type { Loan, PersonalLoanInput, RepaymentInput, SettleLoanInput } from './loans'
+import type {
+  BankLoanInput,
+  Loan,
+  LoanInstallment,
+  PayInstallmentInput,
+  PersonalLoanInput,
+  RepaymentInput,
+  SettleLoanInput
+} from './loans'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { SeedSummary } from './dev'
 import type { SerializedError } from './errors'
@@ -119,6 +127,14 @@ export interface IpcContract {
   /** Closes a loan with something still owed: paid in full, or written off. */
   'loans:settle': (id: number, input: SettleLoanInput) => Loan
   'loans:reopen': (id: number) => Loan
+  /** A bank loan with its annuity schedule; optionally records the money arriving. */
+  'loans:createBank': (input: BankLoanInput) => Loan
+  /** Regenerates the schedule while nothing is paid; afterwards only names, account and note. */
+  'loans:updateBank': (id: number, input: BankLoanInput) => Loan
+  /** A bank loan's installments in order, with their payments. */
+  'loans:schedule': (id: number) => LoanInstallment[]
+  'loans:payInstallment': (installmentId: number, input: PayInstallmentInput) => Transaction
+  'loans:unpayInstallment': (installmentId: number) => void
 
   /** Income, expenses, savings and loan movements over a date range. */
   'stats:totals': (range: StatsRange) => Totals
@@ -203,6 +219,11 @@ const channels: Record<IpcChannel, true> = {
   'loans:deleteRepayment': true,
   'loans:settle': true,
   'loans:reopen': true,
+  'loans:createBank': true,
+  'loans:updateBank': true,
+  'loans:schedule': true,
+  'loans:payInstallment': true,
+  'loans:unpayInstallment': true,
   'stats:totals': true,
   'stats:series': true,
   'stats:categories': true,

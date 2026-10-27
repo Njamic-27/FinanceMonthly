@@ -34,7 +34,8 @@ import { cardDueMarkers } from './cards'
  * Every planned payment due from `from` to `to`, by date. Active recurring items expand into
  * their occurrences from their next due date on (earlier ones were posted or skipped), minus
  * those a transaction already settles, such as one paid early. Paused items have none.
- * Installment plans add each installment not charged yet.
+ * Installment plans add each installment not charged yet, and bank loans each installment
+ * not paid yet.
  */
 export function plannedItems(
   db: Database,
@@ -93,6 +94,41 @@ export function plannedItems(
       })
     }
   }
+  // Bank loan installments not paid yet, on loans still running.
+  const installments = db
+    .prepare(
+      `SELECT li.id, li.seq, li.due_date, li.amount, l.id AS loan_id, l.title,
+              l.installments_count, l.account_id
+       FROM loan_installments li JOIN loans l ON l.id = li.loan_id
+       WHERE l.status = 'active' AND l.account_id IS NOT NULL
+         AND li.due_date BETWEEN ? AND ?
+         AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.loan_installment_id = li.id)`
+    )
+    .all(from, to) as {
+    id: number
+    seq: number
+    due_date: IsoDate
+    amount: number
+    loan_id: number
+    title: string
+    installments_count: number
+    account_id: number
+  }[]
+  for (const row of installments) {
+    planned.push({
+      source: 'loan_installment',
+      sourceId: row.id,
+      loanId: row.loan_id,
+      date: row.due_date,
+      title: installmentTitle(row.title, row.seq, row.installments_count),
+      amount: row.amount,
+      group: 'loan',
+      accountId: row.account_id,
+      categoryId: null,
+      overdue: row.due_date < today
+    })
+  }
+
   return planned.sort(
     (a, b) =>
       a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.sourceId - b.sourceId
@@ -117,7 +153,17 @@ export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): n
     ...listRecurringItems(db)
       .filter((item) => item.isActive)
       .map((item) => item.nextDueDate),
-    ...listInstallmentPlans(db).flatMap((plan) => plan.nextDate ?? [])
+    ...listInstallmentPlans(db).flatMap((plan) => plan.nextDate ?? []),
+    ...((
+      db
+        .prepare(
+          `SELECT min(li.due_date) AS first FROM loan_installments li
+           JOIN loans l ON l.id = li.loan_id
+           WHERE l.status = 'active'
+             AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.loan_installment_id = li.id)`
+        )
+        .get() as { first: IsoDate | null }
+    ).first ?? [])
   ]
   const earliest = starts.reduce((min, d) => (d < min ? d : min))
   return plannedItems(db, earliest, date, today)
@@ -163,8 +209,9 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
       income: totals.income,
       expenses: totals.expenses,
       plannedIncome: inMonth.filter((p) => p.group === 'income').reduce((s, p) => s + p.amount, 0),
+      // Loan installments aren't spending; they still count in the ending balance.
       plannedExpenses: inMonth
-        .filter((p) => p.group !== 'income')
+        .filter((p) => p.group === 'expense')
         .reduce((s, p) => s + p.amount, 0),
       overdue: inMonth.filter((p) => p.overdue).length,
       endingBalance: projected

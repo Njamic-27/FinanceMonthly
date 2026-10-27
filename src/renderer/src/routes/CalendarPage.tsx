@@ -21,6 +21,10 @@ import {
   ConfirmPaymentDialog,
   type ConfirmPaymentTarget
 } from '@renderer/features/recurring/ConfirmPaymentDialog'
+import {
+  PayInstallmentDialog,
+  type PayInstallmentTarget
+} from '@renderer/features/loans/PayInstallmentDialog'
 import { useRecurringItems } from '@renderer/features/recurring/queries'
 import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
@@ -41,13 +45,24 @@ export function CalendarPage(): React.JSX.Element {
   const [picked, setPicked] = useState<{ month: IsoDate; date: IsoDate } | null>(null)
   const selected = picked?.month === month ? picked.date : isCurrent ? now : month
   const [confirming, setConfirming] = useState<ConfirmPaymentTarget | null>(null)
+  const [paying, setPaying] = useState<PayInstallmentTarget | null>(null)
 
   const go = (next: IsoDate): void => setParams(calendarParams(next), { replace: true })
   const navigate = useNavigate()
   // A recurring payment is confirmed here; an installment charges itself, so it opens its card.
   const confirm = (planned: PlannedItem): void => {
     if (planned.source === 'installment_plan') {
-      navigate(`/accounts/${planned.accountId}`)
+      void navigate(`/accounts/${planned.accountId}`)
+      return
+    }
+    if (planned.source === 'loan_installment') {
+      setPaying({
+        installmentId: planned.sourceId,
+        title: planned.title,
+        amount: planned.amount,
+        dueDate: planned.date,
+        accountId: planned.accountId
+      })
       return
     }
     const item = recurring.find((r) => r.id === planned.sourceId)
@@ -125,6 +140,7 @@ export function CalendarPage(): React.JSX.Element {
       )}
 
       <ConfirmPaymentDialog target={confirming} onClose={() => setConfirming(null)} />
+      <PayInstallmentDialog target={paying} onClose={() => setPaying(null)} />
     </>
   )
 }

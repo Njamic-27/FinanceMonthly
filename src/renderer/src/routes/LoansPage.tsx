@@ -1,14 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ChevronRight, HandCoins, Plus } from 'lucide-react'
+import { ChevronRight, HandCoins, Landmark, Plus } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
-import { isOverdue, type Loan, type PersonalLoanKind } from '@shared/loans'
+import { isOverdue, type Loan, type LoanKind } from '@shared/loans'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { BankLoanDialog } from '@renderer/features/loans/BankLoanDialog'
 import { LoanDialog, type LoanDialogTarget } from '@renderer/features/loans/LoanDialog'
 import { LoanProgress } from '@renderer/features/loans/LoanProgress'
+import { nextInstallment } from '@renderer/features/loans/installment'
+import {
+  PayInstallmentDialog,
+  type PayInstallmentTarget
+} from '@renderer/features/loans/PayInstallmentDialog'
 import { useLoans } from '@renderer/features/loans/queries'
 import {
   RepaymentDialog,
@@ -18,7 +24,7 @@ import { owedLabel, statusLabel } from '@renderer/features/loans/wording'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 
-const tabs: { kind: PersonalLoanKind; label: string; empty: string; add: string }[] = [
+const tabs: { kind: LoanKind; label: string; empty: string; add: string }[] = [
   {
     kind: 'lent',
     label: 'Lent',
@@ -30,11 +36,35 @@ const tabs: { kind: PersonalLoanKind; label: string; empty: string; add: string 
     label: 'Borrowed',
     empty: 'Nothing borrowed. Money a friend or family member lent you goes here.',
     add: 'Add money borrowed'
+  },
+  {
+    kind: 'bank_loan',
+    label: 'Bank loans',
+    empty: 'No bank loans. Add a car loan, a mortgage or a cash loan to see its schedule.',
+    add: 'Add bank loan'
   }
 ]
 
 function DueLine({ loan }: { loan: Loan }): React.JSX.Element | null {
   const money = useCurrency()
+  if (loan.bank) {
+    const { next, overdueCount, payoffDate } = loan.bank
+    if (!next || loan.status !== 'active') return null
+    const short = (date: string): string =>
+      formatDate(date, money.locale, { day: 'numeric', month: 'short' })
+    return (
+      <span className="grid text-sm">
+        <span className={cn(overdueCount > 0 ? 'font-semibold text-expense' : 'text-ink-muted')}>
+          {overdueCount > 0
+            ? `${overdueCount} installment${overdueCount === 1 ? '' : 's'} overdue`
+            : `Next ${money.format(next.amount)} on ${short(next.dueDate)}`}
+        </span>
+        <span className="text-ink-muted">
+          Paid off in {formatDate(payoffDate, money.locale, { month: 'long', year: 'numeric' })}
+        </span>
+      </span>
+    )
+  }
   if (!loan.dueDate || loan.status !== 'active') return null
   const date = formatDate(loan.dueDate, money.locale)
   return isOverdue(loan, today()) ? (
@@ -54,6 +84,7 @@ function LoanCard({
   onRepay: () => void
 }): React.JSX.Element {
   const money = useCurrency()
+  const Icon = loan.kind === 'bank_loan' ? Landmark : HandCoins
   return (
     <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:border-ink-muted/40">
       <button
@@ -63,12 +94,16 @@ function LoanCard({
       >
         <span className="flex items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-loan-soft text-loan">
-            <HandCoins className="size-4" aria-hidden />
+            <Icon className="size-4" aria-hidden />
           </span>
           <span className="min-w-0">
             <span className="block truncate font-semibold">{loan.title}</span>
-            {loan.note && (
-              <span className="block truncate text-sm text-ink-muted">{loan.note}</span>
+            {loan.kind === 'bank_loan' ? (
+              <span className="block truncate text-sm text-ink-muted">{loan.counterparty}</span>
+            ) : (
+              loan.note && (
+                <span className="block truncate text-sm text-ink-muted">{loan.note}</span>
+              )
             )}
           </span>
         </span>
@@ -81,26 +116,35 @@ function LoanCard({
       </button>
       <div className="px-5 pb-5">
         <Button variant="secondary" size="sm" onClick={onRepay}>
-          Record repayment
+          {loan.kind === 'bank_loan' ? 'Pay next…' : 'Record repayment'}
         </Button>
       </div>
     </div>
   )
 }
 
-/** Money lent to and borrowed from people: what's still owed each way. */
+/** Money lent and borrowed, and bank loans: what's still owed each way. */
 export function LoansPage(): React.JSX.Element {
   const money = useCurrency()
   const navigate = useNavigate()
   const loans = useLoans()
-  const [tab, setTab] = useState<PersonalLoanKind>('lent')
+  const [tab, setTab] = useState<LoanKind>('lent')
   const [dialog, setDialog] = useState<LoanDialogTarget | null>(null)
+  const [bankOpen, setBankOpen] = useState(false)
   const [repaying, setRepaying] = useState<RepaymentDialogTarget | null>(null)
-  const all = (loans.data ?? []).filter((l) => l.kind !== 'bank_loan')
-  const active = (kind: PersonalLoanKind): Loan[] =>
+  const [paying, setPaying] = useState<PayInstallmentTarget | null>(null)
+  const all = loans.data ?? []
+  const active = (kind: LoanKind): Loan[] =>
     all.filter((l) => l.kind === kind && l.status === 'active')
-  const owedToYou = active('lent').reduce((sum, l) => sum + l.outstanding, 0)
-  const youOwe = active('borrowed').reduce((sum, l) => sum + l.outstanding, 0)
+  const owed = (kind: LoanKind): number => active(kind).reduce((sum, l) => sum + l.outstanding, 0)
+  const addLoan = (kind: LoanKind): void => {
+    if (kind === 'bank_loan') setBankOpen(true)
+    else setDialog({ kind: 'new', loanKind: kind })
+  }
+  const repay = (loan: Loan): void => {
+    if (loan.kind === 'bank_loan') setPaying(nextInstallment(loan))
+    else setRepaying({ kind: 'new', loan })
+  }
   const open = (loan: Loan): void => {
     void navigate(`/loans/${loan.id}`)
   }
@@ -110,9 +154,9 @@ export function LoansPage(): React.JSX.Element {
     <>
       <PageHeader
         title="Loans"
-        description="Money you lent and money you borrowed."
+        description="Money you lent, money you borrowed and bank loans."
         actions={
-          <Button onClick={() => setDialog({ kind: 'new', loanKind: tab })}>
+          <Button onClick={() => addLoan(tab)}>
             <Plus />
             {current.add}
           </Button>
@@ -133,20 +177,24 @@ export function LoansPage(): React.JSX.Element {
           <Card className="mb-6 flex flex-wrap gap-x-12 gap-y-3">
             <div>
               <p className="text-sm text-ink-muted">Owed to you</p>
-              <p className="amount text-amount">{money.format(owedToYou)}</p>
+              <p className="amount text-amount">{money.format(owed('lent'))}</p>
             </div>
             <div>
-              <p className="text-sm text-ink-muted">You owe</p>
-              <p className="amount text-amount">{money.format(youOwe)}</p>
+              <p className="text-sm text-ink-muted">You owe people</p>
+              <p className="amount text-amount">{money.format(owed('borrowed'))}</p>
+            </div>
+            <div>
+              <p className="text-sm text-ink-muted">You owe banks</p>
+              <p className="amount text-amount">{money.format(owed('bank_loan'))}</p>
             </div>
             <p className="w-full text-sm text-ink-muted">
-              Lending and paying back isn’t counted as income or spending; it moves money between
-              you and someone else.
+              Loans aren’t counted as income or spending: they move money between you and someone
+              else. Bank loans show the principal still owed; installments also include interest.
             </p>
           </Card>
 
-          <Tabs value={tab} onValueChange={(value) => setTab(value as PersonalLoanKind)}>
-            <TabsList aria-label="Lent or borrowed">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as LoanKind)}>
+            <TabsList aria-label="Kind of loan">
               {tabs.map(({ kind, label }) => (
                 <TabsTrigger key={kind} value={kind}>
                   {label}
@@ -167,14 +215,14 @@ export function LoansPage(): React.JSX.Element {
                           key={loan.id}
                           loan={loan}
                           onOpen={() => open(loan)}
-                          onRepay={() => setRepaying({ kind: 'new', loan })}
+                          onRepay={() => repay(loan)}
                         />
                       ))}
                     </div>
                   ) : (
                     <section className="flex max-w-2xl flex-col items-start gap-4 rounded-panel border border-dashed border-line p-8">
                       <p className="text-ink-muted">{empty}</p>
-                      <Button onClick={() => setDialog({ kind: 'new', loanKind: kind })}>
+                      <Button onClick={() => addLoan(kind)}>
                         <Plus />
                         {add}
                       </Button>
@@ -230,6 +278,8 @@ export function LoansPage(): React.JSX.Element {
 
       <LoanDialog target={dialog} onClose={() => setDialog(null)} />
       <RepaymentDialog target={repaying} onClose={() => setRepaying(null)} />
+      <BankLoanDialog open={bankOpen} loan={null} onClose={() => setBankOpen(false)} />
+      <PayInstallmentDialog target={paying} onClose={() => setPaying(null)} />
     </>
   )
 }

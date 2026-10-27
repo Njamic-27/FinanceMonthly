@@ -1,9 +1,16 @@
 import { getDb } from '../db'
 import {
+  createBankLoan,
+  payInstallment,
+  unpayInstallment,
+  updateBankLoan
+} from '../db/repositories/bankLoans'
+import {
   addRepayment,
   createPersonalLoan,
   deleteLoan,
   deleteRepayment,
+  listLoanInstallments,
   listLoans,
   listLoanTransactions,
   reopenLoan,
@@ -24,4 +31,9 @@ export function registerLoanHandlers(): void {
   handle('loans:deleteRepayment', (id) => deleteRepayment(getDb(), id))
   handle('loans:settle', (id, input) => settleLoan(getDb(), id, input))
   handle('loans:reopen', (id) => reopenLoan(getDb(), id))
+  handle('loans:createBank', (input) => createBankLoan(getDb(), input))
+  handle('loans:updateBank', (id, input) => updateBankLoan(getDb(), id, input))
+  handle('loans:schedule', (id) => listLoanInstallments(getDb(), id))
+  handle('loans:payInstallment', (id, input) => payInstallment(getDb(), id, input))
+  handle('loans:unpayInstallment', (id) => unpayInstallment(getDb(), id))
 }

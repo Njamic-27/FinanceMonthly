@@ -34,9 +34,13 @@ function PlannedRow({
         <p className={cn('text-sm text-ink-muted', item.overdue && 'text-expense')}>
           {item.source === 'installment_plan'
             ? 'Installment, charged automatically'
-            : item.overdue
-              ? 'Overdue'
-              : 'Planned'}
+            : item.source === 'loan_installment'
+              ? item.overdue
+                ? 'Loan installment, overdue'
+                : 'Loan installment'
+              : item.overdue
+                ? 'Overdue'
+                : 'Planned'}
           {account && ` · ${account.name}`}
         </p>
       </div>
@@ -48,9 +52,11 @@ function PlannedRow({
         <Button variant="secondary" size="sm" onClick={onConfirm}>
           {item.source === 'installment_plan'
             ? 'View card'
-            : isIncome
-              ? 'Mark received…'
-              : 'Mark paid…'}
+            : item.source === 'loan_installment'
+              ? 'Pay…'
+              : isIncome
+                ? 'Mark received…'
+                : 'Mark paid…'}
         </Button>
       </div>
     </li>
@@ -78,7 +84,8 @@ export function DayPanel({
   const dayTotals = new Map<IsoDate, DayTotal>(
     pages.flatMap((p) => p.dayTotals).map((d) => [d.date, d])
   )
-  const overdue = planned.filter((p) => p.overdue).length
+  // Only recurring payments wait to be marked paid or skipped; the note is about them.
+  const overdue = planned.filter((p) => p.overdue && p.source === 'recurring').length
 
   return (
     <Card

@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3'
-import { formatDate, type IsoDate } from '@shared/dates'
+import { formatDate, today as todayIso, type IsoDate } from '@shared/dates'
 import {
   defaultLoanTitle,
   loanIdSchema,
@@ -8,7 +8,9 @@ import {
   repaymentInputSchema,
   repaymentTitle,
   settleLoanInputSchema,
+  type BankLoanSummary,
   type Loan,
+  type LoanInstallment,
   type LoanKind,
   type LoanStatus,
   type PersonalLoanInput,
@@ -45,17 +47,86 @@ interface LoanRow {
 /** Repayments go the other way from the money that started the loan. */
 const repaymentType = `CASE l.kind WHEN 'lent' THEN 'loan_in' ELSE 'loan_out' END`
 
+// A bank loan's payments include interest, so what's repaid of it is the principal part of
+// its paid installments; a personal loan's is every repayment.
 const selectLoans = /* sql */ `
   SELECT l.*,
-         coalesce((SELECT sum(t.amount) FROM transactions t
-                   WHERE t.loan_id = l.id AND t.type = ${repaymentType}), 0) AS repaid,
+         CASE l.kind
+           WHEN 'bank_loan' THEN
+             coalesce((SELECT sum(li.principal_part) FROM loan_installments li
+                       WHERE li.loan_id = l.id
+                         AND EXISTS (SELECT 1 FROM transactions t WHERE t.loan_installment_id = li.id)), 0)
+           ELSE
+             coalesce((SELECT sum(t.amount) FROM transactions t
+                       WHERE t.loan_id = l.id AND t.type = ${repaymentType}), 0)
+         END AS repaid,
          (SELECT count(*) FROM transactions t
           WHERE t.loan_id = l.id AND t.type = ${repaymentType}) AS repayment_count,
          (SELECT max(t.date) FROM transactions t
           WHERE t.loan_id = l.id AND t.type = ${repaymentType}) AS last_repayment_date
   FROM loans l`
 
-function toLoan(row: LoanRow): Loan {
+interface InstallmentRow {
+  id: number
+  loan_id: number
+  seq: number
+  due_date: string
+  amount: number
+  principal_part: number
+  interest_part: number
+  transaction_id: number | null
+  paid_date: string | null
+}
+
+/** A bank loan's schedule in order, each installment with its payment if it's paid. */
+export function listLoanInstallments(db: Database, loanId: number): LoanInstallment[] {
+  const rows = db
+    .prepare(
+      `SELECT li.*, t.id AS transaction_id, t.date AS paid_date
+       FROM loan_installments li LEFT JOIN transactions t ON t.loan_installment_id = li.id
+       WHERE li.loan_id = ? ORDER BY li.seq`
+    )
+    .all(loanIdSchema.parse(loanId)) as InstallmentRow[]
+  const principal = db.prepare('SELECT principal FROM loans WHERE id = ?').get(loanId) as
+    { principal: number } | undefined
+  let balance = principal?.principal ?? 0
+  return rows.map((row) => {
+    balance -= row.principal_part
+    return {
+      id: row.id,
+      loanId: row.loan_id,
+      seq: row.seq,
+      dueDate: row.due_date,
+      amount: row.amount,
+      principalPart: row.principal_part,
+      interestPart: row.interest_part,
+      balance,
+      transactionId: row.transaction_id,
+      paidDate: row.paid_date
+    }
+  })
+}
+
+function bankSummary(db: Database, loanId: number, today: IsoDate): BankLoanSummary | null {
+  const rows = listLoanInstallments(db, loanId)
+  if (rows.length === 0) return null
+  const unpaid = rows.filter((r) => r.transactionId === null)
+  const next = unpaid[0]
+  return {
+    monthlyPayment: rows[0].amount,
+    totalInterest: rows.reduce((sum, r) => sum + r.interestPart, 0),
+    interestPaid: rows
+      .filter((r) => r.transactionId !== null)
+      .reduce((sum, r) => sum + r.interestPart, 0),
+    paidCount: rows.length - unpaid.length,
+    next: next ? { id: next.id, seq: next.seq, dueDate: next.dueDate, amount: next.amount } : null,
+    overdueCount: unpaid.filter((r) => r.dueDate < today).length,
+    firstPaymentDate: rows[0].dueDate,
+    payoffDate: rows[rows.length - 1].dueDate
+  }
+}
+
+function toLoan(db: Database, row: LoanRow): Loan {
   return {
     id: row.id,
     kind: row.kind,
@@ -74,7 +145,8 @@ function toLoan(row: LoanRow): Loan {
     repaid: row.repaid,
     outstanding: row.status === 'written_off' ? 0 : Math.max(0, row.principal - row.repaid),
     repaymentCount: row.repayment_count,
-    lastRepaymentDate: row.last_repayment_date
+    lastRepaymentDate: row.last_repayment_date,
+    bank: row.kind === 'bank_loan' ? bankSummary(db, row.id, todayIso()) : null
   }
 }
 
@@ -83,14 +155,14 @@ export function listLoans(db: Database): Loan[] {
   const rows = db
     .prepare(`${selectLoans} ORDER BY l.status <> 'active', l.start_date DESC, l.id DESC`)
     .all() as LoanRow[]
-  return rows.map(toLoan)
+  return rows.map((row) => toLoan(db, row))
 }
 
 export function getLoan(db: Database, id: number): Loan {
   const row = db.prepare(`${selectLoans} WHERE l.id = ?`).get(loanIdSchema.parse(id)) as
     LoanRow | undefined
   if (!row) throw new AppError('not_found', 'That loan no longer exists.')
-  return toLoan(row)
+  return toLoan(db, row)
 }
 
 const money = (db: Database, cents: number): string => {
@@ -102,7 +174,12 @@ const money = (db: Database, cents: number): string => {
  * An account the loan may use: not archived (unless it's the one already used) and, when
  * money moves on `date`, already open then.
  */
-function usableAccount(db: Database, id: number, date: IsoDate | null, keep?: number | null): void {
+export function usableAccount(
+  db: Database,
+  id: number,
+  date: IsoDate | null,
+  keep?: number | null
+): void {
   const account = getAccount(db, id)
   if (account.isArchived && account.id !== keep) {
     throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
@@ -120,7 +197,7 @@ function usableAccount(db: Database, id: number, date: IsoDate | null, keep?: nu
  * Paid off once nothing is owed, active again if something is (after an edit or a deleted
  * repayment). A loan written off stays written off.
  */
-function syncStatus(db: Database, id: number): void {
+export function syncStatus(db: Database, id: number): void {
   const loan = getLoan(db, id)
   if (loan.status === 'written_off') return
   const status: LoanStatus = loan.outstanding === 0 ? 'paid_off' : 'active'
@@ -257,6 +334,9 @@ function checkRepayment(
 ): { repayment: ReturnType<typeof repaymentInputSchema.parse>; loan: Loan } {
   const repayment = repaymentInputSchema.parse(input)
   const loan = getLoan(db, repayment.loanId)
+  if (loan.kind === 'bank_loan') {
+    throw new AppError('validation', 'A bank loan is paid off one installment at a time.')
+  }
   if (!current && loan.status !== 'active') {
     throw new AppError(
       'validation',
@@ -308,6 +388,12 @@ function getRepayment(db: Database, id: number): Transaction {
 
 export function updateRepayment(db: Database, id: number, input: RepaymentInput): Transaction {
   const current = getRepayment(db, id)
+  if (current.loanInstallmentId !== null) {
+    throw new AppError(
+      'validation',
+      'An installment is paid as scheduled. Undo the payment and pay it again to change it.'
+    )
+  }
   const { repayment } = checkRepayment(db, { ...input, loanId: current.loanId ?? 0 }, current)
   db.transaction(() => {
     db.prepare(
@@ -334,6 +420,9 @@ export function deleteRepayment(db: Database, id: number): void {
 export function settleLoan(db: Database, id: number, input: SettleLoanInput): Loan {
   const loan = getLoan(db, id)
   const how = settleLoanInputSchema.parse(input)
+  if (loan.kind === 'bank_loan') {
+    throw new AppError('validation', 'A bank loan is paid off one installment at a time.')
+  }
   if (loan.status !== 'active') {
     throw new AppError('validation', `“${loan.title}” is already closed.`)
   }

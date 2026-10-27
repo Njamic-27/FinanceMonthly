@@ -38,7 +38,9 @@ function PlannedPill({
           ? 'border-expense/40 bg-expense-soft font-semibold text-expense hover:border-expense'
           : item.group === 'income'
             ? 'border-dashed border-income/50 text-income hover:bg-income-soft'
-            : 'border-dashed border-ink-muted/40 text-ink-muted hover:bg-surface-2 hover:text-ink'
+            : item.group === 'loan'
+              ? 'border-dashed border-loan/50 text-loan hover:bg-loan-soft'
+              : 'border-dashed border-ink-muted/40 text-ink-muted hover:bg-surface-2 hover:text-ink'
       )}
     >
       {item.title}

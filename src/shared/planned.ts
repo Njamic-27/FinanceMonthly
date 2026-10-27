@@ -2,21 +2,23 @@ import { z } from 'zod'
 import { isIsoDate, type DateRange, type IsoDate } from './dates'
 import type { Cents } from './money'
 
-/** Where a planned item comes from. Loan installments join in step 28. */
-export type PlannedSource = 'recurring' | 'installment_plan'
+/** Where a planned item comes from. */
+export type PlannedSource = 'recurring' | 'installment_plan' | 'loan_installment'
 
 /** The money kind, for colours and the sign: income adds to the balance, the rest takes away. */
 export type PlannedGroup = 'income' | 'expense' | 'savings' | 'loan'
 
 /**
  * A payment expected on a date that no transaction settles yet: recurring income, a bill,
- * a subscription or a credit card installment (PLAN.md §4, planned items). The Calendar, reminders and projections all
+ * a subscription, a credit card installment or a bank loan installment (PLAN.md §4, planned items). The Calendar, reminders and projections all
  * read these, so they always agree.
  */
 export interface PlannedItem {
   source: PlannedSource
-  /** The recurring item's or the installment plan's id. */
+  /** The recurring item's, the installment plan's or the loan installment's id. */
   sourceId: number
+  /** Loan installments: the loan they belong to. */
+  loanId?: number
   /** The day it falls due; settling it records this as the transaction's planned date. */
   date: IsoDate
   title: string
@@ -73,7 +75,10 @@ export interface CalendarSummary {
   /** Recorded in the month. */
   income: Cents
   expenses: Cents
-  /** Planned in the month and not settled yet, overdue ones included. */
+  /**
+   * Planned in the month and not settled yet, overdue ones included. Loan installments are
+   * neither: like recorded loan payments they only count in the ending balance.
+   */
   plannedIncome: Cents
   plannedExpenses: Cents
   /** Planned items in the month that are overdue. */

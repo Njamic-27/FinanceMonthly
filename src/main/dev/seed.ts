@@ -8,6 +8,7 @@ import {
   type IsoDate
 } from '@shared/dates'
 import type { SeedSummary } from '@shared/dev'
+import { amortizationSchedule } from '@shared/amortization'
 import { installmentSchedule, installmentTitle } from '@shared/installments'
 import type { Cents } from '@shared/money'
 import { nextOccurrence, occurrences, type Schedule } from '@shared/recurrence'
@@ -44,6 +45,7 @@ interface Tx {
   recurring?: number
   goal?: number
   loan?: number
+  installment?: number
   plan?: number
   planned?: IsoDate
   note?: string
@@ -377,6 +379,42 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
       })
     }
 
+    // A car loan from the bank, paid straight to the dealer, with every installment paid so far
+    const carStart = onDay(addMonths(startOfMonth(today), -8), 3)
+    const carFirst = onDay(addMonths(startOfMonth(today), -7), 20)
+    const carCount = 48
+    const car = insert(
+      `INSERT INTO loans (kind, title, counterparty, principal, interest_rate, start_date, installments_count, payment_day, account_id, create_disbursement_tx)
+       VALUES ('bank_loan', 'Car loan', 'Erste', 1200000, 5.9, @start, @count, 20, @debit, 0)`,
+      { start: carStart, count: carCount, debit }
+    )
+    for (const row of amortizationSchedule(1200000, 5.9, carCount, carFirst)) {
+      const installment = insert(
+        `INSERT INTO loan_installments (loan_id, seq, due_date, amount, principal_part, interest_part)
+         VALUES (@car, @seq, @dueDate, @amount, @principalPart, @interestPart)`,
+        {
+          car,
+          seq: row.seq,
+          dueDate: row.dueDate,
+          amount: row.amount,
+          principalPart: row.principalPart,
+          interestPart: row.interestPart
+        }
+      )
+      if (row.dueDate <= today) {
+        txs.push({
+          date: row.dueDate,
+          title: installmentTitle('Car loan', row.seq, carCount),
+          amount: row.amount,
+          type: 'loan_out',
+          account: debit,
+          loan: car,
+          installment,
+          planned: row.dueDate
+        })
+      }
+    }
+
     // Card payments: on each due day (15th), pay everything charged up to the last statement (25th)
     const charges = txs.filter((t) => t.account === card && t.type === 'expense')
     let paid = 0
@@ -403,8 +441,8 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
     // Insert in date order, so newer rows have higher ids like real entries would
     const insertTx = db.prepare(
       `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, category_id, recurring_item_id,
-         savings_goal_id, loan_id, installment_plan_id, planned_date, note)
-       VALUES (@date, @title, @amount, @type, @account, @to, @categoryId, @recurring, @goal, @loan, @plan, @planned, @note)`
+         savings_goal_id, loan_id, loan_installment_id, installment_plan_id, planned_date, note)
+       VALUES (@date, @title, @amount, @type, @account, @to, @categoryId, @recurring, @goal, @loan, @installment, @plan, @planned, @note)`
     )
     const ordered = txs
       .map((t, i) => ({ t, i }))
@@ -421,6 +459,7 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
         recurring: t.recurring ?? null,
         goal: t.goal ?? null,
         loan: t.loan ?? null,
+        installment: t.installment ?? null,
         plan: t.plan ?? null,
         planned: t.planned ?? null,
         note: t.note ?? null
@@ -437,7 +476,7 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
       recurringItems,
       installmentPlans: 1,
       savingsGoals: 1,
-      loans: 1
+      loans: 2
     }
   })
 

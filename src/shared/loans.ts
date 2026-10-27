@@ -6,7 +6,7 @@ import type { TransactionType } from './transactions'
 export const loanKinds = ['lent', 'borrowed', 'bank_loan'] as const
 export type LoanKind = (typeof loanKinds)[number]
 
-/** Loans between people; bank loans with a schedule arrive in step 28. */
+/** Loans between people, without a schedule. */
 export const personalLoanKinds = ['lent', 'borrowed'] as const
 export type PersonalLoanKind = (typeof personalLoanKinds)[number]
 
@@ -38,6 +38,40 @@ export interface Loan {
   outstanding: Cents
   repaymentCount: number
   lastRepaymentDate: IsoDate | null
+  /** Bank loans only: the schedule at a glance. */
+  bank: BankLoanSummary | null
+}
+
+/** A bank loan's schedule at a glance. */
+export interface BankLoanSummary {
+  /** The regular installment (the last one may differ by a few cents). */
+  monthlyPayment: Cents
+  totalInterest: Cents
+  interestPaid: Cents
+  paidCount: number
+  /** The earliest installment not paid yet. */
+  next: Pick<LoanInstallment, 'id' | 'seq' | 'dueDate' | 'amount'> | null
+  /** Unpaid installments due before today. */
+  overdueCount: number
+  firstPaymentDate: IsoDate
+  /** The last installment's date. */
+  payoffDate: IsoDate
+}
+
+/** One installment of a bank loan's schedule; paid once a transaction links to it. */
+export interface LoanInstallment {
+  id: number
+  loanId: number
+  seq: number
+  dueDate: IsoDate
+  amount: Cents
+  principalPart: Cents
+  interestPart: Cents
+  /** Principal still owed after it. */
+  balance: Cents
+  /** The payment, once made. */
+  transactionId: number | null
+  paidDate: IsoDate | null
 }
 
 /**
@@ -139,3 +173,49 @@ export const settleLoanInputSchema = z.discriminatedUnion('how', [
   z.object({ how: z.literal('forgiven') }).strict()
 ])
 export type SettleLoanInput = z.input<typeof settleLoanInputSchema>
+
+/** A loan from a bank, repaid in equal monthly installments (annuity). */
+export const bankLoanInputSchema = z
+  .object({
+    /** The bank. */
+    counterparty: z
+      .string()
+      .trim()
+      .min(1, 'Which bank is it with?')
+      .max(60, 'Keep the name to 60 characters or fewer'),
+    /** Empty means "Loan from <bank>". */
+    title: z.string().trim().max(80, 'Keep the title to 80 characters or fewer'),
+    principal: amount,
+    /** Annual interest, in percent. */
+    interestRate: z
+      .number({ error: 'Enter the interest rate, or 0' })
+      .min(0, 'Enter the interest rate, or 0')
+      .max(100, 'Enter a yearly rate below 100%'),
+    installmentsCount: z
+      .number({ error: 'Enter how many monthly installments' })
+      .int('Enter a whole number of installments')
+      .min(1, 'Enter at least 1 installment')
+      .max(600, 'Enter 600 installments or fewer'),
+    /** When the money was paid out. */
+    startDate: isoDate,
+    /** Then one installment a month on the same day. */
+    firstPaymentDate: isoDate,
+    /** Record the loan money arriving in `accountId` on the start date. */
+    createDisbursementTx: z.boolean(),
+    /** Where installments are paid from. */
+    accountId,
+    note
+  })
+  .strict()
+  .refine((loan) => loan.firstPaymentDate > loan.startDate, {
+    message: 'The first installment comes after the loan starts',
+    path: ['firstPaymentDate']
+  })
+export type BankLoanInput = z.input<typeof bankLoanInputSchema>
+
+/** Paying one installment of a bank loan. */
+export const payInstallmentInputSchema = z.object({ accountId, date: isoDate }).strict()
+export type PayInstallmentInput = z.input<typeof payInstallmentInputSchema>
+
+/** "Loan from Erste", when a bank loan has no title. */
+export const defaultBankLoanTitle = (bank: string): string => `Loan from ${bank}`

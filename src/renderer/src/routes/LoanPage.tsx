@@ -6,6 +6,7 @@ import { isOverdue, loanTypes, type Loan } from '@shared/loans'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useAccounts } from '@renderer/features/accounts/queries'
+import { BankLoanDetail } from '@renderer/features/loans/BankLoanDetail'
 import { LoanDialog, type LoanDialogTarget } from '@renderer/features/loans/LoanDialog'
 import { LoanProgress } from '@renderer/features/loans/LoanProgress'
 import { useLoans, useLoanTransactions, useReopenLoan } from '@renderer/features/loans/queries'
@@ -262,5 +263,10 @@ export function LoanPage(): React.JSX.Element | null {
       </Card>
     )
   }
-  return loan ? <LoanDetail key={loan.id} loan={loan} /> : null
+  if (!loan) return null
+  return loan.kind === 'bank_loan' ? (
+    <BankLoanDetail key={loan.id} loan={loan} />
+  ) : (
+    <LoanDetail key={loan.id} loan={loan} />
+  )
 }
