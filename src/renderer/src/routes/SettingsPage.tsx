@@ -30,7 +30,7 @@ const themeOptions: SegmentedOption<ThemeMode>[] = [
   { value: 'dark', label: 'Dark', icon: Moon }
 ]
 
-const laterSettings = ['Backup and restore, CSV export and reset data (step 32)']
+const laterSettings = ['Backup and restore, CSV export and reset data (step 33)']
 
 interface SettingRowProps {
   id: string

@@ -319,9 +319,22 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 
 **Phase 8 — Polish & ship**
 
-32. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
-33. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
-34. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
+32. **Linking audit.** Go through every screen and make every reference to something clickable, opening it:
+    - a day (in lists, charts, the Calendar, Overview, Dashboard) → that day in the Calendar with the day panel open
+    - a week or month → Overview for that period
+    - an account or card → its account page
+    - a category → Transactions filtered to that category (and period, if there is one)
+    - a transaction → its edit dialog
+    - a subscription or recurring item → its edit dialog on the Recurring screen
+    - a savings goal → its goal page
+    - a loan or bank loan → its loan page
+    - a milestone in Projections → what it refers to
+
+    Use the same hover style everywhere so it's obvious what's clickable. Add a Back button (and Alt+Left / mouse back button) to return to where you were. Finish with a list of every link added or fixed.
+
+33. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
+34. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
+35. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
 
 ---
 
