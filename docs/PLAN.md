@@ -209,20 +209,53 @@ Plans are usually created straight from the Add transaction dialog ("Pay in inst
 | due_date    | TEXT       |                                                                       |
 | notified_at | TEXT       | UNIQUE(source_type, source_id, due_date)                              |
 
+### Month sheet and bank loan additions (migration 003, steps 32–33)
+
+- `loans.auto_pay INTEGER NOT NULL DEFAULT 1` — bank loan installments are paid automatically on their due date from the loan's account; when off, a reminder comes 3 days before.
+- `transactions.is_month_total INTEGER NOT NULL DEFAULT 0` — marks the one **monthly summary transaction** per Month-sheet row and month, created or updated by typing an amount on the sheet. The repository keeps it to one per row and month.
+- `month_rows` — the line items you added to the Month sheet:
+
+| column             | type          | notes                                     |
+| ------------------ | ------------- | ----------------------------------------- |
+| id                 | INTEGER PK    |                                           |
+| section            | TEXT          | `income` \| `expense`                     |
+| category_id        | INTEGER FK    | unique; the row is this category          |
+| default_account_id | INTEGER FK    | the account new summaries use; changeable |
+| sort_order         | INTEGER       |                                           |
+| is_hidden          | INTEGER (0/1) |                                           |
+
+A category with transactions in a month always shows on that month's sheet, added as a row or not, so nothing is missing from the totals.
+
 **Computed, not stored:** account balances, period aggregates, upcoming bills list, projections.
 
 ---
 
 ## 3. Screens
 
-Left sidebar navigation (collapsible), top bar with period navigator where relevant, global "+ Add transaction" button (Ctrl+N).
+Left sidebar navigation (collapsible), top bar with period navigator where relevant, global "+ Add transaction" button (Ctrl+N). From step 36 the sidebar is: **Month** (the home screen), Dashboard, Calendar, Projections, then a collapsible **More** group (Transactions, Overview, History, Accounts, Recurring, Savings, Loans); Categories and Settings stay in the footer.
 
 **Add transaction dialog** (global, also opened from Transactions, Calendar and account pages) — type (expense / income / transfer), title, amount, date, account, category, note.
 
 - When the selected account is a **credit card** and the type is expense, a **"Pay in installments"** toggle appears with a number-of-installments field (2–60). The monthly amount is shown live in the form, e.g. **2,000.00 € / 5 = 400.00 €/month** (with "last installment 333.34 €" when it doesn't divide evenly). Saving creates an installment plan (first installment on the chosen date) instead of a single expense.
 
+0. **Month (home screen, steps 33–36)** — the main way to use the app, like a monthly Excel sheet: one month at a time, so you don't have to enter every purchase.
+   - ‹ › to change month, "Today", and **"Copy from last month"** (fills empty rows only, never overwrites).
+   - Summary at the top: income, expenses, net, balance at month end — the same numbers as the Calendar's month summary (actual for past months, with planned items for the current and later months).
+   - Sections, each with its rows, a section total and a **"+"** to add a row:
+     - **Income** — income categories (Bonus, Other income) and recurring income items (Salary).
+     - **Expenses** — expense categories (Groceries, Fuel) and recurring expense items (Rent).
+     - **Subscriptions** — one row per subscription active in the month.
+     - **Credit cards** — per card, its payment for the month (transfers into the card, pre-filled with what the statement leaves to pay; moving money, shown but not counted in net), and per installment plan that month's rate (an expense). Card purchases stay in their category rows, so nothing counts twice.
+     - **Loans** — bank loan installments (paid or planned) and personal loan repayments in the month; like loans everywhere, in the ending balance, not in income or expenses.
+     - **Savings** — one row per active goal: deposits minus withdrawals, the planned monthly amount pre-filled.
+   - Under the hood every cell is real transactions, so Calendar, Overview, History and Projections keep working. A category row shows that category's transactions in the month (except those posted by recurring items, installment plans or loans, which have their own rows). Typing an amount creates or updates the row's one **monthly summary transaction**, holding whatever the individual transactions don't: typing 400 where purchases add up to 120 makes the summary 280; less than the purchases is refused; 0 removes it. A summary is dated today in the current month, otherwise the month's last day.
+   - Pre-filled amounts not yet posted (subscriptions, recurring items that ask first, unpaid installments, planned savings) show in the lighter planned style; Enter confirms one, with the amount if changed.
+   - Keyboard: click a cell or press Enter to type; Enter/Tab saves and moves to the next row, Shift+Tab back, Esc cancels, arrows move between rows; amounts are read in your number format.
+   - A row with several transactions shows their count; clicking its name opens a panel listing them (each editable) with "Add transaction".
+   - Each row has a default account, set when it's added and changeable in the Account column; new summaries use it.
+   - "+" per section opens what fits: Income/Expenses — name, amount and account (an existing category is reused by name, otherwise one is created; "Every month" makes it a recurring item instead); Subscriptions — the subscription dialog with presets; Credit cards — "Buy in installments" or "Add a card"; Loans — Bank loan (all parameters, "Pay automatically" and the account it's paid from), Money borrowed or Money lent; Savings — the goal dialog.
 1. **Onboarding (first run)** — pick currency & week start → add accounts with opening balances (debit/credit/cash) → review default categories → optional: add salary as recurring income.
-2. **Dashboard** — KPI cards (total balance, this month income / expenses / net, total savings, total debt); income vs expenses bars (last 6 months); spending by category donut (this month); balance trend line; upcoming bills & reminders (next 14 days, with "mark paid"); savings goals progress; credit card utilization; 12-month projection teaser.
+2. **Dashboard** (at `/dashboard` from step 36) — KPI cards (total balance, this month income / expenses / net, total savings, total debt); income vs expenses bars (last 6 months); spending by category donut (this month); balance trend line; upcoming bills & reminders (next 14 days, with "mark paid"); savings goals progress; credit card utilization; 12-month projection teaser.
 3. **Transactions** — searchable, filterable list (date range, account, category, type), grouped by day, inline totals; add/edit/delete modal; duplicate transaction.
 4. **Overview (Weekly / Monthly)** — Week | Month toggle, ‹ › navigation to any past period, summary cards with % change vs previous period, daily spending bars, category breakdown, top expenses, transaction list for the period.
 5. **Calendar** — month grid starting on the `week_start` day; ‹ › to the previous/next month and a "Today" button; works for any past month and up to 24 months ahead.
@@ -251,6 +284,8 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 - `installments.ts` — split a card purchase into N installments in whole cents (last one takes the remainder) and list their dates.
 - `amortization.ts` — annuity schedule (principal/interest split, rounding remainder on last row).
 - `projection.ts` — inputs: current liquid balance, recurring items, unpaid loan installments, open installment plans, planned savings, average variable spending (last N months of non-recurring expenses); output per week/month: inflows, outflows by group, net, running balance, milestones.
+
+Month sheet service (`src/main/services/monthSheet.ts`, step 33): `monthSheet(month)` builds the sections, rows, cells (actual, planned, transaction count), totals and the summary (reusing `calendarMonth`); `setMonthCell(...)` sets a category row's summary to typed − individual transactions, confirms or updates a recurring/subscription occurrence (`postOccurrence`), pays a loan installment (`payInstallment`), records a card payment as a summary transfer and a savings row as a summary deposit; `copyFromLastMonth(month)`. In a future month with typed amounts, projections use those instead of average everyday spending, so nothing counts twice.
 
 Main-process service built on these: **planned items** (`src/main/services/planned.ts`) — `plannedItems(from, to)` expands active recurring items and subscriptions (later also credit-card installment plans and unpaid loan installments) into dated entries, and drops those already settled. Calendar, reminders and projections all use it, so they always agree.
 
@@ -317,9 +352,17 @@ Main-process service built on these: **planned items** (`src/main/services/plann
 30. Projections screen (horizon, granularity, charts, milestones, assumptions, table).
 31. Dashboard v2: upcoming bills, savings, debt, card utilization, projection teaser.
 
-**Phase 8 — Polish & ship**
+**Phase 8 — Month sheet**
 
-32. **Linking audit.** Go through every screen and make every reference to something clickable, opening it:
+32. **Bank loan fixes.** Migration 003 adds `loans.auto_pay` (on by default, existing loans too): the posting service pays due installments of auto-pay loans on launch and hourly, linked like a manual payment. Manual loans get a reminder 3 days before each unpaid installment (`loan_installment` in notification_log; clicking opens the loan). "Pay automatically" switch in the bank loan dialog. Overdue unpaid installments listed first in Dashboard "Coming up" with "Pay…".
+33. **Month sheet data layer.** Migration adds `transactions.is_month_total` and `month_rows`; `monthSheet` / `setMonthCell` / `copyFromLastMonth`; projections skip average spending in months with typed amounts. Tests: the top-up rule (refused below the individual transactions, 0 removes), the summary date, no double counting between category, recurring, installment and loan rows, the sheet's totals equal the Calendar's and Overview's, copy fills empty rows only.
+34. **Month screen.** `/month?month=YYYY-MM`: summary, sections and totals, planned style, keyboard editing (Enter/Tab/Shift+Tab/Esc/arrows), row transaction panel, account per row, ‹ › and Today, "Copy from last month".
+35. **Adding rows.** "+" under each section opens the right dialog (see §3, Month); hide and rename rows; drag to reorder within a section.
+36. **Navigation.** Month becomes the home route `/`, Dashboard moves to `/dashboard` (redirects, the onboarding finish and links updated); new sidebar order with the collapsible "More" group (remembers open or closed; the "due now" badge shows on More while it's closed).
+
+**Phase 9 — Polish & ship**
+
+37. **Linking audit.** Go through every screen and make every reference to something clickable, opening it:
     - a day (in lists, charts, the Calendar, Overview, Dashboard) → that day in the Calendar with the day panel open
     - a week or month → Overview for that period
     - an account or card → its account page
@@ -330,11 +373,11 @@ Main-process service built on these: **planned items** (`src/main/services/plann
     - a loan or bank loan → its loan page
     - a milestone in Projections → what it refers to
 
-    Use the same hover style everywhere so it's obvious what's clickable. Add a Back button (and Alt+Left / mouse back button) to return to where you were. Finish with a list of every link added or fixed.
+    The Month sheet's rows are included. Use the same hover style everywhere so it's obvious what's clickable. Add a Back button (and Alt+Left / mouse back button) to return to where you were. Finish with a list of every link added or fixed.
 
-33. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
-34. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
-35. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
+38. Backup/restore (copy DB file, auto-backup on start, keep last N), CSV export.
+39. UX polish: empty states, loading/error states, keyboard shortcuts, accessibility, dark mode pass.
+40. electron-builder NSIS installer, app icon & metadata, test install/uninstall on Windows; data survives upgrade.
 
 ---
 
