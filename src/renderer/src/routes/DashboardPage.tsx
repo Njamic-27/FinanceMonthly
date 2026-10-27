@@ -10,6 +10,10 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCategories } from '@renderer/features/categories/queries'
 import { BalanceTrend } from '@renderer/components/charts/BalanceTrend'
 import { CategoryDonut } from '@renderer/features/dashboard/CategoryDonut'
+import { CardsCard, GoalsCard } from '@renderer/features/dashboard/GoalsAndCards'
+import { Positions } from '@renderer/features/dashboard/Positions'
+import { ProjectionTeaser } from '@renderer/features/dashboard/ProjectionTeaser'
+import { UpcomingCard } from '@renderer/features/dashboard/UpcomingCard'
 import {
   comparisonFor,
   comparisonLabel,
@@ -55,7 +59,10 @@ function Invite({
   )
 }
 
-/** Your money at a glance: balance, this month, and the last six months. */
+/**
+ * Your money at a glance: balance and what's saved or owed, this month, what's coming up and
+ * the year ahead, the last six months, and savings goals and cards.
+ */
 export function DashboardPage(): React.JSX.Element {
   const money = useCurrency()
   const weekStart = useSettings().data?.weekStart ?? defaultSettings.weekStart
@@ -111,6 +118,7 @@ export function DashboardPage(): React.JSX.Element {
       ) : (
         <>
           <BalanceBanner accounts={active} />
+          <Positions accounts={active} />
 
           <section aria-labelledby="this-month" className="mt-8">
             <header className="mb-4 flex items-baseline justify-between gap-4 px-1">
@@ -132,6 +140,11 @@ export function DashboardPage(): React.JSX.Element {
               />
             )}
           </section>
+
+          <div className="mt-8 grid items-start gap-4 lg:grid-cols-3">
+            <UpcomingCard className="lg:col-span-2" />
+            <ProjectionTeaser />
+          </div>
 
           {months.isSuccess && !hasActivity ? (
             <div className="mt-8">
@@ -168,6 +181,11 @@ export function DashboardPage(): React.JSX.Element {
               />
             </>
           )}
+
+          <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
+            <GoalsCard />
+            <CardsCard accounts={active} />
+          </div>
         </>
       )}
     </>
