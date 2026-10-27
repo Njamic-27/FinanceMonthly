@@ -6,6 +6,8 @@ interface SwitchProps {
   onCheckedChange: (checked: boolean) => void
   disabled?: boolean
   'aria-describedby'?: string
+  /** When no <label for> names it. */
+  'aria-label'?: string
   className?: string
 }
 

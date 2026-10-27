@@ -12,6 +12,7 @@ import type {
   RecurringItem,
   RecurringItemInput
 } from './recurring'
+import type { SavingsGoal, SavingsGoalInput, SavingsMovementInput } from './savings'
 import type { Settings, SettingsPatch } from './settings'
 import type {
   CategoryTotal,
@@ -87,6 +88,21 @@ export interface IpcContract {
   /** Skips an item's next due occurrence without posting it. */
   'recurring:skip': (itemId: number, plannedDate: IsoDate) => RecurringItem
 
+  /** Every savings goal, archived ones included, with what each holds. */
+  'savings:list': () => SavingsGoal[]
+  'savings:create': (input: SavingsGoalInput) => SavingsGoal
+  'savings:update': (id: number, input: SavingsGoalInput) => SavingsGoal
+  'savings:archive': (id: number, archived: boolean) => SavingsGoal
+  /** Only goals without deposits or withdrawals; archive the others. */
+  'savings:delete': (id: number) => void
+  /** A goal's deposits and withdrawals, newest first. */
+  'savings:movements': (goalId: number) => Transaction[]
+  'savings:addMovement': (input: SavingsMovementInput) => Transaction
+  'savings:updateMovement': (id: number, input: SavingsMovementInput) => Transaction
+  'savings:deleteMovement': (id: number) => void
+  /** What a goal held at the end of each day, up to today. */
+  'savings:series': (goalId: number) => BalancePoint[]
+
   /** Income, expenses, savings and loan movements over a date range. */
   'stats:totals': (range: StatsRange) => Totals
   /** The same per day, week or month, with the total balance at the end of each. */
@@ -150,6 +166,16 @@ const channels: Record<IpcChannel, true> = {
   'recurring:due': true,
   'recurring:post': true,
   'recurring:skip': true,
+  'savings:list': true,
+  'savings:create': true,
+  'savings:update': true,
+  'savings:archive': true,
+  'savings:delete': true,
+  'savings:movements': true,
+  'savings:addMovement': true,
+  'savings:updateMovement': true,
+  'savings:deleteMovement': true,
+  'savings:series': true,
   'stats:totals': true,
   'stats:series': true,
   'stats:categories': true,

@@ -15,6 +15,8 @@ import { DashboardPage } from './routes/DashboardPage'
 import { HistoryPage } from './routes/HistoryPage'
 import { OverviewPage } from './routes/OverviewPage'
 import { RecurringPage } from './routes/RecurringPage'
+import { SavingsGoalPage } from './routes/SavingsGoalPage'
+import { SavingsPage } from './routes/SavingsPage'
 import { TransactionsPage } from './routes/TransactionsPage'
 import { SettingsPage } from './routes/SettingsPage'
 
@@ -33,6 +35,7 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/history': HistoryPage,
   '/accounts': AccountsPage,
   '/recurring': RecurringPage,
+  '/savings': SavingsPage,
   '/categories': CategoriesPage,
   '/settings': SettingsPage
 }
@@ -55,6 +58,7 @@ function App(): React.JSX.Element {
               )
             })}
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
+            <Route path="/savings/:id" element={<SavingsGoalPage />} />
             {UiPreview && (
               <Route
                 path="/dev/ui"
