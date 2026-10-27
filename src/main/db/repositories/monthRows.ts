@@ -66,3 +66,18 @@ export function addMonthRow(
     .get(lastInsertRowid) as MonthRowRow
   return toMonthRow(row)
 }
+
+/** Sets the account a category's summaries use, adding the category to the sheet if needed. */
+export function setMonthRowAccount(
+  db: Database,
+  input: { categoryId: number; accountId: number }
+): MonthRow {
+  const updated = db
+    .prepare('UPDATE month_rows SET default_account_id = ? WHERE category_id = ?')
+    .run(input.accountId, input.categoryId)
+  if (updated.changes === 0) return addMonthRow(db, input)
+  const row = db
+    .prepare('SELECT * FROM month_rows WHERE category_id = ?')
+    .get(input.categoryId) as MonthRowRow
+  return toMonthRow(row)
+}

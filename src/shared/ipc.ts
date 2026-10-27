@@ -12,7 +12,13 @@ import type {
   RepaymentInput,
   SettleLoanInput
 } from './loans'
-import type { MonthCellInput, MonthSheet, MonthSheetQuery } from './month'
+import type {
+  MonthCellInput,
+  MonthRowAccountInput,
+  MonthRowQuery,
+  MonthSheet,
+  MonthSheetQuery
+} from './month'
 import type { CalendarMonth, CalendarQuery, UpcomingPayment } from './planned'
 import type { ProjectionQuery, ProjectionResult } from './projection'
 import type { SeedSummary } from './dev'
@@ -161,6 +167,10 @@ export interface IpcContract {
   'month:setCell': (input: MonthCellInput) => void
   /** Fills the month's empty rows with last month's amounts; returns how many it filled. */
   'month:copyFromLastMonth': (query: MonthSheetQuery) => number
+  /** The transactions behind one row of the month, newest first. */
+  'month:rowTransactions': (query: MonthRowQuery) => Transaction[]
+  /** Sets the account a row uses, moving the month's summary (or payment) there too. */
+  'month:setRowAccount': (input: MonthRowAccountInput) => void
 
   /** Where the total balance is heading, by week or month, with milestones. */
   'projection:get': (query: ProjectionQuery) => ProjectionResult
@@ -246,6 +256,8 @@ const channels: Record<IpcChannel, true> = {
   'month:sheet': true,
   'month:setCell': true,
   'month:copyFromLastMonth': true,
+  'month:rowTransactions': true,
+  'month:setRowAccount': true,
   'projection:get': true,
   'dev:seed': true,
   'dev:reset': true

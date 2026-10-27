@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   CalendarDays,
+  CalendarRange,
   ChartLine,
   ChartPie,
   History,
@@ -33,6 +34,18 @@ export interface ScreenGroup {
 export const navGroups: ScreenGroup[] = [
   {
     screens: [
+      {
+        path: '/month',
+        title: 'Month',
+        icon: CalendarRange,
+        description: 'One month like a spreadsheet.',
+        features: [
+          'Type what each row came to instead of every purchase',
+          'Income, expenses, subscriptions, cards, loans and savings',
+          'Copy last month’s amounts'
+        ],
+        step: 34
+      },
       {
         path: '/',
         title: 'Dashboard',

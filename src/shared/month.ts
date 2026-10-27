@@ -115,3 +115,19 @@ export const monthCellInputSchema = z
   })
   .strict()
 export type MonthCellInput = z.input<typeof monthCellInputSchema>
+
+/** One row of one month: its transactions, or its account. */
+export const monthRowQuerySchema = z
+  .object({
+    month: monthKey,
+    kind: z.enum(monthRowKinds),
+    sourceId: z.number().int().positive()
+  })
+  .strict()
+export type MonthRowQuery = z.input<typeof monthRowQuerySchema>
+
+/** Choosing a row's account in the Account column. */
+export const monthRowAccountInputSchema = monthRowQuerySchema
+  .extend({ accountId: z.number().int().positive() })
+  .strict()
+export type MonthRowAccountInput = z.input<typeof monthRowAccountInputSchema>

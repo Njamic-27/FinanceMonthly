@@ -13,7 +13,7 @@ import { createBankLoan } from '../db/repositories/bankLoans'
 import { listCategories, mergeCategory } from '../db/repositories/categories'
 import { createInstallmentPlan } from '../db/repositories/installments'
 import { listLoanInstallments } from '../db/repositories/loans'
-import { addMonthRow } from '../db/repositories/monthRows'
+import { addMonthRow, listMonthRows } from '../db/repositories/monthRows'
 import { createRecurringItem } from '../db/repositories/recurring'
 import { addSavingsMovement, createSavingsGoal } from '../db/repositories/savings'
 import { updateSettings } from '../db/repositories/settings'
@@ -24,7 +24,13 @@ import {
   listTransactions,
   updateTransaction
 } from '../db/repositories/transactions'
-import { copyFromLastMonth, monthSheet, setMonthCell } from './monthSheet'
+import {
+  copyFromLastMonth,
+  monthRowTransactions,
+  monthSheet,
+  setMonthCell,
+  setMonthRowAccount
+} from './monthSheet'
 import { calendarMonth } from './planned'
 import { postDueInstallments, postDueItems } from './posting'
 import { buildProjection } from './projection'
@@ -456,6 +462,78 @@ describe('other rows', () => {
     expect(() => set({ kind: 'installment_plan', sourceId: plan, amount: 25000 })).toThrow(
       /by themselves/
     )
+  })
+})
+
+describe('a row’s transactions and account', () => {
+  it('lists the transactions behind the row, newest first', () => {
+    const groceries = categoryId('Groceries')
+    const first = buy('2026-10-03', 1200)
+    const second = buy('2026-10-20', 3400)
+    buy('2026-09-30', 999)
+    const box = recurring({
+      title: 'Lidl box',
+      categoryId: groceries,
+      anchorDate: '2026-10-05',
+      nextDueDate: '2026-10-05',
+      autoPost: true
+    })
+    postDueItems(db, TODAY)
+    expect(row('recurring', box).count).toBe(1)
+    const list = monthRowTransactions(db, {
+      month: '2026-10',
+      kind: 'category',
+      sourceId: groceries
+    })
+    expect(list.map((t) => t.id)).toEqual([second, first])
+    expect(list).toHaveLength(row('category', groceries).count)
+  })
+
+  it('remembers a category’s account and moves the month’s summary to it', () => {
+    const groceries = categoryId('Groceries')
+    buy('2026-10-03', 1200)
+    set({ kind: 'category', sourceId: groceries, amount: 10000 })
+    expect(summaries()).toEqual([{ date: TODAY, amount: 8800, account_id: debit }])
+
+    setMonthRowAccount(
+      db,
+      { month: '2026-10', kind: 'category', sourceId: groceries, accountId: cash },
+      TODAY
+    )
+    expect(summaries()).toEqual([{ date: TODAY, amount: 8800, account_id: cash }])
+    expect(listMonthRows(db).find((r) => r.categoryId === groceries)?.defaultAccountId).toBe(cash)
+    expect(row('category', groceries)).toMatchObject({ actual: 10000, accountId: cash })
+    // New summaries in other months use it too.
+    set({ month: '2026-11', kind: 'category', sourceId: groceries, amount: 5000 })
+    expect(summaries().at(-1)).toMatchObject({ account_id: cash })
+  })
+
+  it('moves a card payment’s summary, and leaves rows without one as they are', () => {
+    set({ kind: 'card_payment', sourceId: card, amount: 20000 })
+    setMonthRowAccount(
+      db,
+      { month: '2026-10', kind: 'card_payment', sourceId: card, accountId: cash },
+      TODAY
+    )
+    expect(summaries()).toEqual([{ date: TODAY, amount: 20000, account_id: cash }])
+
+    setMonthRowAccount(
+      db,
+      { month: '2026-11', kind: 'card_payment', sourceId: card, accountId: debit },
+      TODAY
+    )
+    expect(summaries()).toHaveLength(1)
+  })
+
+  it('refuses archived accounts', () => {
+    db.prepare('UPDATE accounts SET is_archived = 1 WHERE id = ?').run(cash)
+    expect(() =>
+      setMonthRowAccount(
+        db,
+        { month: '2026-10', kind: 'category', sourceId: categoryId('Groceries'), accountId: cash },
+        TODAY
+      )
+    ).toThrow(/archived/)
   })
 })
 

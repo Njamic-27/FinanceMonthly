@@ -5,10 +5,14 @@ import {
   monthCellInputSchema,
   monthKeyOf,
   monthRange,
+  monthRowAccountInputSchema,
+  monthRowQuerySchema,
   monthSheetQuerySchema,
   summaryDate,
   type MonthCellInput,
   type MonthKey,
+  type MonthRowAccountInput,
+  type MonthRowQuery,
   type MonthRowKind,
   type MonthSectionKey,
   type MonthSheet,
@@ -20,12 +24,12 @@ import type { Account } from '@shared/accounts'
 import type { Transaction, TransactionInput } from '@shared/transactions'
 import { AppError } from '../errors'
 import { incomingTypes } from '../db/ledger'
-import { listAccounts } from '../db/repositories/accounts'
+import { getAccount, listAccounts } from '../db/repositories/accounts'
 import { payInstallment, unpayInstallment } from '../db/repositories/bankLoans'
 import { getCategory, listCategories } from '../db/repositories/categories'
 import { listInstallmentPlans } from '../db/repositories/installments'
 import { getLoan, listLoanInstallments, listLoans } from '../db/repositories/loans'
-import { listMonthRows } from '../db/repositories/monthRows'
+import { listMonthRows, setMonthRowAccount as setRowAccount } from '../db/repositories/monthRows'
 import { getRecurringItem, listRecurringItems } from '../db/repositories/recurring'
 import {
   addSavingsMovement,
@@ -547,6 +551,51 @@ export function setMonthCell(db: Database, input: MonthCellInput, today: IsoDate
       today
     })
   )()
+}
+
+/** The transactions behind each kind of row, as in `monthSheet`. */
+const rowTransactions: Record<MonthRowKind, string> = {
+  category: ownOfCategory,
+  recurring: 'recurring_item_id = ?',
+  card_payment: "type = 'transfer' AND to_account_id = ?",
+  installment_plan: 'installment_plan_id = ?',
+  loan: 'loan_id = ?',
+  savings: 'savings_goal_id = ?'
+}
+
+/** The transactions behind one row of the month (its count and amount), newest first. */
+export function monthRowTransactions(db: Database, input: MonthRowQuery): Transaction[] {
+  const { month, kind, sourceId } = monthRowQuerySchema.parse(input)
+  return transactionsIn(db, month, rowTransactions[kind], sourceId).reverse()
+}
+
+/**
+ * Chooses a row's account. A category remembers it for its new summaries (and is added to the
+ * sheet if it wasn't); on any row, the month's summary, or its one recurring payment, moves to
+ * it. Payments still to confirm take the account when they're typed into.
+ */
+export function setMonthRowAccount(
+  db: Database,
+  input: MonthRowAccountInput,
+  today: IsoDate
+): void {
+  const { month, kind, sourceId, accountId } = monthRowAccountInputSchema.parse(input)
+  const account = getAccount(db, accountId)
+  if (account.isArchived) {
+    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+  }
+  const row = monthSheet(db, { month }, today)
+    .sections.flatMap((s) => s.rows)
+    .find((r) => r.kind === kind && r.sourceId === sourceId)
+  const moves =
+    row?.editable === true &&
+    row.actual >= 0 &&
+    (kind === 'recurring' ? row.count === 1 && row.planned === 0 : row.summary !== 0)
+  db.transaction(() => {
+    if (kind === 'category')
+      setRowAccount(db, { categoryId: getCategory(db, sourceId).id, accountId })
+    if (moves) setMonthCell(db, { month, kind, sourceId, amount: row.actual, accountId }, today)
+  })()
 }
 
 /** Rows "Copy from last month" fills: those holding amounts you type. */

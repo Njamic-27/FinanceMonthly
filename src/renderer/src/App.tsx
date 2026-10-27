@@ -15,6 +15,7 @@ import { DashboardPage } from './routes/DashboardPage'
 import { HistoryPage } from './routes/HistoryPage'
 import { LoanPage } from './routes/LoanPage'
 import { LoansPage } from './routes/LoansPage'
+import { MonthPage } from './routes/MonthPage'
 import { OverviewPage } from './routes/OverviewPage'
 import { ProjectionsPage } from './routes/ProjectionsPage'
 import { RecurringPage } from './routes/RecurringPage'
@@ -32,6 +33,7 @@ const UiPreview = import.meta.env.DEV
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
   '/': DashboardPage,
+  '/month': MonthPage,
   '/transactions': TransactionsPage,
   '/overview': OverviewPage,
   '/calendar': CalendarPage,

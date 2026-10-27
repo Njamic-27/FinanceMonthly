@@ -1,20 +1,14 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatDate, startOfMonth, today, type IsoDate } from '@shared/dates'
+import { startOfMonth, today, type IsoDate } from '@shared/dates'
 import type { PlannedItem } from '@shared/planned'
 import { defaultSettings } from '@shared/settings'
 import { PageHeader } from '@renderer/components/PageHeader'
-import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
 import { CalendarGrid } from '@renderer/features/calendar/CalendarGrid'
 import { DayPanel } from '@renderer/features/calendar/DayPanel'
-import {
-  calendarParams,
-  lastCalendarMonth,
-  readCalendarMonth,
-  stepMonth
-} from '@renderer/features/calendar/month'
+import { calendarParams, readCalendarMonth } from '@renderer/features/calendar/month'
+import { MonthNav } from '@renderer/features/calendar/MonthNav'
 import { MonthSummary } from '@renderer/features/calendar/MonthSummary'
 import { useCalendarMonth } from '@renderer/features/calendar/queries'
 import {
@@ -27,12 +21,10 @@ import {
 } from '@renderer/features/loans/PayInstallmentDialog'
 import { useRecurringItems } from '@renderer/features/recurring/queries'
 import { useSettings } from '@renderer/features/settings/queries'
-import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 
 /** Any past month and up to 24 months ahead: recorded days, planned payments, the balance. */
 export function CalendarPage(): React.JSX.Element {
-  const money = useCurrency()
   const weekStart = useSettings().data?.weekStart ?? defaultSettings.weekStart
   const [params, setParams] = useSearchParams()
   const now = today()
@@ -70,43 +62,12 @@ export function CalendarPage(): React.JSX.Element {
   }
 
   const data = calendar.data
-  const label = formatDate(month, money.locale, { month: 'long', year: 'numeric' })
 
   return (
     <>
       <PageHeader title="Calendar" description="What happened and what’s coming, day by day." />
 
-      <nav aria-label="Month" className="mb-6 flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Previous month"
-          title="Previous month"
-          onClick={() => go(stepMonth(month, -1, now))}
-        >
-          <ChevronLeft />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Next month"
-          title={
-            month === lastCalendarMonth(now) ? 'The calendar goes 24 months ahead' : 'Next month'
-          }
-          disabled={month === lastCalendarMonth(now)}
-          onClick={() => go(stepMonth(month, 1, now))}
-        >
-          <ChevronRight />
-        </Button>
-        <h2 className="ml-2 text-title font-bold" aria-live="polite">
-          {label}
-        </h2>
-        {!isCurrent && (
-          <Button variant="ghost" className="ml-2" onClick={() => go(startOfMonth(now))}>
-            Today
-          </Button>
-        )}
-      </nav>
+      <MonthNav month={month} onChange={go} />
 
       {calendar.isError && (
         <Card className="max-w-3xl">
