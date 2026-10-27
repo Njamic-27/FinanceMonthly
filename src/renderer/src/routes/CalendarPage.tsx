@@ -110,6 +110,7 @@ export function CalendarPage(): React.JSX.Element {
             />
             <DayPanel
               date={selected}
+              cardDues={data.cardDues.filter((m) => m.date === selected)}
               planned={data.planned.filter((p) => p.date === selected)}
               onConfirm={confirm}
             />

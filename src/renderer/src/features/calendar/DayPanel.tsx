@@ -1,6 +1,7 @@
-import { CircleAlert, Plus } from 'lucide-react'
+import { Link } from 'react-router'
+import { ChevronRight, CircleAlert, CreditCard, Plus } from 'lucide-react'
 import { formatDate, type IsoDate } from '@shared/dates'
-import type { PlannedItem } from '@shared/planned'
+import type { CardDueMarker, PlannedItem } from '@shared/planned'
 import type { DayTotal } from '@shared/transactions'
 import { Button } from '@renderer/components/ui/button'
 import { Card } from '@renderer/components/ui/card'
@@ -12,6 +13,7 @@ import { useTransactionList } from '@renderer/features/transactions/queries'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { cardDueLabel } from './cardDue'
 
 function PlannedRow({
   item,
@@ -50,10 +52,12 @@ function PlannedRow({
 /** One day: its planned payments, its transactions and "Add transaction" on that date. */
 export function DayPanel({
   date,
+  cardDues,
   planned,
   onConfirm
 }: {
   date: IsoDate
+  cardDues: CardDueMarker[]
   planned: PlannedItem[]
   onConfirm: (item: PlannedItem) => void
 }): React.JSX.Element {
@@ -87,6 +91,35 @@ export function DayPanel({
           Add transaction
         </Button>
       </header>
+
+      {cardDues.length > 0 && (
+        <section aria-labelledby="day-cards">
+          <h3 id="day-cards" className="text-sm font-semibold">
+            Card payments due
+          </h3>
+          <p className="mt-1 text-sm text-ink-muted">
+            Paying a card moves money between your accounts, so it isn’t counted as spending.
+          </p>
+          <ul className="mt-1">
+            {cardDues.map((marker) => (
+              <li key={marker.accountId}>
+                <Link
+                  to={`/accounts/${marker.accountId}`}
+                  className="group flex items-center gap-3 rounded-control py-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-surface-2">
+                    <CreditCard className="size-4 text-ink-muted" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">
+                    {cardDueLabel(marker, money)}
+                  </span>
+                  <ChevronRight className="size-4 text-ink-muted" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {planned.length > 0 && (
         <section aria-labelledby="day-planned">
@@ -123,7 +156,9 @@ export function DayPanel({
         ) : (
           list.isSuccess && (
             <p className="text-sm text-ink-muted">
-              {planned.length > 0 ? 'Nothing recorded yet.' : 'Nothing recorded on this day.'}
+              {planned.length + cardDues.length > 0
+                ? 'Nothing recorded yet.'
+                : 'Nothing recorded on this day.'}
             </p>
           )
         )}

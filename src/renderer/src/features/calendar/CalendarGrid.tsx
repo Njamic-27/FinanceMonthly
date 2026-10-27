@@ -1,10 +1,13 @@
 import { formatDate, today, type IsoDate, type WeekStart } from '@shared/dates'
-import type { CalendarDay, CalendarMonth, PlannedItem } from '@shared/planned'
+import { useNavigate } from 'react-router'
+import { CreditCard } from 'lucide-react'
+import type { CalendarDay, CalendarMonth, CardDueMarker, PlannedItem } from '@shared/planned'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { cardDueLabel } from './cardDue'
 import { weekdayLabels } from './month'
 
-/** Planned items shown in a cell before "+N more". */
+/** Card payments and planned items shown in a cell before "+N more". */
 const PILLS = 2
 
 const dotKinds = [
@@ -43,8 +46,31 @@ function PlannedPill({
   )
 }
 
+/**
+ * A card's payment due date. Neutral and solid, unlike planned payments: paying a card only
+ * moves money between your own accounts. Opens the card.
+ */
+function CardDuePill({ marker }: { marker: CardDueMarker }): React.JSX.Element {
+  const money = useCurrency()
+  const navigate = useNavigate()
+  const label = cardDueLabel(marker, money)
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={`${label}, card payment`}
+      onClick={() => navigate(`/accounts/${marker.accountId}`)}
+      className="relative z-10 flex w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded-full border border-line bg-surface-2 px-2 text-left text-xs leading-5 text-ink transition-colors hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
+    >
+      <CreditCard className="size-3 shrink-0 text-ink-muted" aria-hidden />
+      <span className="truncate">{label}</span>
+    </button>
+  )
+}
+
 function DayCell({
   day,
+  cardDues,
   planned,
   inMonth,
   selected,
@@ -52,6 +78,7 @@ function DayCell({
   onPlanned
 }: {
   day: CalendarDay
+  cardDues: CardDueMarker[]
   planned: PlannedItem[]
   inMonth: boolean
   selected: boolean
@@ -66,8 +93,11 @@ function DayCell({
     formatDate(day.date, money.locale, { weekday: 'long', day: 'numeric', month: 'long' }),
     day.income > 0 && `income ${money.format(day.income)}`,
     day.expenses > 0 && `spent ${money.format(day.expenses)}`,
+    ...cardDues.map((m) => cardDueLabel(m, money)),
     planned.length > 0 && `${planned.length} planned`
   ].filter(Boolean)
+  const pills = cardDues.length + planned.length
+  const plannedShown = Math.max(0, PILLS - cardDues.length)
 
   return (
     <div
@@ -109,18 +139,23 @@ function DayCell({
         {day.expenses > 0 && <span className="amount truncate">{money.format(-day.expenses)}</span>}
       </div>
 
-      {planned.length > 0 && (
-        <div className={cn('mt-auto grid gap-0.5', !inMonth && 'opacity-60')}>
-          {planned.slice(0, PILLS).map((item) => (
+      {pills > 0 && (
+        <div
+          className={cn('mt-auto grid grid-cols-[minmax(0,1fr)] gap-0.5', !inMonth && 'opacity-60')}
+        >
+          {cardDues.slice(0, PILLS).map((marker) => (
+            <CardDuePill key={`card-${marker.accountId}`} marker={marker} />
+          ))}
+          {planned.slice(0, plannedShown).map((item) => (
             <PlannedPill
               key={`${item.source}-${item.sourceId}`}
               item={item}
               onOpen={() => onPlanned(item)}
             />
           ))}
-          {planned.length > PILLS && (
+          {pills > PILLS && (
             <span className="px-2 text-xs text-ink-muted" aria-hidden>
-              +{planned.length - PILLS} more
+              +{pills - PILLS} more
             </span>
           )}
         </div>
@@ -148,6 +183,10 @@ export function CalendarGrid({
   for (const item of data.planned) {
     plannedByDay.set(item.date, [...(plannedByDay.get(item.date) ?? []), item])
   }
+  const cardDuesByDay = new Map<IsoDate, CardDueMarker[]>()
+  for (const marker of data.cardDues) {
+    cardDuesByDay.set(marker.date, [...(cardDuesByDay.get(marker.date) ?? []), marker])
+  }
 
   return (
     <div className="overflow-hidden rounded-panel border border-line bg-line">
@@ -164,6 +203,7 @@ export function CalendarGrid({
           <DayCell
             key={day.date}
             day={day}
+            cardDues={cardDuesByDay.get(day.date) ?? []}
             planned={plannedByDay.get(day.date) ?? []}
             inMonth={day.date >= data.month.start && day.date <= data.month.end}
             selected={day.date === selected}

@@ -43,6 +43,19 @@ export interface UpcomingPayment {
   notified: boolean
 }
 
+/**
+ * A credit card's payment due date on the Calendar. Only a marker: paying a card moves money
+ * between your own accounts, so it never counts toward income, spending or the balance.
+ */
+export interface CardDueMarker {
+  accountId: number
+  /** The card's name. */
+  name: string
+  date: IsoDate
+  /** Left to pay on the statement this pays, once that statement has closed; else null. */
+  amount: Cents | null
+}
+
 /** One day of the Calendar grid: what actually happened that day. */
 export interface CalendarDay {
   date: IsoDate
@@ -82,6 +95,8 @@ export interface CalendarMonth {
   days: CalendarDay[]
   /** Planned items due within `grid`, by date. */
   planned: PlannedItem[]
+  /** Credit card payment due dates within `grid`, by date. Not part of `summary`. */
+  cardDues: CardDueMarker[]
   summary: CalendarSummary
 }
 

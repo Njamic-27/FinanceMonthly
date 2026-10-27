@@ -23,6 +23,7 @@ import { listAccounts } from '../db/repositories/accounts'
 import { listRecurringItems } from '../db/repositories/recurring'
 import { getSettings } from '../db/repositories/settings'
 import { getBalanceAt, getSeries, getTotals } from '../db/repositories/stats'
+import { cardDueMarkers } from './cards'
 
 // Planned items (PLAN.md §4): payments expected on a date and not settled yet. Calendar,
 // reminders and projections all read them from here, so they always agree.
@@ -125,6 +126,7 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
     grid,
     days,
     planned,
+    cardDues: cardDueMarkers(db, grid.start, grid.end, today),
     summary: {
       income: totals.income,
       expenses: totals.expenses,

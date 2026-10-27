@@ -218,3 +218,63 @@ describe('calendarMonth', () => {
     expect(() => calendarMonth(db, { month: '2028-11-01' }, TODAY)).toThrow(/goes up to/)
   })
 })
+
+describe('card payment due markers', () => {
+  it('marks each due date, with the amount once the statement has closed, outside the totals', () => {
+    const card = createAccount(db, {
+      type: 'credit',
+      name: 'Mastercard',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'orange',
+      creditLimit: 300000,
+      statementDay: 25,
+      paymentDueDay: 15
+    }).id
+    createTransaction(db, {
+      type: 'expense',
+      title: 'Shopping',
+      amount: 28717,
+      date: '2026-10-20',
+      accountId: card,
+      categoryId: categoryId('Shopping'),
+      note: null
+    })
+    const before = calendarMonth(db, { month: '2026-11-01' }, TODAY)
+    expect(before.cardDues).toEqual([
+      { accountId: card, name: 'Mastercard', date: '2026-11-15', amount: 28717 }
+    ])
+    // The next one's statement hasn't closed, so its amount isn't known yet.
+    expect(calendarMonth(db, { month: '2026-12-01' }, TODAY).cardDues).toEqual([
+      { accountId: card, name: 'Mastercard', date: '2026-12-15', amount: null }
+    ])
+    // Paying the card would only move money between accounts: the balance ignores it.
+    expect(before.summary.endingBalance).toBe(100000 - 28717)
+    expect(before.summary.plannedExpenses).toBe(0)
+  })
+
+  it('leaves out cards without a due day and archived cards', () => {
+    createAccount(db, {
+      type: 'credit',
+      name: 'No due day',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'orange',
+      creditLimit: 100000,
+      statementDay: 25,
+      paymentDueDay: null
+    })
+    const archived = createAccount(db, {
+      type: 'credit',
+      name: 'Old card',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'pink',
+      creditLimit: 100000,
+      statementDay: 25,
+      paymentDueDay: 15
+    }).id
+    setAccountArchived(db, archived, true)
+    expect(calendarMonth(db, { month: '2026-11-01' }, TODAY).cardDues).toEqual([])
+  })
+})

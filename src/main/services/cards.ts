@@ -1,12 +1,21 @@
 import type { Database } from 'better-sqlite3'
 import { CARD_DUE_REMINDER_DAYS, cardCycle, type CardStatus } from '@shared/cards'
-import { addDays, daysBetween, formatDate, type IsoDate } from '@shared/dates'
+import {
+  addDays,
+  addMonths,
+  dayOfMonth,
+  daysBetween,
+  formatDate,
+  startOfMonth,
+  type IsoDate
+} from '@shared/dates'
 import { formatMoney } from '@shared/money'
+import type { CardDueMarker } from '@shared/planned'
 import type { Settings } from '@shared/settings'
 import { AppError } from '../errors'
 import { incomingTypes } from '../db/ledger'
 import { getAccount, listAccounts } from '../db/repositories/accounts'
-import { when } from './reminders'
+import { when } from './when'
 
 // Credit cards (PLAN.md step 24): what's used and available, where the card is in its
 // statement cycle, and reminders when a statement closes and before its payment is due.
@@ -153,4 +162,32 @@ export function cardReminderMessage(
     title: `${reminder.name} statement closed`,
     body: `${amount} to pay${by}.`
   }
+}
+
+/**
+ * Every active card's payment due dates from `from` to `to`, for the Calendar. The amount is
+ * known only for the payment of a statement that has closed (what's left to pay on it).
+ */
+export function cardDueMarkers(
+  db: Database,
+  from: IsoDate,
+  to: IsoDate,
+  today: IsoDate
+): CardDueMarker[] {
+  const markers: CardDueMarker[] = []
+  for (const account of listAccounts(db, today)) {
+    if (account.type !== 'credit' || account.isArchived || account.paymentDueDay === null) continue
+    const { cycle, leftToPay } = cardStatus(db, account.id, today)
+    for (let month = startOfMonth(from); month <= to; month = addMonths(month, 1)) {
+      const date = dayOfMonth(month, account.paymentDueDay)
+      if (date < from || date > to || date < account.openingDate) continue
+      markers.push({
+        accountId: account.id,
+        name: account.name,
+        date,
+        amount: date === cycle.dueDate ? leftToPay : null
+      })
+    }
+  }
+  return markers.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name))
 }

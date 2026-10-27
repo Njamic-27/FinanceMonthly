@@ -1,10 +1,11 @@
 import type { Database } from 'better-sqlite3'
-import { addDays, daysBetween, formatDate, type IsoDate } from '@shared/dates'
+import { addDays, type IsoDate } from '@shared/dates'
 import { formatMoney } from '@shared/money'
 import type { PlannedItem, UpcomingPayment } from '@shared/planned'
 import type { Settings } from '@shared/settings'
 import { listRecurringItems } from '../db/repositories/recurring'
 import { plannedItems } from './planned'
+import { when } from './when'
 
 // Reminders (PLAN.md step 23), on top of planned items: a payment whose recurring item has
 // `reminder_days_before` set is announced once, on that many days before it falls due.
@@ -63,14 +64,6 @@ export function markNotified(db: Database, items: PlannedItem[]): void {
 
 /** More reminders than this at once are rolled into one notification. */
 const SEPARATE = 3
-
-/** "today", "tomorrow" or "on Friday 30 Oct", for notification titles. */
-export function when(date: IsoDate, today: IsoDate, locale: string): string {
-  const days = daysBetween(today, date)
-  if (days === 0) return 'today'
-  if (days === 1) return 'tomorrow'
-  return `on ${formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })}`
-}
 
 /** Notification texts for some reminders: one each, or a single summary when there are many. */
 export function reminderMessages(
