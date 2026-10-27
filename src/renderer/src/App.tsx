@@ -16,6 +16,7 @@ import { HistoryPage } from './routes/HistoryPage'
 import { LoanPage } from './routes/LoanPage'
 import { LoansPage } from './routes/LoansPage'
 import { OverviewPage } from './routes/OverviewPage'
+import { ProjectionsPage } from './routes/ProjectionsPage'
 import { RecurringPage } from './routes/RecurringPage'
 import { SavingsGoalPage } from './routes/SavingsGoalPage'
 import { SavingsPage } from './routes/SavingsPage'
@@ -35,6 +36,7 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/overview': OverviewPage,
   '/calendar': CalendarPage,
   '/history': HistoryPage,
+  '/projections': ProjectionsPage,
   '/accounts': AccountsPage,
   '/recurring': RecurringPage,
   '/savings': SavingsPage,

@@ -45,6 +45,8 @@ export interface Payoff {
   sourceId: number
   title: string
   date: IsoDate
+  /** Card purchases: the card they're on. */
+  accountId?: number
 }
 
 export interface ProjectionInput {

@@ -62,7 +62,15 @@ export function buildProjection(
     ),
     ...listInstallmentPlans(db).flatMap((plan): Payoff[] =>
       plan.nextDate
-        ? [{ kind: 'plan_paid_off', sourceId: plan.id, title: plan.title, date: plan.lastDate }]
+        ? [
+            {
+              kind: 'plan_paid_off',
+              sourceId: plan.id,
+              title: plan.title,
+              date: plan.lastDate,
+              accountId: plan.accountId
+            }
+          ]
         : []
     )
   ]

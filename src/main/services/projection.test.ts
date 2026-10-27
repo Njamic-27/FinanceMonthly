@@ -186,7 +186,13 @@ describe('buildProjection', () => {
       note: null
     })
     expect(buildProjection(db, { months: 3, granularity: 'month' }, TODAY).milestones).toEqual([
-      { kind: 'plan_paid_off', sourceId: plan.id, title: 'Laptop', date: '2027-01-20' }
+      {
+        kind: 'plan_paid_off',
+        sourceId: plan.id,
+        title: 'Laptop',
+        date: '2027-01-20',
+        accountId: card
+      }
     ])
   })
 
