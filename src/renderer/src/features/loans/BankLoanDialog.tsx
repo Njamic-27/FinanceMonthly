@@ -80,6 +80,7 @@ function BankLoanForm({
     existing?.bank?.firstPaymentDate ?? addMonths(startDefault, 1)
   )
   const [recordMoney, setRecordMoney] = useState(existing?.createDisbursementTx ?? false)
+  const [autoPay, setAutoPay] = useState(existing?.autoPay ?? true)
   const [accountId, setAccountId] = useState(() =>
     String(existing?.accountId ?? usable.find((a) => a.type === 'debit')?.id ?? usable[0]?.id ?? '')
   )
@@ -129,6 +130,7 @@ function BankLoanForm({
       startDate,
       firstPaymentDate,
       createDisbursementTx: recordMoney,
+      autoPay,
       accountId: accountId ? Number(accountId) : undefined,
       note
     })
@@ -361,6 +363,23 @@ function BankLoanForm({
             }}
           />
           <FieldError id="bank-account-error" message={errors.accountId} />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <Label htmlFor="bank-autopay">Pay automatically</Label>
+            <p id="bank-autopay-description" className="text-sm text-ink-muted">
+              {autoPay
+                ? 'Each installment is marked paid from this account on its due date, as the bank takes it.'
+                : 'You mark each installment paid yourself, with a reminder 3 days before.'}
+            </p>
+          </div>
+          <Switch
+            id="bank-autopay"
+            checked={autoPay}
+            onCheckedChange={setAutoPay}
+            aria-describedby="bank-autopay-description"
+          />
         </div>
 
         <div className="flex items-center justify-between gap-4">

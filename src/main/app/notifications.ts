@@ -6,7 +6,7 @@ import { cardReminderMessage, type CardReminder } from '../services/cards'
 import { reminderMessages } from '../services/reminders'
 import { showMainWindow } from './shell'
 
-/** Shows reminders as Windows notifications; clicking one opens the Recurring screen. */
+/** Shows reminders as Windows notifications; clicking one opens its screen. */
 export function showReminders(
   reminders: UpcomingPayment[],
   accounts: Map<number, string>,
@@ -15,9 +15,9 @@ export function showReminders(
   icon: string
 ): boolean {
   if (!Notification.isSupported()) return false
-  for (const content of reminderMessages(reminders, accounts, settings, today)) {
-    const notification = new Notification({ ...content, icon })
-    notification.on('click', () => showMainWindow('/recurring'))
+  for (const { title, body, path } of reminderMessages(reminders, accounts, settings, today)) {
+    const notification = new Notification({ title, body, icon })
+    notification.on('click', () => showMainWindow(path))
     notification.show()
   }
   return true

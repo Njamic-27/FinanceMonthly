@@ -56,7 +56,7 @@ export function UpcomingCard({ className }: { className?: string }): React.JSX.E
   const [confirming, setConfirming] = useState<ConfirmPaymentTarget | null>(null)
   const [paying, setPaying] = useState<PayInstallmentTarget | null>(null)
 
-  // Due now (overdue or today, waiting to be confirmed), then upcoming not already listed.
+  // Due now (waiting to be confirmed), then upcoming not already listed.
   const dueKeys = new Set(due.map((d) => `recurring-${d.item.id}-${d.plannedDate}`))
   const rows: Row[] = [
     ...due.map((d) => ({
@@ -79,9 +79,13 @@ export function UpcomingCard({ className }: { className?: string }): React.JSX.E
       .map((u) => ({
         key: `${u.planned.source}-${u.planned.sourceId}-${u.planned.date}`,
         planned: u.planned,
-        overdue: false
+        // Overdue bank loan installments come with the upcoming ones.
+        overdue: u.planned.overdue
       }))
-  ]
+  ].sort(
+    // Anything overdue first, then by date.
+    (a, b) => Number(b.overdue) - Number(a.overdue) || a.planned.date.localeCompare(b.planned.date)
+  )
 
   const act = (planned: PlannedItem): void => {
     if (planned.source === 'recurring') {

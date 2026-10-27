@@ -19,6 +19,7 @@ import {
   setEndDate,
   setNextDueDate
 } from '../db/repositories/recurring'
+import { payInstallment } from '../db/repositories/bankLoans'
 import { chargedDates, listInstallmentPlans } from '../db/repositories/installments'
 import { getSettings } from '../db/repositories/settings'
 import { checkTransaction, createPlannedTransaction } from '../db/repositories/transactions'
@@ -255,4 +256,34 @@ export function postDueInstallments(db: Database, today: IsoDate): number {
     })()
   }
   return posted
+}
+
+/**
+ * Marks paid every installment that has fallen due on bank loans paying automatically: from
+ * the loan's account, on its due date, linked to the installment like a manual payment. The
+ * loan's account pays even once archived, like card installments; one that can't be paid
+ * (due before the account opened) stays due, as on manual loans.
+ * Returns how many were paid.
+ */
+export function postDueLoanInstallments(db: Database, today: IsoDate): number {
+  const due = db
+    .prepare(
+      `SELECT li.id, li.due_date, l.account_id FROM loan_installments li
+       JOIN loans l ON l.id = li.loan_id
+       WHERE l.kind = 'bank_loan' AND l.status = 'active' AND l.auto_pay = 1
+         AND l.account_id IS NOT NULL AND li.due_date <= ?
+         AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.loan_installment_id = li.id)
+       ORDER BY li.due_date, li.seq`
+    )
+    .all(today) as { id: number; due_date: IsoDate; account_id: number }[]
+  let paid = 0
+  for (const row of due) {
+    try {
+      payInstallment(db, row.id, { accountId: row.account_id, date: row.due_date })
+      paid++
+    } catch (error) {
+      if (!(error instanceof AppError)) throw error
+    }
+  }
+  return paid
 }

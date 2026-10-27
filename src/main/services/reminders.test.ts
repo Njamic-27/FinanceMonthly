@@ -171,9 +171,13 @@ describe('reminderMessages', () => {
         TODAY
       )
     ).toEqual([
-      { title: 'Netflix is due today', body: '€13.99 · Mastercard' },
-      { title: 'Spotify is due tomorrow', body: '€13.99 · Mastercard' },
-      { title: 'Salary arrives on Friday 30 Oct', body: '€13.99 · Mastercard' }
+      { title: 'Netflix is due today', body: '€13.99 · Mastercard', path: '/recurring' },
+      { title: 'Spotify is due tomorrow', body: '€13.99 · Mastercard', path: '/recurring' },
+      {
+        title: 'Salary arrives on Friday 30 Oct',
+        body: '€13.99 · Mastercard',
+        path: '/recurring'
+      }
     ])
   })
 
@@ -182,7 +186,8 @@ describe('reminderMessages', () => {
     expect(reminderMessages(many, accounts, settings, TODAY)).toEqual([
       {
         title: '5 payments coming up',
-        body: 'A €13.99, tomorrow\nB €13.99, tomorrow\nC €13.99, tomorrow\nand 2 more'
+        body: 'A €13.99, tomorrow\nB €13.99, tomorrow\nC €13.99, tomorrow\nand 2 more',
+        path: '/recurring'
       }
     ])
   })

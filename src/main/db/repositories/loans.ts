@@ -37,6 +37,7 @@ interface LoanRow {
   payment_day: number | null
   account_id: number | null
   create_disbursement_tx: number
+  auto_pay: number
   status: LoanStatus
   note: string | null
   repaid: number
@@ -140,6 +141,7 @@ function toLoan(db: Database, row: LoanRow): Loan {
     paymentDay: row.payment_day,
     accountId: row.account_id,
     createDisbursementTx: row.create_disbursement_tx === 1,
+    autoPay: row.auto_pay === 1,
     status: row.status,
     note: row.note,
     repaid: row.repaid,

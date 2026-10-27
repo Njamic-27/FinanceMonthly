@@ -30,6 +30,11 @@ export interface Loan {
   accountId: number | null
   /** Whether the start was recorded as a transaction (money leaving or arriving). */
   createDisbursementTx: boolean
+  /**
+   * Bank loans: each installment is marked paid from `accountId` on its due date, as the bank
+   * takes it. When off, you mark each one paid, with a reminder 3 days before.
+   */
+  autoPay: boolean
   status: LoanStatus
   note: string | null
   /** Paid back so far. */
@@ -202,6 +207,8 @@ export const bankLoanInputSchema = z
     firstPaymentDate: isoDate,
     /** Record the loan money arriving in `accountId` on the start date. */
     createDisbursementTx: z.boolean(),
+    /** Mark each installment paid on its due date (on by default). */
+    autoPay: z.boolean().default(true),
     /** Where installments are paid from. */
     accountId,
     note
@@ -216,6 +223,9 @@ export type BankLoanInput = z.input<typeof bankLoanInputSchema>
 /** Paying one installment of a bank loan. */
 export const payInstallmentInputSchema = z.object({ accountId, date: isoDate }).strict()
 export type PayInstallmentInput = z.input<typeof payInstallmentInputSchema>
+
+/** Days before each installment that a bank loan paid by hand reminds you. */
+export const LOAN_REMINDER_DAYS = 3
 
 /** "Loan from Erste", when a bank loan has no title. */
 export const defaultBankLoanTitle = (bank: string): string => `Loan from ${bank}`

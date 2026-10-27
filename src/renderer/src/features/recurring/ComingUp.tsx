@@ -12,6 +12,9 @@ import { cn } from '@renderer/lib/utils'
 import { useUpcomingPayments } from './queries'
 
 function dayLabel(date: IsoDate, now: IsoDate, locale: string): string {
+  if (date < now) {
+    return `Overdue since ${formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })}`
+  }
   if (date === now) return 'Today'
   if (date === addDays(now, 1)) return 'Tomorrow'
   return formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })

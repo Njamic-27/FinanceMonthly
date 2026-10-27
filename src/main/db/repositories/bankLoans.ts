@@ -63,15 +63,16 @@ export function createBankLoan(db: Database, input: BankLoanInput): Loan {
     const { lastInsertRowid } = db
       .prepare(
         `INSERT INTO loans (kind, title, counterparty, principal, interest_rate, start_date,
-           installments_count, payment_day, account_id, create_disbursement_tx, note)
+           installments_count, payment_day, account_id, create_disbursement_tx, auto_pay, note)
          VALUES ('bank_loan', @title, @counterparty, @principal, @interestRate, @startDate,
-           @installmentsCount, @paymentDay, @accountId, @createDisbursementTx, @note)`
+           @installmentsCount, @paymentDay, @accountId, @createDisbursementTx, @autoPay, @note)`
       )
       .run({
         ...loan,
         title,
         paymentDay: Number(loan.firstPaymentDate.slice(8)),
-        createDisbursementTx: Number(loan.createDisbursementTx)
+        createDisbursementTx: Number(loan.createDisbursementTx),
+        autoPay: Number(loan.autoPay)
       })
     const id = Number(lastInsertRowid)
     insertSchedule(db, id, loan)
@@ -82,7 +83,8 @@ export function createBankLoan(db: Database, input: BankLoanInput): Loan {
 
 /**
  * Edits a bank loan. While nothing is paid the whole loan can change and its schedule is
- * generated again; once an installment is paid, only the names, account and note can.
+ * generated again; once an installment is paid, only the names, account, paying
+ * automatically and note can.
  */
 export function updateBankLoan(db: Database, id: number, input: BankLoanInput): Loan {
   const current = getLoan(db, id)
@@ -115,8 +117,8 @@ export function updateBankLoan(db: Database, id: number, input: BankLoanInput): 
   db.transaction(() => {
     db.prepare(
       `UPDATE loans SET title = @title, counterparty = @counterparty, account_id = @accountId,
-         note = @note WHERE id = @id`
-    ).run({ ...loan, title, id })
+         auto_pay = @autoPay, note = @note WHERE id = @id`
+    ).run({ ...loan, title, autoPay: Number(loan.autoPay), id })
     // The disbursement keeps the loan's title and account.
     db.prepare(
       `UPDATE transactions SET title = ?, account_id = ?

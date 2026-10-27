@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ArrowLeft, Landmark, Pencil } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
-import type { Loan, LoanInstallment } from '@shared/loans'
+import { LOAN_REMINDER_DAYS, type Loan, type LoanInstallment } from '@shared/loans'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
+import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
@@ -13,6 +14,19 @@ import { nextInstallment } from './installment'
 import { LoanProgress } from './LoanProgress'
 import { PayInstallmentDialog, type PayInstallmentTarget } from './PayInstallmentDialog'
 import { useLoanSchedule, useUnpayInstallment } from './queries'
+
+/** How the installments get paid: by themselves, or by you with a reminder. */
+function PaidHow({ loan }: { loan: Loan }): React.JSX.Element | null {
+  const account = useAccounts().data?.find((a) => a.id === loan.accountId)
+  if (loan.status !== 'active') return null
+  return (
+    <p className="text-sm text-ink-muted">
+      {loan.autoPay
+        ? `Paid automatically${account ? ` from ${account.name}` : ''} on each due date.`
+        : `You mark each installment paid; Financije reminds you ${LOAN_REMINDER_DAYS} days before.`}
+    </p>
+  )
+}
 
 function Overview({ loan }: { loan: Loan }): React.JSX.Element {
   const money = useCurrency()
@@ -73,6 +87,7 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
           )}
         </>
       )}
+      <PaidHow loan={loan} />
       {loan.note && <p className="text-ink-muted">{loan.note}</p>}
     </Card>
   )

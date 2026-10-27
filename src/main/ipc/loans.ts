@@ -1,3 +1,4 @@
+import { today } from '@shared/dates'
 import { getDb } from '../db'
 import {
   createBankLoan,
@@ -10,6 +11,7 @@ import {
   createPersonalLoan,
   deleteLoan,
   deleteRepayment,
+  getLoan,
   listLoanInstallments,
   listLoans,
   listLoanTransactions,
@@ -18,6 +20,7 @@ import {
   updatePersonalLoan,
   updateRepayment
 } from '../db/repositories/loans'
+import { postDueLoanInstallments } from '../services/posting'
 import { handle } from './handle'
 
 export function registerLoanHandlers(): void {
@@ -31,8 +34,19 @@ export function registerLoanHandlers(): void {
   handle('loans:deleteRepayment', (id) => deleteRepayment(getDb(), id))
   handle('loans:settle', (id, input) => settleLoan(getDb(), id, input))
   handle('loans:reopen', (id) => reopenLoan(getDb(), id))
-  handle('loans:createBank', (input) => createBankLoan(getDb(), input))
-  handle('loans:updateBank', (id, input) => updateBankLoan(getDb(), id, input))
+  // A loan paying automatically pays what's already due straight away.
+  handle('loans:createBank', (input) => {
+    const db = getDb()
+    const loan = createBankLoan(db, input)
+    postDueLoanInstallments(db, today())
+    return getLoan(db, loan.id)
+  })
+  handle('loans:updateBank', (id, input) => {
+    const db = getDb()
+    updateBankLoan(db, id, input)
+    postDueLoanInstallments(db, today())
+    return getLoan(db, id)
+  })
   handle('loans:schedule', (id) => listLoanInstallments(getDb(), id))
   handle('loans:payInstallment', (id, input) => payInstallment(getDb(), id, input))
   handle('loans:unpayInstallment', (id) => unpayInstallment(getDb(), id))
