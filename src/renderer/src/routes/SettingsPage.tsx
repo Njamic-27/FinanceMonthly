@@ -36,7 +36,7 @@ const cardSpendingOptions: SegmentedOption<CardSpendingMonth>[] = [
   { value: 'purchase', label: 'The month of purchase' }
 ]
 
-const laterSettings = ['Backup and restore, CSV export and reset data (step 48)']
+const laterSettings = ['Backup and restore, CSV export and reset data (step 56)']
 
 interface SettingRowProps {
   id: string
