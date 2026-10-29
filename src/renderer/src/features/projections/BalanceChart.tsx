@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import {
   Area,
   AreaChart,
@@ -12,6 +13,7 @@ import { formatDate, type IsoDate } from '@shared/dates'
 import type { ProjectionResult } from '@shared/projection'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { periodLabel, periodTick } from './labels'
 
@@ -26,7 +28,8 @@ const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
 
 /**
  * The projected total balance: today, then the end of each week or month. One line, so the
- * title names it; below zero the zero line shows.
+ * title names it; below zero the zero line shows. Clicking a point opens its day in the
+ * Calendar.
  */
 export function BalanceChart({
   projection,
@@ -36,6 +39,7 @@ export function BalanceChart({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
+  const navigate = useNavigate()
   const today = projection.periods[0]?.start
   const data: Point[] = [
     {
@@ -69,7 +73,15 @@ export function BalanceChart({
       </CardHeader>
       <div aria-hidden className="flex-1">
         <ResponsiveContainer width="100%" height="100%" minHeight={280}>
-          <AreaChart data={data} margin={{ top: 16, right: 12, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 16, right: 12, bottom: 0, left: 0 }}
+            onClick={(state) => {
+              const point = data[Number(state.activeTooltipIndex)]
+              if (point?.date) void navigate(dayPath(point.date))
+            }}
+            className="cursor-pointer"
+          >
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis
               dataKey="tick"

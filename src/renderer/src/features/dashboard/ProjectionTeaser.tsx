@@ -5,6 +5,7 @@ import type { Milestone } from '@shared/projection'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useProjection } from '@renderer/features/projections/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath, milestonePath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 function milestoneText(m: Milestone): string {
@@ -40,7 +41,7 @@ export function ProjectionTeaser({ className }: { className?: string }): React.J
         </div>
         <Link
           to="/projections"
-          className="rounded-control text-sm font-semibold whitespace-nowrap text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+          className="link text-sm font-semibold whitespace-nowrap text-primary"
         >
           Projections
         </Link>
@@ -90,12 +91,17 @@ export function ProjectionTeaser({ className }: { className?: string }): React.J
                 next.kind === 'below_zero' ? 'font-semibold text-expense' : 'text-ink-muted'
               )}
             >
-              {milestoneText(next)} ·{' '}
-              {formatDate(next.date, money.locale, {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}
+              <Link to={milestonePath(next)} className="link">
+                {milestoneText(next)}
+              </Link>
+              {' · '}
+              <Link to={dayPath(next.date)} className="link">
+                {formatDate(next.date, money.locale, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Link>
             </p>
           )}
         </>

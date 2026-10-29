@@ -8,6 +8,7 @@ import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath, plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { useUpcomingPayments } from './queries'
 
@@ -79,7 +80,11 @@ export function ComingUp({ className }: { className?: string }): React.JSX.Eleme
 
       {days.map(({ date, payments }) => (
         <section key={date} aria-label={dayLabel(date, now, money.locale)}>
-          <h3 className="mb-1 text-sm font-semibold">{dayLabel(date, now, money.locale)}</h3>
+          <h3 className="mb-1 text-sm font-semibold">
+            <Link to={dayPath(date)} className="link">
+              {dayLabel(date, now, money.locale)}
+            </Link>
+          </h3>
           <ul className="divide-y divide-line">
             {payments.map((payment) => {
               const { planned } = payment
@@ -92,8 +97,18 @@ export function ComingUp({ className }: { className?: string }): React.JSX.Eleme
                     <CategoryChip color={category.color} icon={category.icon} size="sm" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{planned.title}</p>
-                    {account && <p className="truncate text-xs text-ink-muted">{account.name}</p>}
+                    <p className="truncate text-sm font-semibold">
+                      <Link to={plannedPath(planned)} className="link">
+                        {planned.title}
+                      </Link>
+                    </p>
+                    {account && (
+                      <p className="truncate text-xs text-ink-muted">
+                        <Link to={accountPath(account.id)} className="link">
+                          {account.name}
+                        </Link>
+                      </p>
+                    )}
                   </div>
                   <div className="grid justify-items-end gap-0.5">
                     <span className={cn('amount text-sm', isIncome && 'text-income')}>
@@ -109,10 +124,7 @@ export function ComingUp({ className }: { className?: string }): React.JSX.Eleme
         </section>
       ))}
 
-      <Link
-        to="/calendar"
-        className="justify-self-start rounded-control text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
-      >
+      <Link to="/calendar" className="link justify-self-start text-sm font-semibold text-primary">
         Open the calendar
       </Link>
     </Card>

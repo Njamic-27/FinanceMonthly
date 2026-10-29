@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { ChevronRight, Plus } from 'lucide-react'
 import type { Category, CategoryType } from '@shared/categories'
 import { PageHeader } from '@renderer/components/PageHeader'
@@ -11,6 +12,7 @@ import {
   type CategoryDialogTarget
 } from '@renderer/features/categories/CategoryDialog'
 import { useCategories, useUpdateCategory } from '@renderer/features/categories/queries'
+import { categoryPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 
 const tabs: { type: CategoryType; label: string; empty: string }[] = [
@@ -44,19 +46,29 @@ function CategoryRow({
 }): React.JSX.Element {
   return (
     <li className="flex items-center gap-2 py-1.5 first:pt-0 last:pb-0">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
-      >
+      <div className="group link-row relative flex min-w-0 flex-1 items-center gap-3 px-2 py-1.5">
         <CategoryChip color={category.color} icon={category.icon} />
-        <span className="min-w-0 flex-1 truncate font-semibold">{category.name}</span>
-        <span className="text-sm text-ink-muted">{usage(category)}</span>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="link-cover min-w-0 flex-1 truncate text-left font-semibold"
+        >
+          {category.name}
+        </button>
+        <span className="text-sm text-ink-muted">
+          {category.transactionCount > 0 ? (
+            <Link to={categoryPath(category.id)} className="link">
+              {usage(category)}
+            </Link>
+          ) : (
+            usage(category)
+          )}
+        </span>
         <ChevronRight
-          className="size-4 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="size-4 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
           aria-hidden
         />
-      </button>
+      </div>
       {action}
     </li>
   )

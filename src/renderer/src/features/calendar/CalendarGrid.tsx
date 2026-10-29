@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { CreditCard } from 'lucide-react'
 import type { CalendarDay, CalendarMonth, CardDueMarker, PlannedItem } from '@shared/planned'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { cardDueLabel } from './cardDue'
 import { weekdayLabels } from './month'
@@ -61,7 +62,7 @@ function CardDuePill({ marker }: { marker: CardDueMarker }): React.JSX.Element {
       type="button"
       title={label}
       aria-label={`${label}, card payment`}
-      onClick={() => navigate(`/accounts/${marker.accountId}`)}
+      onClick={() => navigate(accountPath(marker.accountId))}
       className="relative z-10 flex w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded-full border border-line bg-surface-2 px-2 text-left text-xs leading-5 text-ink transition-colors hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
     >
       <CreditCard className="size-3 shrink-0 text-ink-muted" aria-hidden />

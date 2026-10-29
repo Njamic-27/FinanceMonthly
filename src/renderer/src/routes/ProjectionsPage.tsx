@@ -15,6 +15,7 @@ import { readProjectionParams } from '@renderer/features/projections/labels'
 import { Milestones } from '@renderer/features/projections/Milestones'
 import { useProjection } from '@renderer/features/projections/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 const horizonLabels: Record<ProjectionHorizon, string> = {
@@ -40,7 +41,7 @@ function Tile({
 }: {
   label: string
   value: string
-  caption?: string
+  caption?: React.ReactNode
   className?: string
 }): React.JSX.Element {
   return (
@@ -141,7 +142,11 @@ export function ProjectionsPage(): React.JSX.Element {
             <Tile
               label="Lowest point"
               value={money.format(data.lowest.balance)}
-              caption={longDate(data.lowest.date)}
+              caption={
+                <Link to={dayPath(data.lowest.date)} className="link">
+                  {longDate(data.lowest.date)}
+                </Link>
+              }
               className={cn(data.lowest.balance < 0 && 'text-expense')}
             />
             <Tile

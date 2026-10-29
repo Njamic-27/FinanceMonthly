@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -45,6 +45,7 @@ import { InstallmentsField } from '@renderer/features/installments/InstallmentsF
 import { useCreateInstallmentPlan } from '@renderer/features/installments/queries'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath } from '@renderer/lib/links'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import {
@@ -546,10 +547,17 @@ function TransactionForm({
 
       {formError && <FormError message={formError} className="mt-5" />}
 
-      {isInstallment && (
+      {isInstallment && existing && (
         <p className="mt-5 text-sm text-ink-muted">
-          One installment of a purchase on the card. To remove it, delete the whole purchase from
-          the card’s page.
+          One installment of a purchase on the card. To remove it, delete the whole purchase from{' '}
+          <Link
+            to={accountPath(existing.accountId)}
+            onClick={closeTransactionDialog}
+            className="link font-semibold text-primary"
+          >
+            the card’s page
+          </Link>
+          .
         </p>
       )}
 

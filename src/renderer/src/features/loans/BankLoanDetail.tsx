@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowLeft, Landmark, Pencil } from 'lucide-react'
+import { Landmark, Pencil } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
 import { LOAN_REMINDER_DAYS, type Loan, type LoanInstallment } from '@shared/loans'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import { BankLoanDialog } from './BankLoanDialog'
@@ -21,9 +22,22 @@ function PaidHow({ loan }: { loan: Loan }): React.JSX.Element | null {
   if (loan.status !== 'active') return null
   return (
     <p className="text-sm text-ink-muted">
-      {loan.autoPay
-        ? `Paid automatically${account ? ` from ${account.name}` : ''} on each due date.`
-        : `You mark each installment paid; Financije reminds you ${LOAN_REMINDER_DAYS} days before.`}
+      {loan.autoPay ? (
+        <>
+          Paid automatically
+          {account && (
+            <>
+              {' from '}
+              <Link to={accountPath(account.id)} className="link">
+                {account.name}
+              </Link>
+            </>
+          )}{' '}
+          on each due date.
+        </>
+      ) : (
+        `You mark each installment paid; Financije reminds you ${LOAN_REMINDER_DAYS} days before.`
+      )}
     </p>
   )
 }
@@ -59,7 +73,9 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
             <div>
               <dt className="text-sm text-ink-muted">Paid off in</dt>
               <dd className="text-lg font-semibold">
-                {formatDate(bank.payoffDate, money.locale, { month: 'short', year: 'numeric' })}
+                <Link to={dayPath(bank.payoffDate)} className="link">
+                  {formatDate(bank.payoffDate, money.locale, { month: 'short', year: 'numeric' })}
+                </Link>
               </dd>
             </div>
           </dl>
@@ -105,8 +121,12 @@ function Schedule({
   const unpay = useUnpayInstallment()
   const now = today()
   const rows = schedule.data ?? []
-  const short = (date: string): string =>
-    formatDate(date, money.locale, { day: 'numeric', month: 'short', year: 'numeric' })
+  // Each date opens its day in the Calendar.
+  const short = (date: string): React.ReactNode => (
+    <Link to={dayPath(date)} className="link">
+      {formatDate(date, money.locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+    </Link>
+  )
 
   const undo = (row: LoanInstallment): void =>
     unpay.mutate(row.id, {
@@ -223,13 +243,6 @@ export function BankLoanDetail({ loan }: { loan: Loan }): React.JSX.Element {
 
   return (
     <>
-      <Link
-        to="/loans"
-        className="mb-3 inline-flex items-center gap-1.5 rounded-control text-sm font-semibold text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Loans
-      </Link>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-loan-soft text-loan">

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Pencil, PiggyBank } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpFromLine, Pencil, PiggyBank } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
 import { goalShare, type SavingsGoal } from '@shared/savings'
 import { BalanceTrend } from '@renderer/components/charts/BalanceTrend'
@@ -21,6 +21,7 @@ import {
   useSavingsSeries
 } from '@renderer/features/savings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath } from '@renderer/lib/links'
 
 function Progress({ goal }: { goal: SavingsGoal }): React.JSX.Element {
   const money = useCurrency()
@@ -99,28 +100,39 @@ function Movements({
             const Icon = deposit ? ArrowDownToLine : ArrowUpFromLine
             return (
               <li key={tx.id} className="py-1 first:pt-0 last:pb-0">
-                <button
-                  type="button"
-                  onClick={() => onEdit({ kind: 'edit', goal, movement: tx })}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-control px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
-                >
+                <div className="link-row relative flex items-center gap-3 px-2 py-2">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-savings-soft text-savings">
                     <Icon className="size-4" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">
-                      {deposit ? 'Put in' : 'Taken out'}
-                      {account && ` ${deposit ? 'from' : 'into'} ${account.name}`}
+                      <button
+                        type="button"
+                        onClick={() => onEdit({ kind: 'edit', goal, movement: tx })}
+                        className="link-cover cursor-pointer text-left"
+                      >
+                        {deposit ? 'Put in' : 'Taken out'}
+                      </button>
+                      {account && (
+                        <>
+                          {deposit ? ' from ' : ' into '}
+                          <Link to={accountPath(account.id)} className="link">
+                            {account.name}
+                          </Link>
+                        </>
+                      )}
                     </span>
                     <span className="block truncate text-sm text-ink-muted">
-                      {formatDate(tx.date, money.locale)}
+                      <Link to={dayPath(tx.date)} className="link">
+                        {formatDate(tx.date, money.locale)}
+                      </Link>
                       {tx.note && <span className="italic"> · {tx.note}</span>}
                     </span>
                   </span>
                   <span className="amount shrink-0">
                     {money.format(deposit ? tx.amount : -tx.amount, 'exceptZero')}
                   </span>
-                </button>
+                </div>
               </li>
             )
           })}
@@ -138,13 +150,6 @@ function GoalDetail({ goal, all }: { goal: SavingsGoal; all: SavingsGoal[] }): R
 
   return (
     <>
-      <Link
-        to="/savings"
-        className="mb-3 inline-flex items-center gap-1.5 rounded-control text-sm font-semibold text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Savings
-      </Link>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <ColorChip color={goal.color} icon={PiggyBank} />
@@ -207,7 +212,7 @@ export function SavingsGoalPage(): React.JSX.Element | null {
         <CardTitle>That goal no longer exists</CardTitle>
         <CardDescription className="mt-1">
           It may have been deleted.{' '}
-          <Link to="/savings" className="font-semibold text-primary hover:underline">
+          <Link to="/savings" className="link font-semibold text-primary">
             Back to savings
           </Link>
         </CardDescription>

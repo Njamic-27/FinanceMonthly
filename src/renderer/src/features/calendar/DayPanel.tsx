@@ -12,6 +12,7 @@ import { openTransactionDialog } from '@renderer/features/transactions/dialogSto
 import { useTransactionList } from '@renderer/features/transactions/queries'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { cardDueLabel } from './cardDue'
 
@@ -30,8 +31,12 @@ function PlannedRow({
     <li className="flex items-center gap-3 py-2.5">
       {category && <CategoryChip color={category.color} icon={category.icon} size="sm" />}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{item.title}</p>
-        <p className={cn('text-sm text-ink-muted', item.overdue && 'text-expense')}>
+        <p className="truncate font-semibold">
+          <Link to={plannedPath(item)} className="link">
+            {item.title}
+          </Link>
+        </p>
+        <p className={cn('truncate text-sm text-ink-muted', item.overdue && 'text-expense')}>
           {item.source === 'installment_plan'
             ? 'Installment, charged automatically'
             : item.source === 'loan_installment'
@@ -41,7 +46,14 @@ function PlannedRow({
               : item.overdue
                 ? 'Overdue'
                 : 'Planned'}
-          {account && ` · ${account.name}`}
+          {account && (
+            <>
+              {' · '}
+              <Link to={accountPath(account.id)} className="link">
+                {account.name}
+              </Link>
+            </>
+          )}
         </p>
       </div>
       <div className="grid justify-items-end gap-1">
@@ -65,11 +77,13 @@ function PlannedRow({
 
 /** One day: its planned payments, its transactions and "Add transaction" on that date. */
 export function DayPanel({
+  ref,
   date,
   cardDues,
   planned,
   onConfirm
 }: {
+  ref?: React.Ref<HTMLElement>
   date: IsoDate
   cardDues: CardDueMarker[]
   planned: PlannedItem[]
@@ -89,6 +103,7 @@ export function DayPanel({
 
   return (
     <Card
+      ref={ref}
       className="sticky top-6 grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5"
       aria-label="Selected day"
     >
@@ -119,8 +134,8 @@ export function DayPanel({
             {cardDues.map((marker) => (
               <li key={marker.accountId}>
                 <Link
-                  to={`/accounts/${marker.accountId}`}
-                  className="group flex items-center gap-3 rounded-control py-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                  to={accountPath(marker.accountId)}
+                  className="link-row -mx-2 flex items-center gap-3 px-2 py-2"
                 >
                   <span className="flex size-7 items-center justify-center rounded-full bg-surface-2">
                     <CreditCard className="size-4 text-ink-muted" aria-hidden />
@@ -167,6 +182,7 @@ export function DayPanel({
             dayTotals={dayTotals}
             accounts={accounts}
             categories={categories}
+            linkDays={false}
           />
         ) : (
           list.isSuccess && (

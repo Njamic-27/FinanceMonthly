@@ -22,6 +22,7 @@ import {
   useUpcomingPayments
 } from '@renderer/features/recurring/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath, plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 /** Rows shown before "+N more". */
@@ -109,10 +110,7 @@ export function UpcomingCard({ className }: { className?: string }): React.JSX.E
           <CardTitle>Coming up</CardTitle>
           <CardDescription>Due now and in the next 14 days.</CardDescription>
         </div>
-        <Link
-          to="/calendar"
-          className="rounded-control text-sm font-semibold whitespace-nowrap text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
-        >
+        <Link to="/calendar" className="link text-sm font-semibold whitespace-nowrap text-primary">
           Open the calendar
         </Link>
       </CardHeader>
@@ -136,11 +134,24 @@ export function UpcomingCard({ className }: { className?: string }): React.JSX.E
                   <span className="size-7 shrink-0" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{planned.title}</p>
+                  <p className="truncate font-semibold">
+                    <Link to={plannedPath(planned)} className="link">
+                      {planned.title}
+                    </Link>
+                  </p>
                   <p className={cn('truncate text-sm text-ink-muted', overdue && 'text-expense')}>
-                    {when(planned.date, now, money.locale)}
+                    <Link to={dayPath(planned.date)} className="link">
+                      {when(planned.date, now, money.locale)}
+                    </Link>
                     {overdue && ' · not marked paid'}
-                    {account && ` · ${account.name}`}
+                    {account && (
+                      <>
+                        {' · '}
+                        <Link to={accountPath(account.id)} className="link">
+                          {account.name}
+                        </Link>
+                      </>
+                    )}
                   </p>
                 </div>
                 <span className={cn('amount shrink-0', isIncome && 'text-income')}>
@@ -177,7 +188,7 @@ export function UpcomingCard({ className }: { className?: string }): React.JSX.E
       {rows.length > ROWS && (
         <p className="mt-2 text-sm text-ink-muted">
           And {rows.length - ROWS} more in the{' '}
-          <Link to="/calendar" className="font-semibold text-primary hover:underline">
+          <Link to="/calendar" className="link font-semibold text-primary">
             calendar
           </Link>
           .

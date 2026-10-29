@@ -188,6 +188,67 @@
   font-weight: 600;
 }
 
+/*
+ * What opens something looks the same everywhere. `link`: a reference in text (a day, an
+ * account, a category) turns primary and underlined on hover. `link-row`: a row or tile that
+ * opens as a whole gets the surface-2 background on hover.
+ */
+@utility link {
+  border-radius: 0.25rem;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  transition-property: color, text-decoration-color;
+  transition-duration: 150ms;
+
+  &:hover {
+    color: var(--primary);
+    text-decoration-color: currentColor;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+}
+
+@utility link-row {
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background-color 150ms;
+
+  &:hover {
+    background-color: var(--surface-2);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+  }
+  /* Links inside the row sit above its cover (below). */
+  & .link {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/*
+ * A row's main button or link when the row holds links of its own: it covers the whole row
+ * (which needs `relative`), so the row opens from anywhere but those links.
+ */
+@utility link-cover {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-control);
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::after {
+    outline: 2px solid var(--primary);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

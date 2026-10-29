@@ -16,6 +16,7 @@ import { goalOutlook } from '@renderer/features/savings/outlook'
 import { ProgressRing } from '@renderer/features/savings/ProgressRing'
 import { useSavingsGoals } from '@renderer/features/savings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { goalPath } from '@renderer/lib/links'
 
 function GoalCard({
   goal,
@@ -30,7 +31,7 @@ function GoalCard({
   const share = goalShare(goal)
 
   return (
-    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:border-ink-muted/40">
+    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:bg-surface-2">
       <button
         type="button"
         onClick={onOpen}
@@ -91,7 +92,7 @@ export function SavingsPage(): React.JSX.Element {
   const saved = active.reduce((sum, g) => sum + g.saved, 0)
   const target = active.reduce((sum, g) => sum + g.targetAmount, 0)
   const open = (goal: SavingsGoal): void => {
-    void navigate(`/savings/${goal.id}`)
+    void navigate(goalPath(goal.id))
   }
 
   return (

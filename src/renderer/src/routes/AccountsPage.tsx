@@ -13,6 +13,7 @@ import { CreditUsage } from '@renderer/features/accounts/CreditUsage'
 import { useAccounts, useArchiveAccount } from '@renderer/features/accounts/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 
@@ -40,7 +41,7 @@ function AccountCard({
   const owed = isCredit ? Math.max(0, -account.balance) : 0
 
   return (
-    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:border-ink-muted/40">
+    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:bg-surface-2">
       <button
         type="button"
         onClick={onOpen}
@@ -169,7 +170,7 @@ export function AccountsPage(): React.JSX.Element {
                 key={account.id}
                 account={account}
                 payFrom={active.find((a) => a.type === 'debit')}
-                onOpen={() => navigate(`/accounts/${account.id}`)}
+                onOpen={() => navigate(accountPath(account.id))}
               />
             ))}
           </div>
@@ -191,8 +192,8 @@ export function AccountsPage(): React.JSX.Element {
                 >
                   <button
                     type="button"
-                    onClick={() => navigate(`/accounts/${account.id}`)}
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
+                    onClick={() => navigate(accountPath(account.id))}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5 text-left link-row"
                   >
                     <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
                     <span className="min-w-0 flex-1 truncate font-semibold">{account.name}</span>

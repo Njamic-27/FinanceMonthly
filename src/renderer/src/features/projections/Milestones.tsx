@@ -5,6 +5,7 @@ import type { Milestone } from '@shared/projection'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath, milestonePath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 const looks: Record<Milestone['kind'], { icon: LucideIcon; tone: string }> = {
@@ -14,64 +15,57 @@ const looks: Record<Milestone['kind'], { icon: LucideIcon; tone: string }> = {
   below_zero: { icon: TriangleAlert, tone: 'bg-expense-soft text-expense' }
 }
 
-function useText(milestone: Milestone): { text: string; to?: string } {
+function useText(milestone: Milestone): string {
   const money = useCurrency()
   const accounts = useAccounts().data ?? []
   switch (milestone.kind) {
     case 'loan_paid_off':
-      return { text: `${milestone.title} paid off`, to: `/loans/${milestone.sourceId}` }
+      return `${milestone.title} paid off`
     case 'plan_paid_off': {
       const card = accounts.find((a) => a.id === milestone.accountId)
-      return {
-        text: `${milestone.title} paid off${card ? ` on ${card.name}` : ''}`,
-        to: card ? `/accounts/${card.id}` : undefined
-      }
+      return `${milestone.title} paid off${card ? ` on ${card.name}` : ''}`
     }
     case 'goal_reached':
-      return { text: `${milestone.title} reached`, to: `/savings/${milestone.sourceId}` }
+      return `${milestone.title} reached`
     case 'below_zero':
-      return { text: `Balance goes below zero: ${money.format(milestone.balance)}` }
+      return `Balance goes below zero: ${money.format(milestone.balance)}`
   }
 }
 
 function MilestoneRow({ milestone }: { milestone: Milestone }): React.JSX.Element {
   const money = useCurrency()
   const { icon: Icon, tone } = looks[milestone.kind]
-  const { text, to } = useText(milestone)
-  const content = (
-    <>
+  const text = useText(milestone)
+  const date = formatDate(milestone.date, money.locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+  // The row opens what the milestone is about; its date opens that day in the Calendar.
+  const onItsDay = milestone.kind === 'below_zero'
+  return (
+    <li className="link-row relative flex items-center gap-3 px-2 py-2">
       <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-full', tone)}>
         <Icon className="size-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span
-          className={cn('block font-semibold', milestone.kind === 'below_zero' && 'text-expense')}
+        <Link
+          to={milestonePath(milestone)}
+          className={cn('link-cover block font-semibold', onItsDay && 'text-expense')}
         >
           {text}
-        </span>
+        </Link>
         <span className="block text-sm text-ink-muted">
-          {formatDate(milestone.date, money.locale, {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          })}
+          {onItsDay ? (
+            date
+          ) : (
+            <Link to={dayPath(milestone.date)} className="link">
+              {date}
+            </Link>
+          )}
         </span>
       </span>
-    </>
-  )
-  return (
-    <li>
-      {to ? (
-        <Link
-          to={to}
-          className="flex items-center gap-3 rounded-control px-2 py-2 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
-        >
-          {content}
-        </Link>
-      ) : (
-        <div className="flex items-center gap-3 px-2 py-2">{content}</div>
-      )}
     </li>
   )
 }

@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { Category } from '@shared/categories'
 import type { DateRange } from '@shared/dates'
@@ -40,6 +40,7 @@ export function CategoryDonut({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
+  const navigate = useNavigate()
   const byId = new Map(categories.map((c) => [c.id, c]))
   const sum = totals.reduce((s, c) => s + c.total, 0)
   const { rows, other } = foldCategoryTotals(totals, MAX_SLICES)
@@ -98,6 +99,11 @@ export function CategoryDonut({
                   stroke="var(--surface)"
                   strokeWidth={2}
                   isAnimationActive={false}
+                  className="cursor-pointer"
+                  onClick={(_, index) => {
+                    const slice = slices[index]
+                    if (slice) void navigate(slice.to)
+                  }}
                 >
                   {slices.map((s) => (
                     <Cell key={s.key} fill={`var(--swatch-${s.color})`} />
@@ -129,10 +135,7 @@ export function CategoryDonut({
           <ul className="flex w-full flex-col gap-0.5">
             {slices.map((s) => (
               <li key={s.key}>
-                <Link
-                  to={s.to}
-                  className="flex items-center gap-2.5 rounded-control px-2 py-1.5 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
-                >
+                <Link to={s.to} className="link-row flex items-center gap-2.5 px-2 py-1.5">
                   <span
                     aria-hidden
                     className="size-3 shrink-0 rounded-[3px]"

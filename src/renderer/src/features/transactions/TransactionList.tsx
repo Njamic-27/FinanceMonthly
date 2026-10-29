@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { ArrowLeftRight, Copy, HandCoins, PiggyBank, type LucideIcon } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Category } from '@shared/categories'
@@ -7,6 +8,7 @@ import type { DayTotal, Transaction, TransactionType } from '@shared/transaction
 import { ColorChip } from '@renderer/components/ColorChip'
 import { categoryIconComponents } from '@renderer/features/categories/appearance'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, categoryPath, dayPath, ownerPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { duplicateTransaction, openTransactionDialog } from './dialogStore'
 
@@ -65,50 +67,77 @@ function TransactionRow({
   const toAccount = tx.toAccountId ? lookup.accounts.get(tx.toAccountId) : undefined
   const sign = direction(tx, accountFilter)
   const editable = tx.type === 'income' || tx.type === 'expense' || tx.type === 'transfer'
+  // Savings and loan payments are changed on their goal or loan.
+  const owner = editable ? null : ownerPath(tx)
 
   const icon = category
     ? categoryIconComponents[category.icon]
     : (typeIcons[tx.type] ?? ArrowLeftRight)
+  // The list's own account isn't a link: it's the page you're on.
+  const accountLink = (a: Account | undefined): React.ReactNode => {
+    if (!a) return '?'
+    if (a.id === accountFilter) return a.name
+    return (
+      <Link to={accountPath(a.id)} className="link">
+        {a.name}
+      </Link>
+    )
+  }
   const details =
-    tx.type === 'transfer'
-      ? `${account?.name ?? '?'} → ${toAccount?.name ?? '?'}`
-      : [category?.name, account?.name].filter(Boolean).join(' · ')
-
-  const content = (
-    <>
-      <ColorChip color={category?.color ?? neutralPaletteColor} icon={icon} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold">{tx.title}</span>
-        <span className="block truncate text-sm text-ink-muted">
-          {details}
-          {tx.note && <span className="italic"> · {tx.note}</span>}
-        </span>
-      </span>
-      <span
-        className={cn('amount shrink-0 text-base whitespace-nowrap', sign > 0 && 'text-income')}
-      >
-        {sign === 0 ? money.format(tx.amount) : money.format(sign * tx.amount, 'exceptZero')}
-      </span>
-    </>
-  )
-  const rowClass = 'flex min-w-0 flex-1 items-center gap-3 rounded-control px-2 py-2 text-left'
+    tx.type === 'transfer' ? (
+      <>
+        {accountLink(account)} → {accountLink(toAccount)}
+      </>
+    ) : (
+      <>
+        {category && (
+          <Link to={categoryPath(category.id)} className="link">
+            {category.name}
+          </Link>
+        )}
+        {category && account && ' · '}
+        {account && accountLink(account)}
+      </>
+    )
+  const title = <span className="block truncate font-semibold">{tx.title}</span>
+  const coverClass = 'link-cover block w-full min-w-0 text-left'
 
   return (
     <li className="group flex items-center gap-1">
-      {editable ? (
-        <button
-          type="button"
-          onClick={() => openTransactionDialog({ kind: 'edit', id: tx.id })}
-          className={cn(
-            rowClass,
-            'cursor-pointer transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary'
+      <div
+        className={cn(
+          'relative flex min-w-0 flex-1 items-center gap-3 rounded-control px-2 py-2',
+          (editable || owner) && 'link-row'
+        )}
+      >
+        <ColorChip color={category?.color ?? neutralPaletteColor} icon={icon} />
+        <span className="min-w-0 flex-1">
+          {editable ? (
+            <button
+              type="button"
+              onClick={() => openTransactionDialog({ kind: 'edit', id: tx.id })}
+              className={coverClass}
+            >
+              {title}
+            </button>
+          ) : owner ? (
+            <Link to={owner} className={coverClass}>
+              {title}
+            </Link>
+          ) : (
+            title
           )}
+          <span className="block truncate text-sm text-ink-muted">
+            {details}
+            {tx.note && <span className="italic"> · {tx.note}</span>}
+          </span>
+        </span>
+        <span
+          className={cn('amount shrink-0 text-base whitespace-nowrap', sign > 0 && 'text-income')}
         >
-          {content}
-        </button>
-      ) : (
-        <div className={rowClass}>{content}</div>
-      )}
+          {sign === 0 ? money.format(tx.amount) : money.format(sign * tx.amount, 'exceptZero')}
+        </span>
+      </div>
       {editable && (
         <button
           type="button"
@@ -131,6 +160,8 @@ interface TransactionListProps {
   categories: Category[]
   /** Set when the list shows one account, so transfers read as in or out. */
   accountFilter?: number
+  /** Day headings open the day in the Calendar; off where the list is that day already. */
+  linkDays?: boolean
 }
 
 /** Transactions grouped by day, newest first, each day with its income and expense totals. */
@@ -139,7 +170,8 @@ export function TransactionList({
   dayTotals,
   accounts,
   categories,
-  accountFilter
+  accountFilter,
+  linkDays = true
 }: TransactionListProps): React.JSX.Element {
   const money = useCurrency()
   const lookup: Lookup = {
@@ -162,7 +194,15 @@ export function TransactionList({
         return (
           <section key={date} aria-label={dayLabel(date, money.locale)}>
             <header className="mb-2 flex items-baseline justify-between gap-4 px-1">
-              <h2 className="text-base font-semibold">{dayLabel(date, money.locale)}</h2>
+              <h2 className="text-base font-semibold">
+                {linkDays ? (
+                  <Link to={dayPath(date)} className="link">
+                    {dayLabel(date, money.locale)}
+                  </Link>
+                ) : (
+                  dayLabel(date, money.locale)
+                )}
+              </h2>
               <p className="flex gap-4 text-sm text-ink-muted">
                 {totals && totals.income > 0 && (
                   <span>

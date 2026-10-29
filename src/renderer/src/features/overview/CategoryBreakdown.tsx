@@ -10,6 +10,7 @@ import { categoryIconComponents } from '@renderer/features/categories/appearance
 import { foldCategoryTotals } from '@renderer/features/stats/fold'
 import { writeFilters } from '@renderer/features/transactions/filters'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { categoryPath } from '@renderer/lib/links'
 import { swatchStyle } from '@renderer/lib/palette'
 import { cn } from '@renderer/lib/utils'
 
@@ -61,14 +62,7 @@ function Row({
   return (
     <li>
       {to ? (
-        <Link
-          to={to}
-          title={`Show ${name} transactions`}
-          className={cn(
-            rowClass,
-            'transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary'
-          )}
-        >
+        <Link to={to} title={`Show ${name} transactions`} className={cn(rowClass, 'link-row')}>
           {content}
         </Link>
       ) : (
@@ -125,12 +119,7 @@ export function CategoryBreakdown({
               }
               total={money.format(row.total)}
               share={row.total / sum}
-              to={`/transactions?${writeFilters({
-                search: '',
-                from: range.start,
-                to: range.end,
-                categoryId: row.categoryId
-              })}`}
+              to={categoryPath(row.categoryId, range)}
             />
           )
         })}

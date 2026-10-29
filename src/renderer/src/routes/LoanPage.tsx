@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, HandCoins, Pencil } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, HandCoins, Pencil } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
 import { isOverdue, loanTypes, type Loan } from '@shared/loans'
 import { Button } from '@renderer/components/ui/button'
@@ -22,6 +22,7 @@ import {
   statusLabel
 } from '@renderer/features/loans/wording'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 
@@ -36,6 +37,11 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
       : loan.status === 'paid_off'
         ? loan.principal
         : loan.outstanding
+  const day = (date: string): React.ReactNode => (
+    <Link to={dayPath(date)} className="link">
+      {formatDate(date, money.locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+    </Link>
+  )
   return (
     <Card className="grid content-start gap-5">
       <div>
@@ -52,24 +58,12 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
         </div>
         <div>
           <dt className="text-sm text-ink-muted">On</dt>
-          <dd className="text-lg font-semibold">
-            {formatDate(loan.startDate, money.locale, {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            })}
-          </dd>
+          <dd className="text-lg font-semibold">{day(loan.startDate)}</dd>
         </div>
         <div>
           <dt className="text-sm text-ink-muted">Expected back</dt>
           <dd className={cn('text-lg font-semibold', overdue && 'text-expense')}>
-            {loan.dueDate
-              ? formatDate(loan.dueDate, money.locale, {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                })
-              : '—'}
+            {loan.dueDate ? day(loan.dueDate) : '—'}
           </dd>
         </div>
       </dl>
@@ -115,42 +109,50 @@ function History({
             const incoming = tx.type === 'loan_in'
             const account = accounts.find((a) => a.id === tx.accountId)
             const Icon = incoming ? ArrowDownLeft : ArrowUpRight
-            const content = (
-              <>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-loan-soft text-loan">
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">{tx.title}</span>
-                  <span className="block truncate text-sm text-ink-muted">
-                    {formatDate(tx.date, money.locale)}
-                    {account && ` · ${account.name}`}
-                    {tx.note && <span className="italic"> · {tx.note}</span>}
-                  </span>
-                </span>
-                <span className={cn('amount shrink-0', incoming && 'text-income')}>
-                  {money.format(incoming ? tx.amount : -tx.amount, 'exceptZero')}
-                </span>
-              </>
-            )
-            const rowClass = 'flex w-full items-center gap-3 rounded-control px-2 py-2 text-left'
+            const title = <span className="block truncate font-semibold">{tx.title}</span>
             return (
               <li key={tx.id} className="py-1 first:pt-0 last:pb-0">
-                {isRepayment ? (
-                  <button
-                    type="button"
-                    onClick={() => onEdit({ kind: 'edit', loan, repayment: tx })}
-                    className={cn(
-                      rowClass,
-                      'cursor-pointer transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary'
+                <div
+                  className={cn(
+                    'relative flex items-center gap-3 rounded-control px-2 py-2',
+                    isRepayment && 'link-row'
+                  )}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-loan-soft text-loan">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    {isRepayment ? (
+                      <button
+                        type="button"
+                        onClick={() => onEdit({ kind: 'edit', loan, repayment: tx })}
+                        className="link-cover block w-full text-left"
+                      >
+                        {title}
+                      </button>
+                    ) : (
+                      // The start changes with the loan itself (Edit loan).
+                      title
                     )}
-                  >
-                    {content}
-                  </button>
-                ) : (
-                  // The start changes with the loan itself (Edit loan).
-                  <div className={rowClass}>{content}</div>
-                )}
+                    <span className="block truncate text-sm text-ink-muted">
+                      <Link to={dayPath(tx.date)} className="link">
+                        {formatDate(tx.date, money.locale)}
+                      </Link>
+                      {account && (
+                        <>
+                          {' · '}
+                          <Link to={accountPath(account.id)} className="link">
+                            {account.name}
+                          </Link>
+                        </>
+                      )}
+                      {tx.note && <span className="italic"> · {tx.note}</span>}
+                    </span>
+                  </span>
+                  <span className={cn('amount shrink-0', incoming && 'text-income')}>
+                    {money.format(incoming ? tx.amount : -tx.amount, 'exceptZero')}
+                  </span>
+                </div>
               </li>
             )
           })}
@@ -170,13 +172,6 @@ function LoanDetail({ loan }: { loan: Loan }): React.JSX.Element {
 
   return (
     <>
-      <Link
-        to="/loans"
-        className="mb-3 inline-flex items-center gap-1.5 rounded-control text-sm font-semibold text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Loans
-      </Link>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-loan-soft text-loan">
@@ -256,7 +251,7 @@ export function LoanPage(): React.JSX.Element | null {
         <CardTitle>That loan no longer exists</CardTitle>
         <CardDescription className="mt-1">
           It may have been deleted.{' '}
-          <Link to="/loans" className="font-semibold text-primary hover:underline">
+          <Link to="/loans" className="link font-semibold text-primary">
             Back to loans
           </Link>
         </CardDescription>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { CircleAlert } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
 import type { DueOccurrence } from '@shared/recurring'
@@ -8,6 +9,7 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath, recurringPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import { ConfirmPaymentDialog, type ConfirmPaymentTarget } from './ConfirmPaymentDialog'
@@ -67,12 +69,30 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
             >
               {category && <CategoryChip color={category.color} icon={category.icon} />}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{item.title}</p>
+                <p className="truncate font-semibold">
+                  <Link to={recurringPath(item.id)} className="link">
+                    {item.title}
+                  </Link>
+                </p>
                 <p className="text-sm text-ink-muted">
-                  {plannedDate === now
-                    ? 'Due today'
-                    : `Due ${formatDate(plannedDate, money.locale, { weekday: 'short', day: 'numeric', month: 'short' })}`}
-                  {account && ` · ${account.name}`}
+                  Due{' '}
+                  <Link to={dayPath(plannedDate)} className="link">
+                    {plannedDate === now
+                      ? 'today'
+                      : formatDate(plannedDate, money.locale, {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short'
+                        })}
+                  </Link>
+                  {account && (
+                    <>
+                      {' · '}
+                      <Link to={accountPath(account.id)} className="link">
+                        {account.name}
+                      </Link>
+                    </>
+                  )}
                 </p>
                 {problem && (
                   <p className="mt-1 flex gap-1.5 text-sm text-expense">

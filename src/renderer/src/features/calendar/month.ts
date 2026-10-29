@@ -30,8 +30,20 @@ export function readCalendarMonth(params: URLSearchParams, today: IsoDate): IsoD
   return clamp(value && isIsoDate(first) ? first : startOfMonth(today), today)
 }
 
-export function calendarParams(month: IsoDate): URLSearchParams {
-  return new URLSearchParams({ month: month.slice(0, 7) })
+/**
+ * Reads `?day=YYYY-MM-DD`, the day whose panel is open: one in `month`, or in the month before
+ * or after (the grid's first and last weeks show some of their days).
+ */
+export function readCalendarDay(params: URLSearchParams, month: IsoDate): IsoDate | null {
+  const day = params.get('day')
+  if (!day || !isIsoDate(day)) return null
+  const its = startOfMonth(day)
+  return its === month || its === addMonths(month, -1) || its === addMonths(month, 1) ? day : null
+}
+
+/** A month, and optionally the day open in it. */
+export function calendarParams(month: IsoDate, day?: IsoDate): URLSearchParams {
+  return new URLSearchParams({ month: month.slice(0, 7), ...(day && { day }) })
 }
 
 /** The month `n` months away, no later than the last one. */

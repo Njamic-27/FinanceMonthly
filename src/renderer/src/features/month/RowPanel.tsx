@@ -20,25 +20,27 @@ import {
 } from '@renderer/features/transactions/dialogStore'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, categoryPath, goalPath, loanPath, recurringPath } from '@renderer/lib/links'
 import { useMonthRowTransactions } from './queries'
 
-/** Where a row's own page is, for rows whose payments are managed there. */
-function rowPage(row: MonthSheetRow): { to: string; label: string } | null {
+/** Where the thing behind a row opens: its transactions, its item, card, loan or goal. */
+function rowPage(row: MonthSheetRow, month: MonthKey): { to: string; label: string } | null {
   switch (row.kind) {
+    case 'category':
+      return {
+        to: categoryPath(row.sourceId, monthRange(month)),
+        label: 'Open in Transactions'
+      }
     case 'recurring':
-      return { to: '/recurring', label: 'Open Recurring' }
+      return { to: recurringPath(row.sourceId), label: 'Edit in Recurring' }
     case 'card_payment':
-      return { to: `/accounts/${row.sourceId}`, label: 'Open card' }
+      return { to: accountPath(row.sourceId), label: 'Open card' }
     case 'installment_plan':
-      return row.accountId === null
-        ? null
-        : { to: `/accounts/${row.accountId}`, label: 'Open card' }
+      return row.accountId === null ? null : { to: accountPath(row.accountId), label: 'Open card' }
     case 'loan':
-      return { to: `/loans/${row.sourceId}`, label: 'Open loan' }
+      return { to: loanPath(row.sourceId), label: 'Open loan' }
     case 'savings':
-      return { to: `/savings/${row.sourceId}`, label: 'Open goal' }
-    default:
-      return null
+      return { to: goalPath(row.sourceId), label: 'Open goal' }
   }
 }
 
@@ -85,7 +87,7 @@ export function RowPanel({
             date
           }
         : null
-  const page = row && rowPage(row)
+  const page = row && rowPage(row, month)
   const monthLabel = formatDate(monthRange(month).start, money.locale, {
     month: 'long',
     year: 'numeric'

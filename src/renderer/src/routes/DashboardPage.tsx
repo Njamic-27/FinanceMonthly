@@ -17,7 +17,6 @@ import { UpcomingCard } from '@renderer/features/dashboard/UpcomingCard'
 import {
   comparisonFor,
   comparisonLabel,
-  overviewParams,
   readOverviewPeriod
 } from '@renderer/features/overview/period'
 import { SummaryCards } from '@renderer/features/overview/SummaryCards'
@@ -30,6 +29,7 @@ import {
 } from '@renderer/features/stats/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { periodPath } from '@renderer/lib/links'
 
 /** Months in the income and spending chart and the balance line, this one included. */
 const TREND_MONTHS = 6
@@ -126,8 +126,8 @@ export function DashboardPage(): React.JSX.Element {
                 {monthName} so far
               </h2>
               <Link
-                to={`/overview?${overviewParams('month', now)}`}
-                className="rounded-control text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                to={periodPath('month', now)}
+                className="link text-sm font-semibold text-primary"
               >
                 Open in Overview
               </Link>

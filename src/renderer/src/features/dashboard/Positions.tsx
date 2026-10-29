@@ -66,7 +66,7 @@ export function Positions({ accounts }: { accounts: Account[] }): React.JSX.Elem
           to={p.to}
           className="rounded-panel focus-visible:outline-2 focus-visible:outline-primary"
         >
-          <Card className="h-full p-4 transition-colors hover:border-ink-muted/40">
+          <Card className="h-full p-4 transition-colors hover:bg-surface-2">
             <p className="text-sm text-ink-muted">{p.label}</p>
             <p className="amount text-title">{money.format(p.value)}</p>
             <p className="mt-0.5 text-sm text-ink-muted">{p.caption}</p>

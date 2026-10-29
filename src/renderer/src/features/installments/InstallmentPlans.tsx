@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Plus } from 'lucide-react'
 import { formatDate } from '@shared/dates'
 import type { InstallmentPlan } from '@shared/installments'
@@ -17,6 +18,7 @@ import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { categoryPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { useDeleteInstallmentPlan, useInstallmentPlans } from './queries'
 
@@ -30,8 +32,11 @@ function PlanRow({
   const money = useCurrency()
   const category = useCategories().data?.find((c) => c.id === plan.categoryId)
   const done = plan.nextDate === null
-  const short = (date: string): string =>
-    formatDate(date, money.locale, { day: 'numeric', month: 'short', year: 'numeric' })
+  const short = (date: string): React.ReactNode => (
+    <Link to={dayPath(date)} className="link">
+      {formatDate(date, money.locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+    </Link>
+  )
 
   return (
     <li className="grid gap-2 py-3 first:pt-0 last:pb-0">
@@ -40,6 +45,14 @@ function PlanRow({
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{plan.title}</p>
           <p className="text-sm text-ink-muted">
+            {category && (
+              <>
+                <Link to={categoryPath(category.id)} className="link">
+                  {category.name}
+                </Link>
+                {' · '}
+              </>
+            )}
             {money.format(plan.totalAmount)} in {plan.count} · {money.format(plan.installment)}
             /month
             {plan.lastInstallment !== plan.installment &&
@@ -68,9 +81,13 @@ function PlanRow({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-muted">
         <span>
-          {done
-            ? `Last installment on ${short(plan.lastDate)}`
-            : `Next on ${short(plan.nextDate ?? plan.lastDate)} · last on ${short(plan.lastDate)}`}
+          {done ? (
+            <>Last installment on {short(plan.lastDate)}</>
+          ) : (
+            <>
+              Next on {short(plan.nextDate ?? plan.lastDate)} · last on {short(plan.lastDate)}
+            </>
+          )}
         </span>
         <Button variant="ghost" size="sm" className="text-expense" onClick={onDelete}>
           Delete purchase…

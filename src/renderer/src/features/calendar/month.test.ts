@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   calendarParams,
   lastCalendarMonth,
+  readCalendarDay,
   readCalendarMonth,
   stepMonth,
   weekdayLabels
@@ -26,6 +27,21 @@ describe('readCalendarMonth', () => {
 
   it('round-trips through the URL', () => {
     expect(read(calendarParams('2027-03-01').toString())).toBe('2027-03-01')
+  })
+})
+
+describe('readCalendarDay', () => {
+  const day = (query: string, month: string): string | null =>
+    readCalendarDay(new URLSearchParams(query), month)
+
+  it('reads the open day when the month shown has it in its grid', () => {
+    expect(day(calendarParams('2027-03-01', '2027-03-14').toString(), '2027-03-01')).toBe(
+      '2027-03-14'
+    )
+    expect(day('month=2027-03&day=2027-04-02', '2027-03-01')).toBe('2027-04-02')
+    expect(day('month=2027-03&day=2027-05-02', '2027-03-01')).toBeNull()
+    expect(day('month=2027-03&day=2027-03-32', '2027-03-01')).toBeNull()
+    expect(day('month=2027-03', '2027-03-01')).toBeNull()
   })
 })
 

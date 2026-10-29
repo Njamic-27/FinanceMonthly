@@ -11,10 +11,10 @@ import { goalOutlook } from '@renderer/features/savings/outlook'
 import { ProgressRing } from '@renderer/features/savings/ProgressRing'
 import { useSavingsGoals } from '@renderer/features/savings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, goalPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
-const rowLink =
-  'flex items-center gap-3 rounded-control px-2 py-2.5 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary'
+const rowLink = 'flex items-center gap-3 rounded-control px-2 py-2.5 link-row'
 
 /** Each active savings goal: how far along it is, and where it's heading. */
 export function GoalsCard({ className }: { className?: string }): React.JSX.Element | null {
@@ -36,7 +36,7 @@ export function GoalsCard({ className }: { className?: string }): React.JSX.Elem
           const share = goalShare(goal)
           return (
             <li key={goal.id}>
-              <Link to={`/savings/${goal.id}`} className={rowLink}>
+              <Link to={goalPath(goal.id)} className={rowLink}>
                 <ProgressRing
                   share={share}
                   size={48}
@@ -70,7 +70,7 @@ function CardRow({ account }: { account: Account }): React.JSX.Element {
   const due = status?.cycle.dueDate
   return (
     <li>
-      <Link to={`/accounts/${account.id}`} className={cn(rowLink, 'items-start')}>
+      <Link to={accountPath(account.id)} className={cn(rowLink, 'items-start')}>
         <ColorChip color={account.color} icon={accountTypeIcons.credit} size="sm" />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-3">

@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
 import { formatDate, parseIsoDate, type IsoDate, type PeriodKind } from '@shared/dates'
 import type { PeriodTotals } from '@shared/stats'
-import { overviewParams } from '@renderer/features/overview/period'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { periodPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { HEAT_STEPS, heatLevel } from './year'
 
@@ -86,7 +86,7 @@ export function PeriodGrid({
         return (
           <li key={p.start}>
             <Link
-              to={`/overview?${overviewParams(view, p.start)}`}
+              to={periodPath(view, p.start)}
               aria-label={summary}
               title={view === 'week' ? summary : undefined}
               style={heatStyle(heatLevel(p.expenses, min, max))}

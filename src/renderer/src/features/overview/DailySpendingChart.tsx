@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import {
   Bar,
   BarChart,
@@ -12,6 +13,7 @@ import { formatDate, type IsoDate, type PeriodKind } from '@shared/dates'
 import type { PeriodTotals } from '@shared/stats'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 interface Day {
@@ -26,6 +28,7 @@ const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
 /**
  * Expenses for each day of the period, as columns. One series, so no legend: the title
  * names it. The largest day carries its value; the rest are on hover and in the table.
+ * Clicking a day opens it in the Calendar.
  */
 export function DailySpendingChart({
   days,
@@ -39,6 +42,7 @@ export function DailySpendingChart({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
+  const navigate = useNavigate()
   const data: Day[] = days.map((d) => ({
     date: d.start,
     tick:
@@ -75,7 +79,15 @@ export function DailySpendingChart({
       {/* Fills the card when a taller neighbour stretches it; never shorter than minHeight. */}
       <div aria-hidden className="flex-1">
         <ResponsiveContainer width="100%" height="100%" minHeight={240}>
-          <BarChart data={data} margin={{ top: 20, right: 4, bottom: 0, left: 0 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 4, bottom: 0, left: 0 }}
+            onClick={(state) => {
+              const day = data[Number(state.activeTooltipIndex)]
+              if (day) void navigate(dayPath(day.date))
+            }}
+            className="cursor-pointer"
+          >
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis
               dataKey="tick"

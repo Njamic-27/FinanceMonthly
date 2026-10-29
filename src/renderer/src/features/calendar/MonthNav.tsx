@@ -1,10 +1,15 @@
+import { Link } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, startOfMonth, today, type IsoDate } from '@shared/dates'
 import { Button } from '@renderer/components/ui/button'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { periodPath } from '@renderer/lib/links'
 import { lastCalendarMonth, stepMonth } from './month'
 
-/** ‹ › to the previous or next month (up to 24 months ahead), its name and "Today". */
+/**
+ * ‹ › to the previous or next month (up to 24 months ahead), its name and "Today". A month
+ * that has started opens in Overview from its name.
+ */
 export function MonthNav({
   month,
   onChange,
@@ -19,6 +24,7 @@ export function MonthNav({
   const money = useCurrency()
   const now = today()
   const isLast = month === lastCalendarMonth(now)
+  const name = formatDate(month, money.locale, { month: 'long', year: 'numeric' })
 
   return (
     <nav aria-label="Month" className="mb-6 flex flex-wrap items-center gap-2">
@@ -42,7 +48,13 @@ export function MonthNav({
         <ChevronRight />
       </Button>
       <h2 className="ml-2 text-title font-bold" aria-live="polite">
-        {formatDate(month, money.locale, { month: 'long', year: 'numeric' })}
+        {month <= now ? (
+          <Link to={periodPath('month', month)} className="link" title="Open in Overview">
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
       </h2>
       {month !== startOfMonth(now) && (
         <Button variant="ghost" className="ml-2" onClick={() => onChange(startOfMonth(now))}>

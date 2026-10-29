@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { BellRing, ChevronRight, Plus } from 'lucide-react'
 import { formatDate } from '@shared/dates'
 import {
@@ -25,6 +26,7 @@ import {
 } from '@renderer/features/recurring/RecurringDialog'
 import { describeSchedule } from '@renderer/features/recurring/schedule'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath, dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 const tabs: {
@@ -71,25 +73,43 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
       ? `Reminder ${reminderLabel(item.reminderDaysBefore).toLowerCase()}`
       : null
 
-  const status = ended
-    ? `Ended ${formatDate(item.endDate ?? item.nextDueDate, money.locale)}`
-    : !item.isActive
-      ? 'Paused'
-      : `Next ${formatDate(item.nextDueDate, money.locale, { weekday: 'short', day: 'numeric', month: 'short' })}`
+  const short = (date: string): string =>
+    formatDate(date, money.locale, { weekday: 'short', day: 'numeric', month: 'short' })
+  const status = ended ? (
+    `Ended ${formatDate(item.endDate ?? item.nextDueDate, money.locale)}`
+  ) : !item.isActive ? (
+    'Paused'
+  ) : (
+    <>
+      Next{' '}
+      <Link to={dayPath(item.nextDueDate)} className="link">
+        {short(item.nextDueDate)}
+      </Link>
+    </>
+  )
 
   return (
     <li className="py-1.5 first:pt-0 last:pb-0">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group flex w-full cursor-pointer items-center gap-3 rounded-control px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
-      >
+      <div className="group link-row relative flex items-center gap-3 px-2 py-2">
         {category && <CategoryChip color={category.color} icon={category.icon} />}
         <span className={cn('min-w-0 flex-1', paused && 'opacity-60')}>
-          <span className="block truncate font-semibold">{item.title}</span>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="link-cover block w-full truncate text-left font-semibold"
+          >
+            {item.title}
+          </button>
           <span className="block truncate text-sm text-ink-muted">
             {describeSchedule(item, money.locale)}
-            {account && ` · ${account.name}`}
+            {account && (
+              <>
+                {' · '}
+                <Link to={accountPath(account.id)} className="link">
+                  {account.name}
+                </Link>
+              </>
+            )}
             {item.kind === 'subscription' && ` · ${money.format(yearlyCost(item))} a year`}
           </span>
         </span>
@@ -106,15 +126,15 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
           </span>
           <span className="flex items-center justify-end gap-1.5 text-sm text-ink-muted">
             {reminder && <BellRing className="size-3.5" aria-label={reminder} />}
-            {status}
+            <span>{status}</span>
             {!ended && item.isActive && !item.autoPost && ' · asks first'}
           </span>
         </span>
         <ChevronRight
-          className="size-4 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="size-4 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
           aria-hidden
         />
-      </button>
+      </div>
     </li>
   )
 }
@@ -164,6 +184,21 @@ export function RecurringPage(): React.JSX.Element {
   const [dialog, setDialog] = useState<RecurringDialogTarget | null>(null)
   const all = items.data ?? []
   const add = (): void => setDialog({ kind: 'new', itemKind: tab })
+
+  // Other screens open an item for editing with `?edit=<id>`, on its tab.
+  const [params, setParams] = useSearchParams()
+  const linked = all.find((i) => String(i.id) === params.get('edit'))
+  const [shownTab, setShownTab] = useState<number | null>(null)
+  if (linked && shownTab !== linked.id) {
+    setShownTab(linked.id)
+    setTab(linked.kind)
+  }
+  const target: RecurringDialogTarget | null =
+    dialog ?? (linked ? { kind: 'edit', item: linked } : null)
+  const closeDialog = (): void => {
+    setDialog(null)
+    if (params.has('edit')) setParams({}, { replace: true })
+  }
 
   return (
     <>
@@ -275,7 +310,7 @@ export function RecurringPage(): React.JSX.Element {
         <ComingUp className="xl:sticky xl:top-6" />
       </div>
 
-      <RecurringDialog target={dialog} onClose={() => setDialog(null)} />
+      <RecurringDialog target={target} onClose={closeDialog} />
     </>
   )
 }

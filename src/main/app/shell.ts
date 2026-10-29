@@ -43,6 +43,10 @@ export function showMainWindow(path?: string): void {
 export function manageWindow(window: BrowserWindow, icon: string): void {
   mainWindow = window
   trayIcon = icon
+  // The mouse's back button reaches Windows apps as an app command, not as a click.
+  window.on('app-command', (_event, command) => {
+    if (command === 'browser-backward') sendToRenderer('app:back')
+  })
   window.on('close', (event) => {
     if (quitting || !closeToTray) return
     event.preventDefault()

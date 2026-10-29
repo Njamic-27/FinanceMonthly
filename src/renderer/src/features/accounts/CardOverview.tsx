@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { BellRing, CalendarClock } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import { CARD_DUE_REMINDER_DAYS, type CardStatus } from '@shared/cards'
@@ -8,6 +9,7 @@ import { useSettings } from '@renderer/features/settings/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { ordinal } from '@renderer/features/recurring/schedule'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { CreditUsage } from './CreditUsage'
 
@@ -20,7 +22,7 @@ function Row({
   children
 }: {
   label: string
-  hint?: string
+  hint?: React.ReactNode
   children: React.ReactNode
 }): React.JSX.Element {
   return (
@@ -56,8 +58,12 @@ export function CardOverview({
   const remindersOn = useSettings().data?.notificationsEnabled ?? true
   const now = today()
   const { cycle } = status
-  const longDate = (date: IsoDate): string =>
-    formatDate(date, money.locale, { weekday: 'short', day: 'numeric', month: 'long' })
+  // Each date opens its day in the Calendar.
+  const longDate = (date: IsoDate): React.ReactNode => (
+    <Link to={dayPath(date)} className="link">
+      {formatDate(date, money.locale, { weekday: 'short', day: 'numeric', month: 'long' })}
+    </Link>
+  )
   const pay = (amount: number): void =>
     openTransactionDialog({
       kind: 'new',
@@ -123,7 +129,7 @@ export function CardOverview({
             {cycle.lastStatement && statementClosed && status.statementBalance !== null && (
               <Row
                 label="Last statement"
-                hint={`Closed ${longDate(cycle.dueStatement ?? cycle.lastStatement)}`}
+                hint={<>Closed {longDate(cycle.dueStatement ?? cycle.lastStatement)}</>}
               >
                 <span className="amount">{money.format(status.statementBalance)}</span>
                 {(status.paidSinceStatement ?? 0) > 0 && (

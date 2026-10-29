@@ -12,8 +12,8 @@ import {
 import { formatDate, type IsoDate } from '@shared/dates'
 import type { PeriodTotals } from '@shared/stats'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
-import { overviewParams } from '@renderer/features/overview/period'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { periodPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 interface Month {
@@ -60,7 +60,7 @@ export function IncomeSpendingChart({
     net: m.net
   }))
   const open = (start: IsoDate): void => {
-    navigate(`/overview?${overviewParams('month', start)}`)
+    navigate(periodPath('month', start))
   }
 
   return (

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import {
   Area,
   AreaChart,
@@ -12,13 +13,15 @@ import { formatDate, type IsoDate } from '@shared/dates'
 import type { BalancePoint } from '@shared/cards'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
 
 /**
  * A balance at the end of each day: one line, so the title names it and no legend is
- * needed. The last point is marked and labelled; every other day is on hover.
+ * needed. The last point is marked and labelled; every other day is on hover, and clicking one
+ * opens it in the Calendar.
  */
 export function BalanceTrend({
   points: data,
@@ -32,6 +35,7 @@ export function BalanceTrend({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
+  const navigate = useNavigate()
   const first = data[0]
   const last = data.at(-1)
   const change = first && last ? last.balance - first.balance : 0
@@ -60,7 +64,15 @@ export function BalanceTrend({
       {/* Fills the card when a taller neighbour stretches it; never shorter than minHeight. */}
       <div aria-hidden className="flex-1">
         <ResponsiveContainer width="100%" height="100%" minHeight={240}>
-          <AreaChart data={data} margin={{ top: 24, right: 12, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 24, right: 12, bottom: 0, left: 0 }}
+            onClick={(state) => {
+              const point = data[Number(state.activeTooltipIndex)]
+              if (point) void navigate(dayPath(point.date))
+            }}
+            className="cursor-pointer"
+          >
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis
               dataKey="date"

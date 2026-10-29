@@ -52,6 +52,21 @@ the icon; the name beside them stays in `ink`.
 Only in response to an action: dialogs, menus and toasts animate in. No entrance animations on
 page content. `prefers-reduced-motion` disables all of it.
 
+## Links
+
+Anything that mentions something else opens it, from every screen: a day → that day in the
+Calendar, a week or month → Overview (future periods → Calendar), an account → its page, a
+category → Transactions filtered to it (and the period, if any), a transaction → its edit
+dialog, a recurring item → its edit dialog on Recurring, a goal or loan → its page. Paths are
+built in `src/renderer/src/lib/links.ts`; never hand-write them.
+
+- `link` — a reference in text: primary and underlined on hover.
+- `link-row` — a row or tile that opens as a whole: `surface-2` background on hover.
+- `link-cover` — a row's main button when the row also holds links: it covers the row
+  (`relative`), and `link`s inside sit above it.
+- Back (above every page, Alt+Left, the mouse's back button) returns to where you were; with
+  no history a detail page offers its parent screen instead.
+
 ## Writing
 
 Buttons name the action ("Save transaction", not "Submit"); the toast repeats it ("Transaction

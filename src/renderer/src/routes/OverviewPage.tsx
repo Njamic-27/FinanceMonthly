@@ -70,7 +70,7 @@ function PeriodTransactions({
         </h2>
         <Link
           to={`/transactions?${writeFilters({ search: '', from: period.range.start, to: period.range.end })}`}
-          className="rounded-control text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+          className="link text-sm font-semibold text-primary"
         >
           Open {label} in Transactions
         </Link>
@@ -236,7 +236,11 @@ export function OverviewPage(): React.JSX.Element {
                 />
               </div>
               <div className="mt-4 grid items-start gap-4 lg:grid-cols-3">
-                <LargestExpenses transactions={largest.data ?? []} categories={categories} />
+                <LargestExpenses
+                  transactions={largest.data ?? []}
+                  categories={categories}
+                  range={period.range}
+                />
                 <div className="lg:col-span-2">
                   <PeriodTransactions period={period} label={label} />
                 </div>

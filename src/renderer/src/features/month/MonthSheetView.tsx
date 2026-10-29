@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import {
   ArrowDown,
   ArrowUp,
@@ -37,6 +38,7 @@ import {
 } from '@renderer/components/ui/select'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { accountPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import {
@@ -99,7 +101,11 @@ function AccountCell({
   const current = accounts.find((a) => a.id === value)
   if (!row.editable) {
     return current ? (
-      <span className="block truncate px-2 text-sm text-ink-muted">{current.name}</span>
+      <span className="block truncate px-2 text-sm text-ink-muted">
+        <Link to={accountPath(current.id)} className="link">
+          {current.name}
+        </Link>
+      </span>
     ) : (
       <span />
     )
@@ -267,7 +273,9 @@ function SheetRow({
             title={row.title}
             className="group grid max-w-full min-w-0 cursor-pointer rounded-control px-2 py-1 text-left focus-visible:outline-2 focus-visible:outline-primary"
           >
-            <span className="truncate font-semibold group-hover:text-primary">{row.title}</span>
+            <span className="truncate font-semibold underline-offset-[0.2em] group-hover:text-primary group-hover:underline">
+              {row.title}
+            </span>
             {note && (
               <span
                 className={cn('truncate text-xs text-ink-muted', row.overdue && 'text-expense')}

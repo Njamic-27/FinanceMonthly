@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import {
   Bar,
   BarChart,
@@ -11,6 +12,7 @@ import {
 import type { ProjectionPeriod, ProjectionResult } from '@shared/projection'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { periodLabel, periodTick } from './labels'
 import { flowParts } from './parts'
@@ -38,7 +40,8 @@ function Swatch({ color, opacity }: { color: string; opacity: number }): React.J
 /**
  * Money in above the line and money out below it, stacked by kind, for each week or month.
  * Position separates in from out, so the chart never relies on green against red; the kinds
- * of money out have a legend, gaps between segments and a breakdown on hover.
+ * of money out have a legend, gaps between segments and a breakdown on hover. Clicking a
+ * period opens it in the Calendar.
  */
 export function FlowChart({
   projection,
@@ -48,6 +51,7 @@ export function FlowChart({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
+  const navigate = useNavigate()
   const data: Row[] = projection.periods.map((p) => ({
     tick: periodTick(p, projection.granularity, money.locale),
     label: periodLabel(p, projection.granularity, money.locale),
@@ -86,6 +90,11 @@ export function FlowChart({
             stackOffset="sign"
             barCategoryGap={projection.granularity === 'week' ? 2 : '20%'}
             margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+            onClick={(state) => {
+              const row = data[Number(state.activeTooltipIndex)]
+              if (row) void navigate(dayPath(row.period.start))
+            }}
+            className="cursor-pointer"
           >
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis

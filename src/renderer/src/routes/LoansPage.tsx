@@ -22,6 +22,7 @@ import {
 } from '@renderer/features/loans/RepaymentDialog'
 import { owedLabel, statusLabel } from '@renderer/features/loans/wording'
 import { useCurrency } from '@renderer/hooks/useCurrency'
+import { loanPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 
 const tabs: { kind: LoanKind; label: string; empty: string; add: string }[] = [
@@ -86,7 +87,7 @@ function LoanCard({
   const money = useCurrency()
   const Icon = loan.kind === 'bank_loan' ? Landmark : HandCoins
   return (
-    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:border-ink-muted/40">
+    <div className="flex flex-col rounded-panel border border-line bg-surface text-ink transition-colors hover:bg-surface-2">
       <button
         type="button"
         onClick={onOpen}
@@ -146,7 +147,7 @@ export function LoansPage(): React.JSX.Element {
     else setRepaying({ kind: 'new', loan })
   }
   const open = (loan: Loan): void => {
-    void navigate(`/loans/${loan.id}`)
+    void navigate(loanPath(loan.id))
   }
   const current = tabs.find((t) => t.kind === tab) ?? tabs[0]
 
@@ -242,7 +243,7 @@ export function LoansPage(): React.JSX.Element {
                               <button
                                 type="button"
                                 onClick={() => open(loan)}
-                                className="group flex w-full cursor-pointer items-center gap-3 rounded-control px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
+                                className="group flex w-full cursor-pointer items-center gap-3 rounded-control px-2 py-2 text-left link-row"
                               >
                                 <span className="min-w-0 flex-1 truncate font-semibold">
                                   {loan.title}

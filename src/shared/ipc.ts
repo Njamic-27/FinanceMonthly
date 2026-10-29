@@ -292,11 +292,17 @@ export interface IpcEvents {
   'data:changed': () => void
   /** Open a screen, e.g. after a reminder notification is clicked. `path` is a route. */
   'app:navigate': (path: string) => void
+  /** The mouse's back button was pressed: go back to the previous screen. */
+  'app:back': () => void
 }
 
 export type IpcEvent = keyof IpcEvents
 
-const events: Record<IpcEvent, true> = { 'data:changed': true, 'app:navigate': true }
+const events: Record<IpcEvent, true> = {
+  'data:changed': true,
+  'app:navigate': true,
+  'app:back': true
+}
 
 export function isIpcEvent(value: unknown): value is IpcEvent {
   return typeof value === 'string' && Object.hasOwn(events, value)

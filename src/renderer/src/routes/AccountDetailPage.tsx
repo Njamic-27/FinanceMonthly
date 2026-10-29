@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { accountTypeLabels, type Account } from '@shared/accounts'
 import { addMonths, formatDate, today, type IsoDate } from '@shared/dates'
 import type { DayTotal } from '@shared/transactions'
@@ -63,7 +63,7 @@ function AccountTransactions({ account }: { account: Account }): React.JSX.Eleme
         </h2>
         <Link
           to={`/transactions?${writeFilters({ search: '', accountId: account.id })}`}
-          className="rounded-control text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+          className="link text-sm font-semibold text-primary"
         >
           Open in Transactions
         </Link>
@@ -113,13 +113,6 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
 
   return (
     <>
-      <Link
-        to="/accounts"
-        className="mb-3 inline-flex items-center gap-1.5 rounded-control text-sm font-semibold text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Accounts
-      </Link>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
@@ -190,7 +183,7 @@ export function AccountDetailPage(): React.JSX.Element | null {
         <CardTitle>That account no longer exists</CardTitle>
         <CardDescription className="mt-1">
           It may have been deleted.{' '}
-          <Link to="/accounts" className="font-semibold text-primary hover:underline">
+          <Link to="/accounts" className="link font-semibold text-primary">
             Back to accounts
           </Link>
         </CardDescription>
