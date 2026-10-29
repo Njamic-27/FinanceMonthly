@@ -107,12 +107,11 @@ describe('countedDate', () => {
   const card = { type: 'credit', statementDay: 25, paymentDueDay: 15 }
 
   it('counts card spending on the bill’s due date', () => {
-    expect(countedDate('2026-10-20', card, 'payment')).toBe('2026-11-15')
+    expect(countedDate('2026-10-20', card)).toBe('2026-11-15')
   })
 
-  it('keeps the day for other accounts, cards without their days, and month of purchase', () => {
-    expect(countedDate('2026-10-20', { ...card, type: 'debit' }, 'payment')).toBe('2026-10-20')
-    expect(countedDate('2026-10-20', { ...card, statementDay: null }, 'payment')).toBe('2026-10-20')
-    expect(countedDate('2026-10-20', card, 'purchase')).toBe('2026-10-20')
+  it('keeps the day for other accounts and for cards without their days', () => {
+    expect(countedDate('2026-10-20', { ...card, type: 'debit' })).toBe('2026-10-20')
+    expect(countedDate('2026-10-20', { ...card, statementDay: null })).toBe('2026-10-20')
   })
 })

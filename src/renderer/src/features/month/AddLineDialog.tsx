@@ -36,7 +36,6 @@ import {
 } from '@renderer/components/ui/select'
 import { AccountSelect } from '@renderer/features/accounts/AccountSelect'
 import { useAccounts } from '@renderer/features/accounts/queries'
-import { useSettings } from '@renderer/features/settings/queries'
 import { countsInMonth } from '@renderer/features/transactions/countsIn'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
@@ -83,7 +82,6 @@ function AddLineForm({
 }): React.JSX.Element {
   const money = useCurrency()
   const accounts = (useAccounts().data ?? []).filter((a) => !a.isArchived)
-  const cardSpendingMonth = useSettings().data?.cardSpendingMonth ?? 'payment'
   const addLine = useAddMonthLine()
 
   const [mode, setMode] = useState<Mode>('once')
@@ -105,8 +103,7 @@ function AddLineForm({
   const recurring = mode === 'repeat'
   const noun = target.type === 'income' ? 'income' : 'expense'
   const account = accounts.find((a) => String(a.id) === accountId)
-  const countsIn =
-    account && countsInMonth(date, countedDate(date, account, cardSpendingMonth), money.locale)
+  const countsIn = account && countsInMonth(date, countedDate(date, account), money.locale)
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault()
@@ -261,7 +258,7 @@ function AddLineForm({
             <p className="text-sm text-ink-muted">
               {recurring ? 'The first one counts' : 'Counts'} in {countsIn} — {account.name} bill
               due{' '}
-              {formatDate(countedDate(date, account, cardSpendingMonth), money.locale, {
+              {formatDate(countedDate(date, account), money.locale, {
                 day: 'numeric',
                 month: 'short'
               })}

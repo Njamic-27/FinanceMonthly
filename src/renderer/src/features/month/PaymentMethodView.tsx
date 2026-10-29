@@ -6,7 +6,6 @@ import { ColorChip } from '@renderer/components/ColorChip'
 import { Card } from '@renderer/components/ui/card'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { useAccounts } from '@renderer/features/accounts/queries'
-import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 import { AccountSpendingDialog } from './AccountSpendingDialog'
@@ -30,7 +29,6 @@ export function PaymentMethodView({ month }: { month: MonthKey }): React.JSX.Ele
   const money = useCurrency()
   const accounts = useAccounts().data ?? []
   const spending = useSpendingByAccount(month).data ?? []
-  const byBill = useSettings().data?.cardSpendingMonth !== 'purchase'
   const [folded, setFolded] = useState<Set<AccountType>>(() => new Set())
   const [open, setOpen] = useState<Account | null>(null)
   // Looked up again in fresh data, so the popup's total follows edits made in it.
@@ -86,9 +84,7 @@ export function PaymentMethodView({ month }: { month: MonthKey }): React.JSX.Ele
                 <span className="block text-lg font-semibold">{group.title}</span>
                 {group.type === 'credit' && (
                   <span className="block text-sm text-ink-muted">
-                    {byBill
-                      ? 'What this month’s bills bring: purchases from each card’s last cycle'
-                      : 'Spent on them this month'}
+                    What this month’s bills bring: purchases from each card’s last cycle
                   </span>
                 )}
               </span>

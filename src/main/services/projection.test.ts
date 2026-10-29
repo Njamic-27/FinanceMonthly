@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { RecurringItemInput } from '@shared/recurring'
 import { createTestDb } from '../db/testing'
-import { createAccount } from '../db/repositories/accounts'
+import { createAccount, updateAccount } from '../db/repositories/accounts'
 import { createBankLoan } from '../db/repositories/bankLoans'
 import { listCategories } from '../db/repositories/categories'
 import { createInstallmentPlan } from '../db/repositories/installments'
@@ -78,6 +78,20 @@ beforeEach(() => {
   }).id
 })
 
+/** Sets the card's statement and due days; without them its spending counts when bought. */
+const cardDays = (statementDay: number | null, paymentDueDay: number | null): void => {
+  updateAccount(db, card, {
+    type: 'credit',
+    name: 'Mastercard',
+    openingBalance: 0,
+    openingDate: '2026-01-01',
+    color: 'orange',
+    creditLimit: 300000,
+    statementDay,
+    paymentDueDay
+  })
+}
+
 describe('buildProjection', () => {
   it('agrees with the calendar’s expected balance at each month end', () => {
     plannedOnly()
@@ -124,9 +138,9 @@ describe('buildProjection', () => {
     })
     spend('2026-11-03', 4000) // entered for later
 
-    // Counting card spending in the month of purchase, each month ends on the Calendar's
-    // expected balance: both follow the real dates.
-    updateSettings(db, { cardSpendingMonth: 'purchase' })
+    // With the card's spending counted by purchase date (no statement or due day), each month
+    // ends on the Calendar's expected balance: both follow the real dates.
+    cardDays(null, null)
     const projection = buildProjection(db, { months: 3, granularity: 'month' }, TODAY)
     for (const period of projection.periods.slice(0, -1)) {
       expect(period.balance).toBe(
@@ -143,9 +157,9 @@ describe('buildProjection', () => {
     // The overdue October rent counts today.
     expect(projection.periods[0].fixed).toBe(65000)
 
-    // Counted when the card is paid (the default), November's Netflix and laptop rate are on
-    // the bill due 15 December.
-    updateSettings(db, { cardSpendingMonth: 'payment' })
+    // Counted when the card is paid, November's Netflix and laptop rate are on the bill due
+    // 15 December.
+    cardDays(25, 15)
     const byBill = buildProjection(db, { months: 3, granularity: 'month' }, TODAY)
     expect(byBill.periods[1].fixed).toBe(65000 + 4000)
     expect(byBill.periods[2].fixed).toBe(65000 + 1399 + 30000)

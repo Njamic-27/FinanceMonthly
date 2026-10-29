@@ -28,11 +28,11 @@ import {
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
-import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { ApiError } from '@renderer/lib/api'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
+import { AccountSelect } from './AccountSelect'
 import { accountTypeIcons } from './appearance'
 import { useArchiveAccount, useCreateAccount, useDeleteAccount, useUpdateAccount } from './queries'
 
@@ -109,6 +109,17 @@ function AccountForm({
   )
   const [statementDay, setStatementDay] = useState(existing?.statementDay?.toString() ?? '')
   const [paymentDueDay, setPaymentDueDay] = useState(existing?.paymentDueDay?.toString() ?? '')
+  // The account a card's bill is paid from: a debit account or cash, never a card.
+  const payFromOptions = accounts.filter(
+    (a) => a.type !== 'credit' && !a.isArchived && a.id !== existing?.id
+  )
+  const [payFrom, setPayFrom] = useState(
+    String(
+      existing?.payFromAccountId ??
+        (payFromOptions.find((a) => a.type === 'debit') ?? payFromOptions[0])?.id ??
+        ''
+    )
+  )
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
 
   const createAccount = useCreateAccount()
@@ -123,8 +134,7 @@ function AccountForm({
 
   const isCredit = type === 'credit'
   // A new card's spending counts in the month its bill is paid, which needs both days.
-  const cardSpendingMonth = useSettings().data?.cardSpendingMonth ?? 'payment'
-  const daysRequired = isCredit && !existing && cardSpendingMonth === 'payment'
+  const daysRequired = isCredit && !existing
   const amountExample = money.toInput(123456)
   const clearError = (field: Field): void =>
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -170,7 +180,8 @@ function AccountForm({
             openingBalance: opening === 0 ? 0 : -opening,
             creditLimit: limitCents ?? 0,
             statementDay: day(statementDay),
-            paymentDueDay: day(paymentDueDay)
+            paymentDueDay: day(paymentDueDay),
+            payFromAccountId: payFrom ? Number(payFrom) : null
           }
         : { ...common, type, openingBalance: opening }
     )
@@ -379,9 +390,25 @@ function AccountForm({
             <FieldError id="account-statement-day-error" message={errors.statementDay} />
             <FieldError id="account-due-day-error" message={errors.paymentDueDay} />
             <p className="text-sm text-ink-muted">
-              {cardSpendingMonth === 'payment'
-                ? 'Days of the month the statement closes and the payment is due. Spending on the card counts in the month you pay it: with 25 and 15, a purchase on 20 October counts in November.'
-                : 'Days of the month the statement closes and the payment is due, for reminders.'}
+              Days of the month the statement closes and the payment is due. Spending on the card
+              counts in the month you pay it: with 25 and 15, a purchase on 20 October counts in
+              November.
+            </p>
+          </div>
+        )}
+
+        {isCredit && payFromOptions.length > 0 && (
+          <div className="grid gap-1.5">
+            <Label htmlFor="account-pay-from">Paid from</Label>
+            <AccountSelect
+              id="account-pay-from"
+              value={payFrom}
+              accounts={payFromOptions}
+              onChange={setPayFrom}
+            />
+            <p className="text-sm text-ink-muted">
+              The account the bill is paid from. Each month the card’s spending shows under it as
+              one line.
             </p>
           </div>
         )}

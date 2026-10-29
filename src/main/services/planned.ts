@@ -46,7 +46,6 @@ export function plannedItems(
   today: IsoDate
 ): PlannedItem[] {
   // Charges on a card count when its bill is due, like recorded ones (transactions.counts_on).
-  const mode = getSettings(db).cardSpendingMonth
   const cards = new Map(
     (
       db.prepare('SELECT id, type, statement_day, payment_due_day FROM accounts').all() as {
@@ -63,7 +62,7 @@ export function plannedItems(
   const counts = (date: IsoDate, accountId: number, group: PlannedItem['group']): IsoDate => {
     const account = cards.get(accountId)
     return account && (group === 'income' || group === 'expense')
-      ? countedDate(date, account, mode)
+      ? countedDate(date, account)
       : date
   }
 

@@ -2,10 +2,13 @@ import { useState } from 'react'
 import {
   categoryCreateSchema,
   categoryIcons,
+  expenseGroupLabels,
+  expenseGroups,
   fallbackCategoryIcon,
   type Category,
   type CategoryIcon,
-  type CategoryType
+  type CategoryType,
+  type ExpenseGroup
 } from '@shared/categories'
 import { nextPaletteColor, type PaletteColor } from '@shared/palette'
 import { ActionRow } from '@renderer/components/ActionRow'
@@ -22,6 +25,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
+import { SegmentedControl } from '@renderer/components/ui/segmented-control'
 import {
   Select,
   SelectContent,
@@ -57,6 +61,8 @@ const showError = (title: string) => (error: Error) =>
   toast({ title, description: error.message, variant: 'error' })
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
+
+const groupOptions = expenseGroups.map((value) => ({ value, label: expenseGroupLabels[value] }))
 
 function IconPicker({
   value,
@@ -122,6 +128,7 @@ function CategoryForm({
       )
   )
   const [icon, setIcon] = useState<CategoryIcon>(existing?.icon ?? fallbackCategoryIcon)
+  const [group, setGroup] = useState<ExpenseGroup>(existing?.group ?? 'everyday')
   const [nameError, setNameError] = useState<string | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState<string>('')
 
@@ -152,7 +159,10 @@ function CategoryForm({
     }
     if (existing) {
       updateCategory.mutate(
-        { id: existing.id, patch: { name: parsed.data, color, icon } },
+        {
+          id: existing.id,
+          patch: { name: parsed.data, color, icon, ...(type === 'expense' && { group }) }
+        },
         {
           onSuccess: () => done('Category saved'),
           onError: nameErrorOr('Category not saved')
@@ -160,7 +170,7 @@ function CategoryForm({
       )
     } else {
       createCategory.mutate(
-        { name: parsed.data, type, color, icon },
+        { name: parsed.data, type, color, icon, ...(type === 'expense' && { group }) },
         {
           onSuccess: (created) => done(`${created.name} added`),
           onError: nameErrorOr('Category not added')
@@ -294,6 +304,20 @@ function CategoryForm({
             </p>
           )}
         </div>
+        {type === 'expense' && (
+          <div className="grid gap-1.5">
+            <Label id="category-group-label">Group</Label>
+            <SegmentedControl
+              name="category-group"
+              aria-labelledby="category-group-label"
+              value={group}
+              options={groupOptions}
+              onValueChange={setGroup}
+              className="justify-self-start"
+            />
+            <p className="text-sm text-ink-muted">Where it sits under Money out on Month.</p>
+          </div>
+        )}
         <ColorPicker name="category-color" value={color} onChange={setColor} />
         <IconPicker value={icon} color={color} onChange={setIcon} />
       </div>

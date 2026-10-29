@@ -4,12 +4,14 @@ import {
   categoryIcons,
   categoryIdSchema,
   categoryUpdateSchema,
+  expenseGroups,
   fallbackCategoryIcon,
   type Category,
   type CategoryCreate,
   type CategoryIcon,
   type CategoryType,
-  type CategoryUpdate
+  type CategoryUpdate,
+  type ExpenseGroup
 } from '@shared/categories'
 import { isPaletteColor, neutralPaletteColor } from '@shared/palette'
 import { AppError } from '../../errors'
@@ -22,6 +24,8 @@ interface CategoryRow {
   icon: string | null
   is_archived: number
   sort_order: number
+  expense_group: string | null
+  builtin_key: string | null
   transaction_count: number
   usage_count: number
 }
@@ -49,6 +53,13 @@ function toCategory(row: CategoryRow): Category {
     icon: isIcon(row.icon) ? row.icon : fallbackCategoryIcon,
     isArchived: row.is_archived === 1,
     sortOrder: row.sort_order,
+    group:
+      row.type !== 'expense'
+        ? null
+        : (expenseGroups as readonly (string | null)[]).includes(row.expense_group)
+          ? (row.expense_group as ExpenseGroup)
+          : 'everyday',
+    builtinKey: row.builtin_key,
     transactionCount: row.transaction_count,
     usageCount: row.usage_count
   }
@@ -85,14 +96,16 @@ function assertNameFree(db: Database, type: CategoryType, name: string, exceptId
 }
 
 export function createCategory(db: Database, input: CategoryCreate): Category {
-  const { name, type, color, icon } = categoryCreateSchema.parse(input)
+  const { name, type, color, icon, group } = categoryCreateSchema.parse(input)
   assertNameFree(db, type, name)
+  // Expense categories always have a group; income ones never do.
+  const expenseGroup = type === 'expense' ? (group ?? 'everyday') : null
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO categories (name, type, color, icon, sort_order)
-       VALUES (?, ?, ?, ?, (SELECT coalesce(max(sort_order), 0) + 1 FROM categories WHERE type = ?))`
+      `INSERT INTO categories (name, type, color, icon, expense_group, sort_order)
+       VALUES (?, ?, ?, ?, ?, (SELECT coalesce(max(sort_order), 0) + 1 FROM categories WHERE type = ?))`
     )
-    .run(name, type, color, icon, type)
+    .run(name, type, color, icon, expenseGroup, type)
   return getCategory(db, Number(lastInsertRowid))
 }
 
@@ -105,7 +118,8 @@ export function updateCategory(db: Database, id: number, patch: CategoryUpdate):
     name: valid.name,
     color: valid.color,
     icon: valid.icon,
-    is_archived: valid.isArchived === undefined ? undefined : Number(valid.isArchived)
+    is_archived: valid.isArchived === undefined ? undefined : Number(valid.isArchived),
+    expense_group: current.type === 'expense' ? valid.group : undefined
   }
   const changes = Object.entries(columns).filter(([, value]) => value !== undefined)
   if (changes.length > 0) {

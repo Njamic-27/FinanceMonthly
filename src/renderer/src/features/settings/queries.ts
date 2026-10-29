@@ -38,10 +38,6 @@ export function useUpdateSettings(): UseMutationResult<
     onError: (_error, _patch, context) => {
       if (context?.previous) queryClient.setQueryData(settingsKeys.all, context.previous)
     },
-    onSuccess: (settings, patch) => {
-      queryClient.setQueryData(settingsKeys.all, settings)
-      // Which month card spending counts in changes every total: refetch them all.
-      if (patch.cardSpendingMonth !== undefined) void queryClient.invalidateQueries()
-    }
+    onSuccess: (settings) => queryClient.setQueryData(settingsKeys.all, settings)
   })
 }

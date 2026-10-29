@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { adjustmentAmount } from '@shared/adjustments'
-import { seedDemoData } from '../../dev/seed'
 import { registerFunctions } from '../functions'
 import { migrate } from '../migrate'
 import { migrations } from '../migrations'
@@ -153,7 +152,29 @@ describe('migration 005', () => {
     old.pragma('foreign_keys = ON')
     registerFunctions(old)
     migrate(old, migrations.slice(0, 4))
-    seedDemoData(old, TODAY)
+    // Rows of every kind the table held at version 4, written against its columns then.
+    const account = old
+      .prepare(
+        `INSERT INTO accounts (name, type, opening_balance, opening_date, color)
+         VALUES ('Visa Debit', 'debit', 100000, '2026-01-01', 'blue')`
+      )
+      .run().lastInsertRowid
+    const card = old
+      .prepare(
+        `INSERT INTO accounts (name, type, opening_balance, opening_date, credit_limit, color)
+         VALUES ('Mastercard', 'credit', 0, '2026-01-01', 300000, 'orange')`
+      )
+      .run().lastInsertRowid
+    const groceries = (
+      old.prepare("SELECT id FROM categories WHERE name = 'Groceries'").get() as { id: number }
+    ).id
+    const tx = old.prepare(
+      `INSERT INTO transactions (date, title, amount, type, account_id, to_account_id, category_id, is_month_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    tx.run('2026-10-01', 'Lidl', 4550, 'expense', account, null, groceries, 0)
+    tx.run('2026-10-02', 'Groceries', 20000, 'expense', account, null, groceries, 1)
+    tx.run('2026-10-03', 'Mastercard payment', 10000, 'transfer', account, card, null, 0)
     const rows = old.prepare('SELECT * FROM transactions ORDER BY id').all()
     const indexes = (): string[] =>
       (

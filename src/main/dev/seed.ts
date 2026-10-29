@@ -96,8 +96,8 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
     // Accounts
     const account = (name: string, type: string, opening: Cents, extra = {}): number =>
       insert(
-        `INSERT INTO accounts (name, type, opening_balance, opening_date, credit_limit, statement_day, payment_due_day, color, sort_order)
-         VALUES (@name, @type, @opening, @start, @limit, @statement, @due, @color, @order)`,
+        `INSERT INTO accounts (name, type, opening_balance, opening_date, credit_limit, statement_day, payment_due_day, pay_from_account_id, color, sort_order)
+         VALUES (@name, @type, @opening, @start, @limit, @statement, @due, @payFrom, @color, @order)`,
         {
           name,
           type,
@@ -106,6 +106,7 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
           limit: null,
           statement: null,
           due: null,
+          payFrom: null,
           color: { debit: 'blue', cash: 'olive', credit: 'orange' }[type],
           order: { debit: 1, cash: 2, credit: 3 }[type],
           ...extra
@@ -113,7 +114,12 @@ export function seedDemoData(db: Database, today: IsoDate = todayIso()): SeedSum
       )
     const debit = account('Visa Debit', 'debit', 185000)
     const cash = account('Wallet', 'cash', 8000)
-    const card = account('Mastercard', 'credit', 0, { limit: 300000, statement: 25, due: 15 })
+    const card = account('Mastercard', 'credit', 0, {
+      limit: 300000,
+      statement: 25,
+      due: 15,
+      payFrom: debit
+    })
 
     const txs: Tx[] = []
 

@@ -22,18 +22,12 @@ import { useSettings, useUpdateSettings } from '@renderer/features/settings/quer
 import { toast } from '@renderer/lib/toast'
 import { formatDate, today } from '@shared/dates'
 import { formatMoney } from '@shared/money'
-import type { CardSpendingMonth } from '@shared/cards'
 import type { Settings, SettingsPatch, ThemeMode } from '@shared/settings'
 
 const themeOptions: SegmentedOption<ThemeMode>[] = [
   { value: 'system', label: 'System', icon: Monitor },
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon }
-]
-
-const cardSpendingOptions: SegmentedOption<CardSpendingMonth>[] = [
-  { value: 'payment', label: 'The month I pay the card' },
-  { value: 'purchase', label: 'The month of purchase' }
 ]
 
 const laterSettings = ['Backup and restore, CSV export and reset data (step 56)']
@@ -206,32 +200,6 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
             />
           </SettingRow>
         </div>
-      </Card>
-
-      <Card>
-        <CardHeader className="block">
-          <CardTitle id="setting-card-spending-label">Count credit card spending in</CardTitle>
-          <CardDescription>
-            {settings.cardSpendingMonth === 'payment'
-              ? 'A purchase counts in the month its card bill is paid: bought 20 October, on the statement of 25 October, due 15 November, it counts in November. That’s when the money leaves your accounts.'
-              : 'A purchase counts in the month you made it, even though the money leaves your accounts when you pay the card.'}{' '}
-            Balances always show what you owe on the card from the day you buy.
-          </CardDescription>
-        </CardHeader>
-        <SegmentedControl
-          name="card-spending-month"
-          aria-labelledby="setting-card-spending-label"
-          value={settings.cardSpendingMonth}
-          options={cardSpendingOptions}
-          onValueChange={(cardSpendingMonth) =>
-            save(
-              { cardSpendingMonth },
-              cardSpendingMonth === 'payment'
-                ? 'Card spending counts when you pay the card'
-                : 'Card spending counts when you buy'
-            )
-          }
-        />
       </Card>
 
       <Card>

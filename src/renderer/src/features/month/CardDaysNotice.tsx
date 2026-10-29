@@ -4,21 +4,19 @@ import type { Account } from '@shared/accounts'
 import { Button } from '@renderer/components/ui/button'
 import { AccountDialog } from '@renderer/features/accounts/AccountDialog'
 import { useAccounts } from '@renderer/features/accounts/queries'
-import { useSettings } from '@renderer/features/settings/queries'
 
 /**
  * Asks for the statement and due days of cards that don't have them: without both, their
  * spending counts in the month of purchase instead of the month the card is paid.
  */
 export function CardDaysNotice(): React.JSX.Element | null {
-  const byBill = useSettings().data?.cardSpendingMonth !== 'purchase'
   const accounts = useAccounts().data ?? []
   const [editing, setEditing] = useState<Account | null>(null)
   const missing = accounts.filter(
     (a) =>
       a.type === 'credit' && !a.isArchived && (a.statementDay === null || a.paymentDueDay === null)
   )
-  if (!byBill || missing.length === 0) return null
+  if (missing.length === 0) return null
 
   return (
     <section

@@ -21,6 +21,7 @@ interface AccountRow {
   credit_limit: number | null
   statement_day: number | null
   payment_due_day: number | null
+  pay_from_account_id: number | null
   color: string | null
   is_archived: number
   sort_order: number
@@ -73,6 +74,7 @@ function toAccount(row: AccountRow): Account {
     creditLimit: row.credit_limit,
     statementDay: row.statement_day,
     paymentDueDay: row.payment_due_day,
+    payFromAccountId: isCredit ? row.pay_from_account_id : null,
     color: isPaletteColor(row.color) ? row.color : neutralPaletteColor,
     isArchived: row.is_archived === 1,
     sortOrder: row.sort_order,
@@ -106,8 +108,43 @@ function assertNameFree(db: Database, name: string, exceptId?: number): void {
   if (clash) throw new AppError('conflict', `You already have an account called “${name}”.`)
 }
 
+/**
+ * The debit account a card's bill is paid from: the one chosen, else the first debit account
+ * (PLAN.md step 48). It has to be an account of yours that isn't a credit card.
+ */
+function payFromAccount(
+  db: Database,
+  chosen: number | null | undefined,
+  self?: number
+): number | null {
+  if (chosen != null) {
+    const account = db.prepare('SELECT type FROM accounts WHERE id = ?').get(chosen) as
+      { type: string } | undefined
+    if (!account || chosen === self) {
+      throw new AppError('validation', 'Choose the account the card’s bill is paid from')
+    }
+    if (account.type === 'credit') {
+      throw new AppError(
+        'validation',
+        'A card’s bill is paid from a debit account or cash, not another card'
+      )
+    }
+    return chosen
+  }
+  const first = db
+    .prepare(
+      `SELECT id FROM accounts WHERE type = 'debit' ORDER BY is_archived, sort_order, id LIMIT 1`
+    )
+    .get() as { id: number } | undefined
+  return first?.id ?? null
+}
+
 /** Column values for an input; credit-card columns are NULL for other types. */
-function toColumns(input: AccountInput): Record<string, string | number | null> {
+function toColumns(
+  db: Database,
+  input: AccountInput,
+  self?: number
+): Record<string, string | number | null> {
   const credit = input.type === 'credit' ? input : null
   return {
     name: input.name,
@@ -117,6 +154,7 @@ function toColumns(input: AccountInput): Record<string, string | number | null> 
     credit_limit: credit?.creditLimit ?? null,
     statement_day: credit?.statementDay ?? null,
     payment_due_day: credit?.paymentDueDay ?? null,
+    pay_from_account_id: credit ? payFromAccount(db, credit.payFromAccountId, self) : null,
     color: input.color
   }
 }
@@ -124,7 +162,7 @@ function toColumns(input: AccountInput): Record<string, string | number | null> 
 export function createAccount(db: Database, input: AccountInput): Account {
   const valid = accountInputSchema.parse(input)
   assertNameFree(db, valid.name)
-  const columns = toColumns(valid)
+  const columns = toColumns(db, valid)
   const names = Object.keys(columns)
   const { lastInsertRowid } = db
     .prepare(
@@ -153,7 +191,7 @@ export function updateAccount(db: Database, id: number, input: AccountInput): Ac
     }
   }
 
-  const columns = toColumns(valid)
+  const columns = toColumns(db, valid, id)
   db.prepare(
     `UPDATE accounts SET ${Object.keys(columns)
       .map((n) => `${n} = @${n}`)

@@ -25,6 +25,8 @@ export interface Account {
   creditLimit: Cents | null
   statementDay: number | null
   paymentDueDay: number | null
+  /** Credit cards: the debit account the bill is paid from (PLAN.md step 48). */
+  payFromAccountId: number | null
   color: PaletteColor
   isArchived: boolean
   sortOrder: number
@@ -77,7 +79,9 @@ export const accountInputSchema = z.discriminatedUnion('type', [
       openingBalance: cents.max(0, 'Enter what you owe on the card'),
       creditLimit: cents.positive('Enter the card’s credit limit'),
       statementDay: dayOfMonth.nullable(),
-      paymentDueDay: dayOfMonth.nullable()
+      paymentDueDay: dayOfMonth.nullable(),
+      /** Where the bill is paid from; the first debit account when left out. */
+      payFromAccountId: z.number().int().positive().nullable().optional()
     })
     .strict()
 ])

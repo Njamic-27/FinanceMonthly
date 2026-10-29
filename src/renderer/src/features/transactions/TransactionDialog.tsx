@@ -46,7 +46,6 @@ import { parseCount } from '@renderer/features/installments/count'
 import { InstallmentsField } from '@renderer/features/installments/InstallmentsField'
 import { useCreateInstallmentPlan } from '@renderer/features/installments/queries'
 import { useCategories } from '@renderer/features/categories/queries'
-import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath } from '@renderer/lib/links'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
@@ -163,9 +162,7 @@ function TransactionForm({
     kind === 'transfer' ? accounts.find((a) => String(a.id) === toAccountId) : undefined
   const category = categories.find((c) => String(c.id) === categoryId)
   // A purchase on a card counts when its bill is due (PLAN.md step 42): say when.
-  const cardSpendingMonth = useSettings().data?.cardSpendingMonth ?? 'payment'
-  const countsOn =
-    account && kind !== 'transfer' ? countedDate(date, account, cardSpendingMonth) : date
+  const countsOn = account && kind !== 'transfer' ? countedDate(date, account) : date
   const countsIn = countsInMonth(date, countsOn, money.locale)
   // Every account the transaction touches must already be open on its date.
   const opening = [account, toAccount]

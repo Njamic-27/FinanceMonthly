@@ -4,6 +4,19 @@ import { paletteColors, type PaletteColor } from './palette'
 export const categoryTypes = ['income', 'expense'] as const
 export type CategoryType = (typeof categoryTypes)[number]
 
+/**
+ * The group an expense category belongs to on Month (PLAN.md step 48). Loans and Savings are
+ * groups there too, made of loans and goals rather than categories.
+ */
+export const expenseGroups = ['everyday', 'bills', 'subscriptions'] as const
+export type ExpenseGroup = (typeof expenseGroups)[number]
+
+export const expenseGroupLabels: Record<ExpenseGroup, string> = {
+  everyday: 'Everyday',
+  bills: 'Bills',
+  subscriptions: 'Subscriptions'
+}
+
 /** Icons offered for categories; the renderer maps each name to a lucide icon. */
 export const categoryIcons = [
   'briefcase',
@@ -59,6 +72,10 @@ export interface Category {
   icon: CategoryIcon
   isArchived: boolean
   sortOrder: number
+  /** Expense categories' group on Month; null for income. */
+  group: ExpenseGroup | null
+  /** Set on the categories the app created, until step 55 renames them by language. */
+  builtinKey: string | null
   /** Transactions in this category. */
   transactionCount: number
   /** Everything that refers to it: transactions, recurring items and installment plans. */
@@ -78,10 +95,12 @@ export const categoryCreateSchema = z
     name,
     type: z.enum(categoryTypes),
     color: z.enum(paletteColors),
-    icon: z.enum(categoryIcons)
+    icon: z.enum(categoryIcons),
+    /** Expense categories only; Everyday when left out. */
+    group: z.enum(expenseGroups).optional()
   })
   .strict()
-export type CategoryCreate = z.infer<typeof categoryCreateSchema>
+export type CategoryCreate = z.input<typeof categoryCreateSchema>
 
 /** The type can't change: transactions already count the category as income or expense. */
 export const categoryUpdateSchema = z
@@ -89,7 +108,9 @@ export const categoryUpdateSchema = z
     name,
     color: z.enum(paletteColors),
     icon: z.enum(categoryIcons),
-    isArchived: z.boolean()
+    isArchived: z.boolean(),
+    /** Expense categories only. */
+    group: z.enum(expenseGroups)
   })
   .partial()
   .strict()

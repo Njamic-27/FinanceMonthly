@@ -4,7 +4,6 @@ import { createTestDb } from '../db/testing'
 import { createAccount, getAccount, updateAccount } from '../db/repositories/accounts'
 import { listCategories } from '../db/repositories/categories'
 import { createInstallmentPlan } from '../db/repositories/installments'
-import { updateSettings } from '../db/repositories/settings'
 import { getCategoryTotals, getSeries, getTotals } from '../db/repositories/stats'
 import {
   createTransaction,
@@ -110,7 +109,7 @@ describe('the day card spending counts', () => {
     ])
   })
 
-  it('moves when the card’s days or the setting change, without counting as an edit', () => {
+  it('moves when the card’s days change, without counting as an edit', () => {
     const lidl = buy('2026-10-20', 4000)
     const updatedAt = getTransaction(db, lidl).updatedAt
     const account = getAccount(db, card)
@@ -127,10 +126,6 @@ describe('the day card spending counts', () => {
     // Statement 10 November, due 1 December.
     expect(countsOn(lidl)).toBe('2026-12-01')
 
-    updateSettings(db, { cardSpendingMonth: 'purchase' })
-    expect(countsOn(lidl)).toBe('2026-10-20')
-    updateSettings(db, { cardSpendingMonth: 'payment' })
-    expect(countsOn(lidl)).toBe('2026-12-01')
     expect(getTransaction(db, lidl).updatedAt).toBe(updatedAt)
   })
 })
@@ -202,8 +197,18 @@ describe('counting by the bill', () => {
     expect(getTotals(db, { from: '2026-10-01', to: '2026-10-31' }).expenses).toBe(6000)
   })
 
-  it('counts by the day of purchase when that’s the setting', () => {
-    updateSettings(db, { cardSpendingMonth: 'purchase' })
+  it('counts a card without its days by the day of purchase', () => {
+    const account = getAccount(db, card)
+    updateAccount(db, card, {
+      type: 'credit',
+      name: account.name,
+      openingBalance: account.openingBalance,
+      openingDate: account.openingDate,
+      color: account.color,
+      creditLimit: 300000,
+      statementDay: null,
+      paymentDueDay: null
+    })
     const months = getSeries(db, { from: '2026-10-01', to: '2026-12-31', by: 'month' })
     expect(months.map((m) => m.expenses)).toEqual([4000, 2500 + 1500, 0])
   })

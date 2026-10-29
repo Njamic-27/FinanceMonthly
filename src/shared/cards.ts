@@ -39,21 +39,16 @@ export function billDueDate(date: IsoDate, statementDay: number, paymentDueDay: 
   return dayAfter(statement, paymentDueDay)
 }
 
-/** Whether card spending counts in the month the card is paid (default) or of the purchase. */
-export const cardSpendingMonths = ['payment', 'purchase'] as const
-export type CardSpendingMonth = (typeof cardSpendingMonths)[number]
-
 /**
- * The day income or spending on an account counts (PLAN.md §2, step 42): on a credit card
- * with both its days set, the due date of the bill it's on, unless spending counts in the
- * month of purchase; otherwise the day itself. Transactions store this as `counts_on`.
+ * The day income or spending on an account counts (PLAN.md §2, steps 42 and 48): on a credit
+ * card with both its days set, the due date of the bill it's on; otherwise the day itself.
+ * Transactions store this as `counts_on`.
  */
 export function countedDate(
   date: IsoDate,
-  account: { type: string; statementDay: number | null; paymentDueDay: number | null },
-  mode: CardSpendingMonth
+  account: { type: string; statementDay: number | null; paymentDueDay: number | null }
 ): IsoDate {
-  if (mode === 'purchase' || account.type !== 'credit') return date
+  if (account.type !== 'credit') return date
   if (account.statementDay === null || account.paymentDueDay === null) return date
   return billDueDate(date, account.statementDay, account.paymentDueDay)
 }
