@@ -30,7 +30,8 @@ import {
 } from '../db/repositories/monthRows'
 import { createRecurringItem, getRecurringItem } from '../db/repositories/recurring'
 import { getSavingsGoal } from '../db/repositories/savings'
-import { categoryRowAccount, monthSheet, setMonthCell } from './monthSheet'
+import { createTransaction } from '../db/repositories/transactions'
+import { categoryRowAccount, monthSheet } from './monthSheet'
 
 // Changing the Month sheet's rows (PLAN.md §3, Month): "+" under a section, rename, hide and
 // reorder. Only categories are stored as rows; the other rows come from their own items.
@@ -62,8 +63,9 @@ function ensureRow(db: Database, categoryId: number, today: IsoDate, accountId?:
 }
 
 /**
- * "+" under Income or Expenses. Adds the category to the sheet (shown again if it was hidden)
- * with this month's amount, or with "Every month" a monthly recurring item. Returns the row.
+ * "+" under Income or Expenses: something in a category, picked or created by name. One-time
+ * puts the category on the sheet (shown again if it was hidden) with a transaction on its
+ * date; with `repeat` it's a recurring item from that date on. Returns the row it lands in.
  */
 export function addMonthLine(
   db: Database,
@@ -74,18 +76,17 @@ export function addMonthLine(
   monthSheet(db, { month: line.month }, today) // checks the month is in reach
   return db.transaction(() => {
     const category = categoryByName(db, line.type, line.name)
-    if (line.everyMonth) {
-      const first = line.date as IsoDate
+    if (line.repeat) {
       const item = createRecurringItem(db, {
         kind: line.type,
-        title: line.name,
+        title: line.title || category.name,
         amount: line.amount,
         accountId: line.accountId,
         categoryId: category.id,
-        frequency: 'monthly',
-        interval: 1,
-        anchorDate: first,
-        nextDueDate: first,
+        frequency: line.repeat.frequency,
+        interval: line.repeat.interval,
+        anchorDate: line.date,
+        nextDueDate: line.date,
         autoPost: false,
         reminderDaysBefore: null
       })
@@ -94,17 +95,15 @@ export function addMonthLine(
     ensureRow(db, category.id, today, line.accountId)
     setMonthRowHidden(db, category.id, false)
     if (line.amount > 0) {
-      setMonthCell(
-        db,
-        {
-          month: line.month,
-          kind: 'category',
-          sourceId: category.id,
-          amount: line.amount,
-          accountId: line.accountId
-        },
-        today
-      )
+      createTransaction(db, {
+        type: line.type,
+        title: line.title ?? '',
+        amount: line.amount,
+        date: line.date,
+        accountId: line.accountId,
+        categoryId: category.id,
+        note: null
+      })
     }
     return { kind: 'category' as const, sourceId: category.id }
   })()

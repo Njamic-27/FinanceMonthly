@@ -7,7 +7,7 @@ import { listCategories, updateCategory } from '../db/repositories/categories'
 import { listMonthRows } from '../db/repositories/monthRows'
 import { getRecurringItem } from '../db/repositories/recurring'
 import { createSavingsGoal, getSavingsGoal } from '../db/repositories/savings'
-import { createTransaction } from '../db/repositories/transactions'
+import { createTransaction, listTransactions } from '../db/repositories/transactions'
 import { addMonthLine, hideMonthRow, renameMonthRow, reorderMonthRows } from './monthLines'
 import { monthSheet } from './monthSheet'
 
@@ -34,7 +34,8 @@ const add = (input: Partial<MonthLineInput> = {}): { kind: string; sourceId: num
       name: 'Fuel',
       amount: 0,
       accountId: debit,
-      everyMonth: false,
+      date: '2026-10-12',
+      repeat: null,
       ...input
     },
     TODAY
@@ -67,14 +68,20 @@ beforeEach(() => {
 })
 
 describe('adding a row', () => {
-  it('reuses a category by name, with this month’s amount and account', () => {
+  it('reuses a category by name, adding a one-time transaction on its date', () => {
     const before = listCategories(db).length
     const row = add({ name: 'groceries', amount: 25000, accountId: cash })
     expect(row).toEqual({ kind: 'category', sourceId: categoryId('Groceries') })
     expect(listCategories(db)).toHaveLength(before)
     expect(section('expenses')).toEqual([
-      expect.objectContaining({ title: 'Groceries', actual: 25000, accountId: cash })
+      expect.objectContaining({ title: 'Groceries', actual: 25000, summary: 0, accountId: cash })
     ])
+    const [tx] = listTransactions(db, { categoryId: categoryId('Groceries') }).items
+    expect(tx).toMatchObject({ date: '2026-10-12', amount: 25000, title: 'Groceries' })
+
+    // Another one adds to it.
+    add({ name: 'Groceries', amount: 4000, accountId: cash, title: 'Market' })
+    expect(section('expenses')[0]).toMatchObject({ actual: 29000, count: 2 })
   })
 
   it('creates a category for a new name, and restores an archived one', () => {
@@ -88,8 +95,13 @@ describe('adding a row', () => {
     expect(section('income')[0]).toMatchObject({ title: 'Bonus', actual: 50000 })
   })
 
-  it('makes a monthly recurring item with “Every month”', () => {
-    const row = add({ name: 'Gym', amount: 3500, everyMonth: true, date: '2026-10-30' })
+  it('makes a monthly recurring item', () => {
+    const row = add({
+      name: 'Gym',
+      amount: 3500,
+      date: '2026-10-30',
+      repeat: { frequency: 'monthly', interval: 1 }
+    })
     expect(row.kind).toBe('recurring')
     expect(getRecurringItem(db, row.sourceId)).toMatchObject({
       title: 'Gym',
@@ -106,9 +118,55 @@ describe('adding a row', () => {
     expect(listMonthRows(db)).toEqual([])
   })
 
-  it('needs the amount and first date for “Every month”', () => {
-    expect(() => add({ everyMonth: true, date: '2026-10-30' })).toThrow(/amount each month/)
-    expect(() => add({ everyMonth: true, amount: 100 })).toThrow(/first date/)
+  it('repeats every week, every few months or every year, under its own name', () => {
+    const weekly = add({
+      name: 'Groceries',
+      title: 'Market',
+      amount: 2000,
+      date: '2026-10-05',
+      repeat: { frequency: 'weekly', interval: 1 }
+    })
+    expect(getRecurringItem(db, weekly.sourceId)).toMatchObject({
+      title: 'Market',
+      categoryId: categoryId('Groceries'),
+      frequency: 'weekly',
+      interval: 1
+    })
+    const quarterly = add({
+      name: 'Car insurance',
+      amount: 12000,
+      date: '2026-11-15',
+      repeat: { frequency: 'monthly', interval: 3 }
+    })
+    expect(getRecurringItem(db, quarterly.sourceId)).toMatchObject({
+      title: 'Car insurance',
+      frequency: 'monthly',
+      interval: 3,
+      nextDueDate: '2026-11-15'
+    })
+    // Every third month from November: not in December or January.
+    const insurance = (month: string): MonthSheetRow | undefined =>
+      section('bills', month).find((r) => r.title === 'Car insurance')
+    expect(insurance('2026-11')).toMatchObject({ planned: 12000 })
+    expect(insurance('2026-12')).toBeUndefined()
+    expect(insurance('2027-01')).toBeUndefined()
+    expect(insurance('2027-02')).toMatchObject({ planned: 12000 })
+
+    const yearly = add({
+      name: 'Bonus',
+      type: 'income',
+      amount: 100000,
+      date: '2026-12-20',
+      repeat: { frequency: 'yearly', interval: 1 }
+    })
+    expect(getRecurringItem(db, yearly.sourceId)).toMatchObject({
+      kind: 'income',
+      frequency: 'yearly'
+    })
+  })
+
+  it('needs an amount for a recurring line', () => {
+    expect(() => add({ repeat: { frequency: 'monthly', interval: 1 } })).toThrow(/amount each time/)
   })
 })
 
@@ -139,7 +197,12 @@ describe('renaming a row', () => {
     renameMonthRow(db, { kind: 'category', sourceId: categoryId('Groceries'), name: 'Food' })
     expect(titles('expenses')).toEqual(['Food'])
 
-    const gym = add({ name: 'Gym', amount: 3500, everyMonth: true, date: '2026-10-30' })
+    const gym = add({
+      name: 'Gym',
+      amount: 3500,
+      date: '2026-10-30',
+      repeat: { frequency: 'monthly', interval: 1 }
+    })
     renameMonthRow(db, { kind: 'recurring', sourceId: gym.sourceId, name: 'Fitness' })
     expect(getRecurringItem(db, gym.sourceId).title).toBe('Fitness')
 

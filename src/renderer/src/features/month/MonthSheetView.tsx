@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import {
-  ArrowDown,
-  ArrowUp,
-  EyeOff,
-  GripVertical,
-  MoreHorizontal,
-  Pencil,
-  Plus
-} from 'lucide-react'
+import { ArrowDown, ArrowUp, EyeOff, GripVertical, MoreHorizontal, Pencil } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Cents } from '@shared/money'
 import type {
@@ -21,7 +13,6 @@ import type {
   MonthSheetSection
 } from '@shared/month'
 import { ColorChip } from '@renderer/components/ColorChip'
-import { Button } from '@renderer/components/ui/button'
 import { Card } from '@renderer/components/ui/card'
 import {
   Popover,
@@ -55,13 +46,13 @@ import {
   rowKey,
   rowNote,
   savingValue,
-  sectionAdds,
   sectionEmpty,
   sectionNotes,
   sectionTitles,
-  sheetAmount,
-  type AddChoice
+  sheetAmount
 } from './cells'
+import { AddMenu } from './AddMenu'
+import type { AddAction } from './addMenuEntries'
 import {
   useHideMonthRow,
   useReorderMonthRows,
@@ -406,28 +397,34 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
   )
 }
 
-/** "Income" or "Expenses" over its rows, with the month's total. */
+/** "Income" or "Expenses" over its rows, with its "+" and the month's total. */
 function SheetHeading({
   id,
   title,
   total,
   income = false,
-  note
+  note,
+  action
 }: {
   id: string
   title: string
   total: Cents
   income?: boolean
   note?: string
+  /** The section's "+". */
+  action: React.ReactNode
 }): React.JSX.Element {
   const money = useCurrency()
   return (
     <header className="flex items-end justify-between gap-4 px-1">
       <div className="min-w-0">
-        <h2 id={id} className="text-title font-bold">
-          {title}
-        </h2>
-        {note && <p className="text-sm text-ink-muted">{note}</p>}
+        <div className="flex items-center gap-4">
+          <h2 id={id} className="text-title font-bold">
+            {title}
+          </h2>
+          {action}
+        </div>
+        {note && <p className="mt-1 text-sm text-ink-muted">{note}</p>}
       </div>
       <span className={cn('amount shrink-0 text-title', income && 'text-income')}>
         {money.format(total)}
@@ -436,51 +433,9 @@ function SheetHeading({
   )
 }
 
-/** "+" under a section: one button, or a short menu when there's more than one thing to add. */
-function AddButton({
-  label,
-  choices,
-  onAdd
-}: {
-  label: string
-  choices: (typeof sectionAdds)[MonthSectionKey]['choices']
-  onAdd: (choice: AddChoice) => void
-}): React.JSX.Element {
-  if (choices.length === 1) {
-    return (
-      <Button variant="ghost" size="sm" onClick={() => onAdd(choices[0].choice)}>
-        <Plus />
-        {label}
-      </Button>
-    )
-  }
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Plus />
-          {label}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="grid w-72 gap-0.5 p-1">
-        {choices.map(({ choice, label: name, description }) => (
-          <PopoverClose
-            key={choice}
-            onClick={() => onAdd(choice)}
-            className="grid cursor-pointer gap-0.5 rounded-[0.4rem] px-3 py-2 text-left hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
-          >
-            <span className="font-semibold">{name}</span>
-            {description && <span className="text-sm text-ink-muted">{description}</span>}
-          </PopoverClose>
-        ))}
-      </PopoverContent>
-    </Popover>
-  )
-}
-
 /**
  * The month as a spreadsheet in one column: Income, a divider, then Expenses in groups (groups
- * with nothing this month are left out, their "+" gathered at the end). Click an amount or press
+ * with nothing this month are left out). Each section's "+" adds to it. Click an amount or press
  * Enter to type; Enter or Tab saves and moves to the next row (Shift+Tab back), Esc cancels,
  * arrows move between rows. Category rows can be renamed, hidden and dragged into order.
  */
@@ -494,7 +449,7 @@ export function MonthSheetView({
   sheet: MonthSheet
   accounts: Account[]
   onOpenRow: (row: MonthSheetRow) => void
-  onAdd: (choice: AddChoice) => void
+  onAdd: (action: AddAction) => void
   onRename: (row: MonthSheetRow) => void
 }): React.JSX.Element {
   const money = useCurrency()
@@ -509,13 +464,10 @@ export function MonthSheetView({
     return { ...section, rows: [...section.rows].sort((a, b) => position(a) - position(b)) }
   })
   const income = sections.filter((s) => s.key === 'income')
-  // Everyday spending always shows, so there's somewhere to add to; empty groups don't.
+  // Groups with nothing this month are left out; "+" adds to any of them.
   const groups = expenseGroups.flatMap((key) =>
-    sections.filter((s) => s.key === key && (s.rows.length > 0 || key === 'expenses'))
+    sections.filter((s) => s.key === key && s.rows.length > 0)
   )
-  const otherAdds = expenseGroups
-    .filter((key) => !groups.some((g) => g.key === key))
-    .flatMap((key) => sectionAdds[key].choices)
   // Arrows and Enter move down the one column.
   const keys = [...income, ...groups].flatMap((s) => s.rows.map(rowKey))
 
@@ -710,7 +662,7 @@ export function MonthSheetView({
     return (
       <Card
         key={section.key}
-        className={cn('p-0', isIncome && 'pt-2')}
+        className={cn('p-0 pb-2', isIncome && 'pt-2')}
         aria-labelledby={isIncome ? 'month-income' : titleId}
       >
         <header
@@ -824,9 +776,6 @@ export function MonthSheetView({
             </tbody>
           </table>
         )}
-        <div className="border-t border-line px-3 py-2">
-          <AddButton {...sectionAdds[section.key]} onAdd={onAdd} />
-        </div>
       </Card>
     )
   }
@@ -836,7 +785,13 @@ export function MonthSheetView({
   return (
     <div className="max-w-4xl">
       <section aria-labelledby="month-income" className="grid gap-3">
-        <SheetHeading id="month-income" title="Income" total={totals.income} income />
+        <SheetHeading
+          id="month-income"
+          title="Income"
+          total={totals.income}
+          income
+          action={<AddMenu section="income" onAction={onAdd} />}
+        />
         {income.map(renderSection)}
       </section>
 
@@ -849,12 +804,13 @@ export function MonthSheetView({
           title="Expenses"
           total={totals.expenses}
           note="Spending this month. Card payments, loans and savings move money: they’re in your balance, not in this total."
+          action={<AddMenu section="expenses" onAction={onAdd} />}
         />
         {groups.map(renderSection)}
-        {otherAdds.length > 0 && (
-          <div>
-            <AddButton label="Add something else" choices={otherAdds} onAdd={onAdd} />
-          </div>
+        {groups.length === 0 && (
+          <p className="px-1 text-ink-muted">
+            Nothing spent this month yet. Add it with “Add expense”.
+          </p>
         )}
       </section>
     </div>

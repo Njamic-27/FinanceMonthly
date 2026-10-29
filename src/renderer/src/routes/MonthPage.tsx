@@ -2,13 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { CopyPlus } from 'lucide-react'
 import { addMonths, formatDate, today, type IsoDate } from '@shared/dates'
-import {
-  monthKeyOf,
-  summaryDate,
-  type MonthLineType,
-  type MonthRowRename,
-  type MonthSheetRow
-} from '@shared/month'
+import { monthKeyOf, summaryDate, type MonthRowRename, type MonthSheetRow } from '@shared/month'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
@@ -18,7 +12,18 @@ import { calendarParams, readCalendarMonth } from '@renderer/features/calendar/m
 import { MonthNav } from '@renderer/features/calendar/MonthNav'
 import { BankLoanDialog } from '@renderer/features/loans/BankLoanDialog'
 import { LoanDialog } from '@renderer/features/loans/LoanDialog'
-import { AddRowDialog } from '@renderer/features/month/AddRowDialog'
+import { nextInstallment } from '@renderer/features/loans/installment'
+import {
+  PayInstallmentDialog,
+  type PayInstallmentTarget
+} from '@renderer/features/loans/PayInstallmentDialog'
+import { useLoans } from '@renderer/features/loans/queries'
+import {
+  RepaymentDialog,
+  type RepaymentDialogTarget
+} from '@renderer/features/loans/RepaymentDialog'
+import { AddLineDialog, type LineTarget } from '@renderer/features/month/AddLineDialog'
+import type { AddAction } from '@renderer/features/month/addMenuEntries'
 import { canRename, rowKey, type AddChoice } from '@renderer/features/month/cells'
 import { CardDaysNotice } from '@renderer/features/month/CardDaysNotice'
 import { MonthHeader } from '@renderer/features/month/MonthHeader'
@@ -29,6 +34,10 @@ import { RenameRowDialog } from '@renderer/features/month/RenameRowDialog'
 import { RowPanel } from '@renderer/features/month/RowPanel'
 import { RecurringDialog } from '@renderer/features/recurring/RecurringDialog'
 import { GoalDialog } from '@renderer/features/savings/GoalDialog'
+import {
+  MovementDialog,
+  type MovementDialogTarget
+} from '@renderer/features/savings/MovementDialog'
 import { useSavingsGoals } from '@renderer/features/savings/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
@@ -58,8 +67,16 @@ export function MonthPage(): React.JSX.Element {
     setParams(calendarParams(next), { replace: true })
   }
 
-  /** "+" under a section: the dialog that adds that kind of row. */
-  const add = (choice: AddChoice): void => {
+  const loans = useLoans().data ?? []
+  const [line, setLine] = useState<LineTarget | null>(null)
+  const [paying, setPaying] = useState<PayInstallmentTarget | null>(null)
+  const [repaying, setRepaying] = useState<RepaymentDialogTarget | null>(null)
+  const [moving, setMoving] = useState<MovementDialogTarget | null>(null)
+  const date = summaryDate(month, today())
+  const payFrom = accounts.find((a) => a.type !== 'credit' && !a.isArchived)
+
+  /** A dialog that adds something new: buying in installments needs a card first. */
+  const openNew = (choice: AddChoice): void => {
     if (choice !== 'installments') {
       setAdding(choice)
       return
@@ -72,15 +89,43 @@ export function MonthPage(): React.JSX.Element {
     }
     openTransactionDialog({
       kind: 'new',
-      prefill: {
-        type: 'expense',
-        accountId: card.id,
-        inInstallments: true,
-        date: summaryDate(month, today())
-      }
+      prefill: { type: 'expense', accountId: card.id, inInstallments: true, date }
     })
   }
-  const lineType: MonthLineType | null = adding === 'income' || adding === 'expense' ? adding : null
+
+  /** What "+" picked, opened right here on Month. */
+  const add = (action: AddAction): void => {
+    switch (action.kind) {
+      case 'line':
+        setLine(action)
+        return
+      case 'open':
+        openNew(action.choice)
+        return
+      case 'pay_card':
+        openTransactionDialog({
+          kind: 'new',
+          prefill: { type: 'transfer', accountId: payFrom?.id, toAccountId: action.accountId, date }
+        })
+        return
+      case 'loan': {
+        const loan = loans.find((l) => l.id === action.loanId)
+        if (!loan) return
+        if (loan.kind !== 'bank_loan') {
+          setRepaying({ kind: 'new', loan })
+          return
+        }
+        const next = nextInstallment(loan)
+        if (next) setPaying(next)
+        else toast({ title: `${loan.title} has no installment left to pay` })
+        return
+      }
+      case 'savings': {
+        const goal = goals.find((g) => g.id === action.goalId)
+        if (goal) setMoving({ kind: 'new', goal, type: action.movement })
+      }
+    }
+  }
   const close = (): void => setAdding(null)
 
   const copyLastMonth = (): void => {
@@ -154,13 +199,22 @@ export function MonthPage(): React.JSX.Element {
         }
         onClose={() => setRenaming(null)}
       />
-      <AddRowDialog month={month} type={lineType} onClose={close} />
+      <AddLineDialog month={month} target={line} onClose={() => setLine(null)} />
+      <PayInstallmentDialog target={paying} onClose={() => setPaying(null)} />
+      <RepaymentDialog target={repaying} onClose={() => setRepaying(null)} />
+      <MovementDialog target={moving} onClose={() => setMoving(null)} />
       <RecurringDialog
         target={adding === 'subscription' ? { kind: 'new', itemKind: 'subscription' } : null}
         onClose={close}
       />
       <AccountDialog
-        target={adding === 'card' ? { kind: 'new', type: 'credit' } : null}
+        target={
+          adding === 'card'
+            ? { kind: 'new', type: 'credit' }
+            : adding === 'account'
+              ? { kind: 'new' }
+              : null
+        }
         accounts={accounts}
         onClose={close}
       />

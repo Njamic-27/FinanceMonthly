@@ -116,62 +116,9 @@ export function sheetAmount(
   return { value: Math.abs(signed), plus: section !== 'income' && signed > 0 }
 }
 
-/** What "+" under a section adds. */
+/** A dialog "+" opens to add something new (see addMenuEntries.ts). */
 export type AddChoice =
-  | 'income'
-  | 'expense'
-  | 'subscription'
-  | 'installments'
-  | 'card'
-  | 'bank_loan'
-  | 'borrowed'
-  | 'lent'
-  | 'goal'
-
-export const sectionAdds: Record<
-  MonthSectionKey,
-  { label: string; choices: { choice: AddChoice; label: string; description: string }[] }
-> = {
-  income: {
-    label: 'Add income',
-    choices: [{ choice: 'income', label: 'Add income', description: '' }]
-  },
-  expenses: {
-    label: 'Add expense',
-    choices: [{ choice: 'expense', label: 'Add expense', description: '' }]
-  },
-  bills: {
-    label: 'Add subscription',
-    choices: [{ choice: 'subscription', label: 'Add subscription', description: '' }]
-  },
-  cards: {
-    label: 'Add card or installments',
-    choices: [
-      {
-        choice: 'installments',
-        label: 'Buy in installments',
-        description: 'A purchase on a card, paid off in monthly installments'
-      },
-      { choice: 'card', label: 'Add a card', description: 'A credit card and its payment dates' }
-    ]
-  },
-  loans: {
-    label: 'Add loan',
-    choices: [
-      {
-        choice: 'bank_loan',
-        label: 'Bank loan',
-        description: 'Paid back in installments, automatically or with a reminder'
-      },
-      { choice: 'borrowed', label: 'Money borrowed', description: 'From a friend or family' },
-      { choice: 'lent', label: 'Money lent', description: 'To a friend or family' }
-    ]
-  },
-  savings: {
-    label: 'Add savings goal',
-    choices: [{ choice: 'goal', label: 'Add savings goal', description: '' }]
-  }
-}
+  'subscription' | 'installments' | 'card' | 'bank_loan' | 'borrowed' | 'lent' | 'goal' | 'account'
 
 export const canRename = (row: MonthSheetRow): boolean =>
   (renamableRowKinds as readonly string[]).includes(row.kind)

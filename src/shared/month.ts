@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { endOfMonth, isIsoDate, type DateRange, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 import type { CalendarSummary } from './planned'
+import { frequencies } from './recurring'
 
 // The Month sheet (PLAN.md §3, Month): one month at a time, like a monthly spreadsheet. Every
 // cell is real transactions underneath; typing an amount sets a row's one monthly summary
@@ -147,9 +148,16 @@ const id = z.number().int().positive()
 export const monthLineTypes = ['income', 'expense'] as const
 export type MonthLineType = (typeof monthLineTypes)[number]
 
+/** How often a recurring line repeats: every week, every N months or every year. */
+export const lineRepeatSchema = z
+  .object({ frequency: z.enum(frequencies), interval: z.number().int().min(1).max(12) })
+  .strict()
+export type LineRepeat = z.infer<typeof lineRepeatSchema>
+
 /**
- * "+" under Income or Expenses: a row by name. An existing category is reused by name,
- * otherwise one is created; "Every month" makes it a recurring item instead.
+ * "+" under Income or Expenses: something in a category, picked or created by name (an
+ * existing one is reused, an archived one restored). One-time adds a transaction on `date`
+ * and puts the category on the sheet; with `repeat` it's a recurring item from `date` on.
  */
 export const monthLineInputSchema = z
   .object({
@@ -160,25 +168,23 @@ export const monthLineInputSchema = z
       .trim()
       .min(1, 'Give the row a name')
       .max(40, 'Keep the name to 40 characters or fewer'),
-    /** This month's amount; 0 adds the row empty. */
+    /** A recurring item's own name, e.g. "Netflix" in Subscriptions; the category's if empty. */
+    title: z.string().trim().max(80, 'Keep the name to 80 characters or fewer').optional(),
+    /** One-time: 0 only puts the row on the sheet. Recurring: the amount each time. */
     amount: z
       .number({ error: 'Enter an amount' })
       .int()
       .min(0, 'Enter 0 or more')
       .max(MAX_CENTS, 'That amount is too large'),
     accountId: z.number({ error: 'Choose an account' }).int().positive('Choose an account'),
-    everyMonth: z.boolean(),
-    /** Every month: the first payment's date. */
-    date: z.string().refine(isIsoDate, 'Choose a date').optional()
+    /** The transaction's date, or the first payment's. */
+    date: z.string().refine(isIsoDate, 'Choose a date'),
+    repeat: lineRepeatSchema.nullable()
   })
   .strict()
   .superRefine((line, ctx) => {
-    if (!line.everyMonth) return
-    if (line.amount === 0) {
-      ctx.addIssue({ code: 'custom', path: ['amount'], message: 'Enter the amount each month' })
-    }
-    if (!line.date) {
-      ctx.addIssue({ code: 'custom', path: ['date'], message: 'Choose the first date' })
+    if (line.repeat && line.amount === 0) {
+      ctx.addIssue({ code: 'custom', path: ['amount'], message: 'Enter the amount each time' })
     }
   })
 export type MonthLineInput = z.input<typeof monthLineInputSchema>
