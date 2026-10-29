@@ -100,9 +100,9 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
   const { pathname } = useLocation()
   const dueCount = useDueOccurrences().data?.length ?? 0
   const due: Badge | undefined = dueCount > 0 ? { count: dueCount, label: 'due now' } : undefined
-  const badges: Record<string, Badge | undefined> = { '/recurring': due }
-  // While More is closed, it shows what's waiting inside it and that you're on one of its screens.
-  const moreBadge = moreOpen ? undefined : due
+  // Payments waiting to be confirmed are confirmed on Month.
+  const badges: Record<string, Badge | undefined> = { '/': due }
+  // While More is closed, it shows that you're on one of its screens.
   const inMore = moreScreens.some((s) => pathname === s.path || pathname.startsWith(`${s.path}/`))
 
   const toggle = (): void => {
@@ -159,7 +159,13 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
         aria-label="Main"
       >
         <div className="grid gap-0.5">{mainScreens.map(item)}</div>
-        <div className="grid gap-0.5">
+        {/* Out of the way at the bottom, just above Settings; it opens upwards. */}
+        <div className="mt-auto grid gap-0.5 pt-3">
+          {moreOpen && (
+            <div id="sidebar-more" className="grid gap-0.5">
+              {moreScreens.map(item)}
+            </div>
+          )}
           <button
             type="button"
             onClick={toggleMore}
@@ -175,26 +181,18 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
           >
             <span className="relative shrink-0">
               <Ellipsis className="size-[1.125rem]" />
-              {moreBadge && collapsed && <BadgeDot />}
             </span>
             <span className={cn('truncate', collapsed && 'sr-only')}>More</span>
-            {moreBadge && <BadgePill badge={moreBadge} collapsed={collapsed} />}
             {!collapsed && (
               <ChevronDown
                 className={cn(
-                  'size-4 shrink-0 transition-transform motion-reduce:transition-none',
-                  !moreBadge && 'ml-auto',
-                  moreOpen && 'rotate-180'
+                  'ml-auto size-4 shrink-0 transition-transform motion-reduce:transition-none',
+                  !moreOpen && 'rotate-180'
                 )}
                 aria-hidden
               />
             )}
           </button>
-          {moreOpen && (
-            <div id="sidebar-more" className="grid gap-0.5">
-              {moreScreens.map(item)}
-            </div>
-          )}
         </div>
       </nav>
 

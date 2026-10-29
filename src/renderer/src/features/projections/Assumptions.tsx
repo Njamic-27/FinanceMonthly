@@ -17,7 +17,7 @@ const monthsOptions = [1, 3, 6, 12]
 
 /**
  * What the projection assumes beyond what's planned, as switches. They're saved in Settings,
- * so the dashboard teaser and later visits use the same assumptions.
+ * so later visits use the same assumptions.
  */
 export function Assumptions({
   projection,

@@ -11,7 +11,6 @@ import { AccountDetailPage } from './routes/AccountDetailPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CalendarPage } from './routes/CalendarPage'
 import { CategoriesPage } from './routes/CategoriesPage'
-import { DashboardPage } from './routes/DashboardPage'
 import { HistoryPage } from './routes/HistoryPage'
 import { LoanPage } from './routes/LoanPage'
 import { LoansPage } from './routes/LoansPage'
@@ -33,7 +32,6 @@ const UiPreview = import.meta.env.DEV
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
   '/': MonthPage,
-  '/dashboard': DashboardPage,
   '/transactions': TransactionsPage,
   '/overview': OverviewPage,
   '/calendar': CalendarPage,
@@ -71,6 +69,8 @@ function App(): React.JSX.Element {
               )
             })}
             <Route path="/month" element={<Moved to="/" />} />
+            {/* The Dashboard was removed in step 38; Month has what it showed. */}
+            <Route path="/dashboard" element={<Moved to="/" />} />
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
             <Route path="/savings/:id" element={<SavingsGoalPage />} />
             <Route path="/loans/:id" element={<LoanPage />} />

@@ -118,17 +118,14 @@ export function reminderMessages(
       {
         title: `${reminders.length} payments coming up`,
         body: [...lines, `and ${reminders.length - SEPARATE} more`].join('\n'),
-        path: '/recurring'
+        path: '/'
       }
     ]
   }
   return reminders.map(({ planned }) => ({
     title: `${planned.title} ${planned.group === 'income' ? 'arrives' : 'is due'} ${when(planned.date, today, settings.locale)}`,
     body: [money(planned.amount), accounts.get(planned.accountId)].filter(Boolean).join(' · '),
-    // A loan installment opens its loan; a recurring payment, the Recurring screen.
-    path:
-      planned.source === 'loan_installment' && planned.loanId
-        ? `/loans/${planned.loanId}`
-        : '/recurring'
+    // A loan installment opens its loan; a recurring payment, Month, where it's confirmed.
+    path: planned.source === 'loan_installment' && planned.loanId ? `/loans/${planned.loanId}` : '/'
   }))
 }

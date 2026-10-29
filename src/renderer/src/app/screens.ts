@@ -6,7 +6,6 @@ import {
   ChartPie,
   History,
   Landmark,
-  LayoutDashboard,
   PiggyBank,
   Repeat,
   Settings,
@@ -26,7 +25,7 @@ export interface Screen {
   step: number
 }
 
-/** The sidebar's first group: the home screen and the views used most. */
+/** The sidebar: Month, the home screen where everyday use happens, and the two views beside it. */
 export const mainScreens: Screen[] = [
   {
     path: '/',
@@ -41,17 +40,16 @@ export const mainScreens: Screen[] = [
     step: 34
   },
   {
-    path: '/dashboard',
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    description: 'Your money at a glance.',
+    path: '/projections',
+    title: 'Projections',
+    icon: ChartLine,
+    description: 'Where your balance is heading over the next 2 years.',
     features: [
-      'Total balance, this month’s income, expenses and net',
-      'Income vs expenses for the last 6 months',
-      'Spending by category and balance trend',
-      'Upcoming bills, savings goals and card usage'
+      'Weekly or monthly forecast, 3 to 24 months ahead',
+      'Based on income, recurring expenses, subscriptions and loan installments',
+      'Milestones like loans paid off and goals reached'
     ],
-    step: 18
+    step: 30
   },
   {
     path: '/calendar',
@@ -65,22 +63,13 @@ export const mainScreens: Screen[] = [
       'Open a day to add a transaction or confirm a planned payment'
     ],
     step: 22
-  },
-  {
-    path: '/projections',
-    title: 'Projections',
-    icon: ChartLine,
-    description: 'Where your balance is heading over the next 2 years.',
-    features: [
-      'Weekly or monthly forecast, 3 to 24 months ahead',
-      'Based on income, recurring expenses, subscriptions and loan installments',
-      'Milestones like loans paid off and goals reached'
-    ],
-    step: 30
   }
 ]
 
-/** The sidebar's collapsible "More" group. */
+/**
+ * The small "More" group at the bottom of the sidebar, closed by default: screens kept for
+ * looking things up, never needed for everyday use.
+ */
 export const moreScreens: Screen[] = [
   {
     path: '/transactions',
@@ -165,10 +154,7 @@ export const moreScreens: Screen[] = [
       'Record repayments and see the payoff date'
     ],
     step: 27
-  }
-]
-
-export const footerScreens: Screen[] = [
+  },
   {
     path: '/categories',
     title: 'Categories',
@@ -176,7 +162,10 @@ export const footerScreens: Screen[] = [
     description: 'The categories you sort income and expenses into.',
     features: ['Create, rename and recolour categories', 'Archive categories you no longer use'],
     step: 8
-  },
+  }
+]
+
+export const footerScreens: Screen[] = [
   {
     path: '/settings',
     title: 'Settings',

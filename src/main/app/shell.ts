@@ -74,7 +74,7 @@ function createTray(): Tray {
   created.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Open Financije', click: () => showMainWindow() },
-      { label: 'Due now and coming up', click: () => showMainWindow('/recurring') },
+      { label: 'Due now and coming up', click: () => showMainWindow('/') },
       { type: 'separator' },
       { label: 'Quit Financije', click: () => app.quit() }
     ])
