@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { HashRouter, Navigate, Route, Routes } from 'react-router'
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import { AppShell } from './app/AppShell'
 import { allScreens } from './app/screens'
 import { Toaster } from './components/ui/toaster'
@@ -32,8 +32,8 @@ const UiPreview = import.meta.env.DEV
 
 /** Screens that are built; the rest show their placeholder. Keyed by screen path. */
 const pages: Record<string, () => React.JSX.Element> = {
-  '/': DashboardPage,
-  '/month': MonthPage,
+  '/': MonthPage,
+  '/dashboard': DashboardPage,
   '/transactions': TransactionsPage,
   '/overview': OverviewPage,
   '/calendar': CalendarPage,
@@ -45,6 +45,12 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/loans': LoansPage,
   '/categories': CategoriesPage,
   '/settings': SettingsPage
+}
+
+/** Sends an old address to where the screen lives now, keeping its `?month=` and such. */
+function Moved({ to }: { to: string }): React.JSX.Element {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: to, search }} replace />
 }
 
 function App(): React.JSX.Element {
@@ -64,6 +70,7 @@ function App(): React.JSX.Element {
                 />
               )
             })}
+            <Route path="/month" element={<Moved to="/" />} />
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
             <Route path="/savings/:id" element={<SavingsGoalPage />} />
             <Route path="/loans/:id" element={<LoanPage />} />
