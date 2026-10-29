@@ -20,6 +20,7 @@ import { BankLoanDialog } from '@renderer/features/loans/BankLoanDialog'
 import { LoanDialog } from '@renderer/features/loans/LoanDialog'
 import { AddRowDialog } from '@renderer/features/month/AddRowDialog'
 import { canRename, rowKey, type AddChoice } from '@renderer/features/month/cells'
+import { CardDaysNotice } from '@renderer/features/month/CardDaysNotice'
 import { MonthHeader } from '@renderer/features/month/MonthHeader'
 import { WaitingStrip } from '@renderer/features/month/WaitingStrip'
 import { MonthSheetView } from '@renderer/features/month/MonthSheetView'
@@ -132,6 +133,7 @@ export function MonthPage(): React.JSX.Element {
       {sheet.data && (
         <div className={cn('transition-opacity', sheet.isPlaceholderData && 'opacity-60')}>
           <MonthHeader month={first} summary={sheet.data.summary} />
+          <CardDaysNotice />
           <WaitingStrip />
           <MonthSheetView
             sheet={sheet.data}

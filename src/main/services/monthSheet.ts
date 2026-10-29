@@ -109,6 +109,12 @@ const expected = (
 const signedLoanAmount = (t: Transaction): number =>
   (incomingTypes as readonly string[]).includes(t.type) ? t.amount : -t.amount
 
+/** What a transaction adds to spending: expenses, less refunds (income on the account). */
+const spending = (t: Transaction): number =>
+  t.type === 'expense' ? t.amount : t.type === 'income' ? -t.amount : 0
+const plannedSpending = (p: PlannedItem): number =>
+  p.group === 'expense' ? p.amount : p.group === 'income' ? -p.amount : 0
+
 const savedAmount = (t: Transaction): number =>
   t.type === 'savings_deposit' ? t.amount : -t.amount
 
@@ -258,7 +264,10 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
         accountId: pick(latestAccount(db, 'to_account_id = ?', card.id)),
         ...recorded(payments),
         planned: sum(statement.map((d) => d.amount ?? 0)),
-        editable: true
+        editable: true,
+        onBill:
+          sum(txs.filter((t) => t.accountId === card.id).map(spending)) +
+          sum(planned.filter((p) => p.accountId === card.id).map(plannedSpending))
       })
     }
     for (const plan of plans.filter((p) => p.accountId === card.id)) {

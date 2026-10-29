@@ -37,6 +37,7 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
+import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
@@ -228,7 +229,14 @@ function SheetRow({
   onInputBlur
 }: SheetRowProps): React.JSX.Element {
   const money = useCurrency()
-  const note = rowNote(row)
+  // A card's row also says how much of the month's spending is on it.
+  const byBill = useSettings().data?.cardSpendingMonth !== 'purchase'
+  const onBill = !row.onBill
+    ? null
+    : row.onBill > 0
+      ? `${money.format(row.onBill)} ${byBill ? 'on this month’s bill' : 'spent on it this month'}`
+      : `${money.format(-row.onBill)} in refunds ${byBill ? 'on this month’s bill' : 'this month'}`
+  const note = [rowNote(row), onBill].filter(Boolean).join(' · ') || null
   const locked = lockedReason(row)
   const shown =
     saving === undefined ? cellValue(row) : { amount: savingValue(row, saving), planned: false }

@@ -11,6 +11,7 @@ import { categoryIconComponents } from '@renderer/features/categories/appearance
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, categoryPath, dayPath, ownerPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { countsInMonth } from './countsIn'
 import { duplicateTransaction, openTransactionDialog } from './dialogStore'
 
 const incoming: TransactionType[] = ['income', 'savings_withdrawal', 'loan_in', 'adjustment_in']
@@ -72,6 +73,8 @@ function TransactionRow({
   // Balance adjustments open in the same dialog, with their own form.
   const editable =
     tx.type === 'income' || tx.type === 'expense' || tx.type === 'transfer' || isAdjustment(tx.type)
+  // A card purchase counts when its bill is due; say so when that's another month.
+  const countsIn = countsInMonth(tx.date, tx.countsOn, money.locale)
   // Savings and loan payments are changed on their goal or loan.
   const owner = editable ? null : ownerPath(tx)
 
@@ -134,6 +137,7 @@ function TransactionRow({
           )}
           <span className="block truncate text-sm text-ink-muted">
             {details}
+            {countsIn && ` · counts in ${countsIn}`}
             {tx.note && <span className="italic"> · {tx.note}</span>}
           </span>
         </span>

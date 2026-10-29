@@ -80,6 +80,11 @@ export interface MonthSheetRow {
   overdue: boolean
   /** Typing an amount on it does something; card installments and personal loans don't. */
   editable: boolean
+  /**
+   * Card payment rows: the month's spending on the card, recorded and planned, less refunds.
+   * With card spending counted when the card is paid, that's what its bill brings this month.
+   */
+  onBill?: Cents
 }
 
 export interface MonthSheetSection {

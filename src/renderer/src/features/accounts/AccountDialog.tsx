@@ -28,6 +28,7 @@ import {
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { SegmentedControl } from '@renderer/components/ui/segmented-control'
+import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { ApiError } from '@renderer/lib/api'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
@@ -121,6 +122,9 @@ function AccountForm({
     deleteAccount.isPending
 
   const isCredit = type === 'credit'
+  // A new card's spending counts in the month its bill is paid, which needs both days.
+  const cardSpendingMonth = useSettings().data?.cardSpendingMonth ?? 'payment'
+  const daysRequired = isCredit && !existing && cardSpendingMonth === 'payment'
   const amountExample = money.toInput(123456)
   const clearError = (field: Field): void =>
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -149,6 +153,12 @@ function AccountForm({
         : 'Enter the card’s credit limit'
     }
     const day = (value: string): number | null => (value.trim() === '' ? null : Number(value))
+    if (daysRequired && day(statementDay) === null) {
+      found.statementDay = 'Enter the day of the month the statement closes, 1 to 31'
+    }
+    if (daysRequired && day(paymentDueDay) === null) {
+      found.paymentDueDay = 'Enter the day of the month the payment is due, 1 to 31'
+    }
 
     const common = { name, color, openingDate }
     const opening = balanceCents ?? 0
@@ -339,7 +349,7 @@ function AccountForm({
                   type="number"
                   min={1}
                   max={31}
-                  placeholder="Optional"
+                  placeholder={daysRequired ? 'e.g. 25' : 'Optional'}
                   value={statementDay}
                   {...errorProps('account-statement-day', errors.statementDay)}
                   onChange={(event) => {
@@ -355,7 +365,7 @@ function AccountForm({
                   type="number"
                   min={1}
                   max={31}
-                  placeholder="Optional"
+                  placeholder={daysRequired ? 'e.g. 15' : 'Optional'}
                   value={paymentDueDay}
                   {...errorProps('account-due-day', errors.paymentDueDay)}
                   onChange={(event) => {
@@ -369,7 +379,9 @@ function AccountForm({
             <FieldError id="account-statement-day-error" message={errors.statementDay} />
             <FieldError id="account-due-day-error" message={errors.paymentDueDay} />
             <p className="text-sm text-ink-muted">
-              Days of the month the statement closes and the payment is due, for reminders.
+              {cardSpendingMonth === 'payment'
+                ? 'Days of the month the statement closes and the payment is due. Spending on the card counts in the month you pay it: with 25 and 15, a purchase on 20 October counts in November.'
+                : 'Days of the month the statement closes and the payment is due, for reminders.'}
             </p>
           </div>
         )}

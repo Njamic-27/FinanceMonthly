@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Category } from '@shared/categories'
+import { countedDate } from '@shared/cards'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
 import {
@@ -45,6 +46,7 @@ import { parseCount } from '@renderer/features/installments/count'
 import { InstallmentsField } from '@renderer/features/installments/InstallmentsField'
 import { useCreateInstallmentPlan } from '@renderer/features/installments/queries'
 import { useCategories } from '@renderer/features/categories/queries'
+import { useSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath } from '@renderer/lib/links'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
@@ -56,6 +58,7 @@ import {
   type TransactionDialogTarget,
   type TransactionPrefill
 } from './dialogStore'
+import { countsInMonth } from './countsIn'
 import { AdjustmentForm } from './AdjustmentForm'
 import {
   useCreateTransaction,
@@ -159,6 +162,11 @@ function TransactionForm({
   const toAccount =
     kind === 'transfer' ? accounts.find((a) => String(a.id) === toAccountId) : undefined
   const category = categories.find((c) => String(c.id) === categoryId)
+  // A purchase on a card counts when its bill is due (PLAN.md step 42): say when.
+  const cardSpendingMonth = useSettings().data?.cardSpendingMonth ?? 'payment'
+  const countsOn =
+    account && kind !== 'transfer' ? countedDate(date, account, cardSpendingMonth) : date
+  const countsIn = countsInMonth(date, countsOn, money.locale)
   // Every account the transaction touches must already be open on its date.
   const opening = [account, toAccount]
     .filter((a): a is Account => !!a)
@@ -488,6 +496,13 @@ function TransactionForm({
                 onChange={changeAccount}
               />
               <FieldError id="tx-account-error" message={errors.accountId} />
+              {countsIn && account && (
+                <p className="text-sm text-ink-muted">
+                  {inInstallments && canSplit ? 'The first installment counts' : 'Counts'} in{' '}
+                  {countsIn} — {account.name} bill due{' '}
+                  {formatDate(countsOn, money.locale, { day: 'numeric', month: 'short' })}
+                </p>
+              )}
             </div>
           </>
         )}

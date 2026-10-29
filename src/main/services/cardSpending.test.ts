@@ -168,6 +168,15 @@ describe('counting by the bill', () => {
     expect(groceries).toMatchObject({ actual: expected, count: 2 })
   })
 
+  it('shows what each month’s card bill brings', () => {
+    const onBill = (month: string): number | undefined =>
+      monthSheet(db, { month }, TODAY)
+        .sections.flatMap((s) => s.rows)
+        .find((r) => r.kind === 'card_payment' && r.sourceId === card)?.onBill
+    expect(onBill('2026-11')).toBe(4000)
+    expect(onBill('2026-12')).toBe(1500)
+  })
+
   it('keeps real dates for balances and for what happened on a day', () => {
     // The card owed 40.00 from 20 October, the day of the purchase.
     expect(getAccount(db, card, '2026-10-20').balance).toBe(-4000)

@@ -9,11 +9,20 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 import { monthNet } from './cells'
 
-/** Today's total balance, the one bold panel; it opens Your accounts to correct balances. */
+/**
+ * The one bold panel: money in your accounts today (debit cards and cash) as the main number,
+ * and what's owed on cards beside it, so a card purchase doesn't look as if it already left
+ * your accounts. It opens Your accounts to correct balances.
+ */
 function BalanceTile(): React.JSX.Element {
   const money = useCurrency()
   const accounts = (useAccounts().data ?? []).filter((a) => !a.isArchived)
-  const total = accounts.reduce((sum, a) => sum + a.balance, 0)
+  const inAccounts = accounts
+    .filter((a) => a.type !== 'credit')
+    .reduce((sum, a) => sum + a.balance, 0)
+  const cards = accounts.filter((a) => a.type === 'credit')
+  // What the cards come to together: owed, or in credit after a refund or an overpayment.
+  const onCards = cards.reduce((sum, a) => sum + a.balance, 0)
   const [open, setOpen] = useState(false)
 
   return (
@@ -22,14 +31,25 @@ function BalanceTile(): React.JSX.Element {
         type="button"
         onClick={() => setOpen(true)}
         title="See each account and correct its balance"
-        className="group flex cursor-pointer flex-col items-start rounded-panel bg-banner p-6 text-left text-on-banner transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="group flex cursor-pointer flex-col rounded-panel bg-banner p-6 text-left text-on-banner transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <span className="text-on-banner/80">Total balance today</span>
-        <span className="amount mt-1 text-hero">{money.format(total)}</span>
-        <span className="mt-2 flex items-center gap-1.5 text-sm text-on-banner/80 group-hover:text-on-banner">
+        <span className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <span>
+            <span className="block text-on-banner/80">Money in accounts</span>
+            <span className="amount mt-1 block text-hero">{money.format(inAccounts)}</span>
+          </span>
+          {cards.length > 0 && (
+            <span className="pb-1.5">
+              <span className="block text-sm text-on-banner/80">
+                {onCards > 0 ? 'In credit on cards' : 'Owed on cards'}
+              </span>
+              <span className="amount block text-title">{money.format(Math.abs(onCards))}</span>
+            </span>
+          )}
+        </span>
+        <span className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-on-banner/80 group-hover:text-on-banner">
           <Pencil className="size-3.5" aria-hidden />
-          {accounts.length === 1 ? '1 account' : `${accounts.length} accounts`} · type the real
-          balance
+          Today, debit cards and cash · type the real balances
         </span>
       </button>
       <YourAccountsDialog open={open} onClose={() => setOpen(false)} />
@@ -81,7 +101,7 @@ function NetTile({
   )
 }
 
-/** The top of Month: today's total balance (click to correct it) and the month's net. */
+/** The top of Month: money in accounts and owed on cards (click to correct) and the month's net. */
 export function MonthHeader({
   month,
   summary
