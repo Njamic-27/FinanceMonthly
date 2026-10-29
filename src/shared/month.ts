@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { endOfMonth, isIsoDate, type DateRange, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
-import type { CalendarSummary } from './planned'
+import type { CalendarSummary, PlannedItem } from './planned'
 import { frequencies } from './recurring'
 
 // The Month sheet (PLAN.md §3, Month): one month at a time, like a monthly spreadsheet. Every
@@ -21,6 +21,32 @@ export const monthRange = (month: MonthKey): DateRange => ({
   start: `${month}-01`,
   end: endOfMonth(`${month}-01`)
 })
+
+/** A row's key on the sheet, as `kind:sourceId` ("category:4", "loan:2"). */
+export const monthRowKey = (row: { kind: string; sourceId: number }): string =>
+  `${row.kind}:${row.sourceId}`
+
+/**
+ * Month on `month` with a row's panel open (PLAN.md step 47): where reminders and planned
+ * payments send you, so everyday things are done on Month.
+ */
+export const monthRowPath = (month: MonthKey, row: { kind: string; sourceId: number }): string =>
+  `/?${new URLSearchParams({ month, row: monthRowKey(row) })}`
+
+/** A planned payment's row on Month: its item's, loan's or purchase's, where it counts. */
+export function plannedRowPath(planned: PlannedItem): string {
+  const month = monthKeyOf(planned.countsOn)
+  switch (planned.source) {
+    case 'recurring':
+      return monthRowPath(month, { kind: 'recurring', sourceId: planned.sourceId })
+    case 'installment_plan':
+      return monthRowPath(month, { kind: 'installment_plan', sourceId: planned.sourceId })
+    case 'loan_installment':
+      return planned.loanId
+        ? monthRowPath(month, { kind: 'loan', sourceId: planned.loanId })
+        : `/?${new URLSearchParams({ month })}`
+  }
+}
 
 /**
  * The date a monthly summary transaction gets: today in the current month, otherwise the

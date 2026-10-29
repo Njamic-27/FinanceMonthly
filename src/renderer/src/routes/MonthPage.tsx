@@ -60,7 +60,19 @@ export function MonthPage(): React.JSX.Element {
   // The open row is looked up again in fresh data, so its panel follows edits.
   const [open, setOpen] = useState<MonthSheetRow | null>(null)
   const rows = sheet.data?.sections.flatMap((s) => s.rows) ?? []
-  const openRow = open && (rows.find((r) => rowKey(r) === rowKey(open)) ?? open)
+  // `?row=kind:id` (from a reminder or a planned payment) opens that row's panel too.
+  const linkedRow = params.get('row')
+  const linked =
+    linkedRow && sheet.data?.month === month
+      ? (rows.find((r) => rowKey(r) === linkedRow) ?? null)
+      : null
+  const shown = open ?? linked
+  const openRow = shown && (rows.find((r) => rowKey(r) === rowKey(shown)) ?? shown)
+  const closeRow = (): void => {
+    setOpen(null)
+    // Leaves the address, so Back doesn't open it again.
+    if (linkedRow) setParams(calendarParams(first), { replace: true })
+  }
 
   const go = (next: IsoDate): void => {
     setOpen(null)
@@ -77,6 +89,10 @@ export function MonthPage(): React.JSX.Element {
 
   /** A dialog that adds something new: buying in installments needs a card first. */
   const openNew = (choice: AddChoice): void => {
+    if (choice === 'transfer') {
+      openTransactionDialog({ kind: 'new', prefill: { type: 'transfer', date } })
+      return
+    }
     if (choice !== 'installments') {
       setAdding(choice)
       return
@@ -190,7 +206,7 @@ export function MonthPage(): React.JSX.Element {
         </div>
       )}
 
-      <RowPanel month={month} row={openRow} onClose={() => setOpen(null)} onRename={setRenaming} />
+      <RowPanel month={month} row={openRow} onClose={closeRow} onRename={setRenaming} />
       <RenameRowDialog
         row={
           renaming && canRename(renaming)

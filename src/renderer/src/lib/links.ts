@@ -1,4 +1,5 @@
 import type { DateRange, IsoDate, PeriodKind } from '@shared/dates'
+import { plannedRowPath } from '@shared/month'
 import type { PlannedItem } from '@shared/planned'
 import type { Milestone } from '@shared/projection'
 import type { Transaction } from '@shared/transactions'
@@ -30,17 +31,11 @@ export const goalPath = (id: number): string => `/savings/${id}`
 
 export const loanPath = (id: number): string => `/loans/${id}`
 
-/** What a planned payment comes from: its recurring item, its card or its loan. */
-export function plannedPath(item: PlannedItem): string {
-  switch (item.source) {
-    case 'recurring':
-      return recurringPath(item.sourceId)
-    case 'installment_plan':
-      return accountPath(item.accountId)
-    case 'loan_installment':
-      return item.loanId ? loanPath(item.loanId) : '/loans'
-  }
-}
+/**
+ * A planned payment's row on Month, in the month it counts in, where it's paid, confirmed or
+ * changed (PLAN.md step 47).
+ */
+export const plannedPath = (item: PlannedItem): string => plannedRowPath(item)
 
 /**
  * Where a transaction the transaction dialog doesn't edit is changed: savings deposits and

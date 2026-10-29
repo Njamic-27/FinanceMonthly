@@ -1,5 +1,6 @@
 import { Notification } from 'electron'
 import type { IsoDate } from '@shared/dates'
+import { monthKeyOf, monthRowPath } from '@shared/month'
 import type { UpcomingPayment } from '@shared/planned'
 import type { Settings } from '@shared/settings'
 import { cardReminderMessage, type CardReminder } from '../services/cards'
@@ -23,7 +24,7 @@ export function showReminders(
   return true
 }
 
-/** Shows credit card reminders; clicking one opens that card. */
+/** Shows credit card reminders; clicking one opens the card's row on Month, the bill's month. */
 export function showCardReminders(
   reminders: CardReminder[],
   settings: Pick<Settings, 'currency' | 'locale'>,
@@ -36,7 +37,14 @@ export function showCardReminders(
       ...cardReminderMessage(reminder, settings, today),
       icon
     })
-    notification.on('click', () => showMainWindow(`/accounts/${reminder.accountId}`))
+    notification.on('click', () =>
+      showMainWindow(
+        monthRowPath(monthKeyOf(reminder.dueDate ?? reminder.date), {
+          kind: 'card_payment',
+          sourceId: reminder.accountId
+        })
+      )
+    )
     notification.show()
   }
   return true

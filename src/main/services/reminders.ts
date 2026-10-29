@@ -2,6 +2,7 @@ import type { Database } from 'better-sqlite3'
 import { addDays, type IsoDate } from '@shared/dates'
 import { formatMoney } from '@shared/money'
 import { LOAN_REMINDER_DAYS } from '@shared/loans'
+import { plannedRowPath } from '@shared/month'
 import type { PlannedItem, UpcomingPayment } from '@shared/planned'
 import type { Settings } from '@shared/settings'
 import { listRecurringItems } from '../db/repositories/recurring'
@@ -125,7 +126,7 @@ export function reminderMessages(
   return reminders.map(({ planned }) => ({
     title: `${planned.title} ${planned.group === 'income' ? 'arrives' : 'is due'} ${when(planned.date, today, settings.locale)}`,
     body: [money(planned.amount), accounts.get(planned.accountId)].filter(Boolean).join(' · '),
-    // A loan installment opens its loan; a recurring payment, Month, where it's confirmed.
-    path: planned.source === 'loan_installment' && planned.loanId ? `/loans/${planned.loanId}` : '/'
+    // Each opens its row on Month, in the month it counts in, where it's paid or confirmed.
+    path: plannedRowPath(planned)
   }))
 }

@@ -1,11 +1,15 @@
 import type { Cents } from '@shared/money'
-import { renamableRowKinds, type MonthSectionKey, type MonthSheetRow } from '@shared/month'
+import {
+  monthRowKey,
+  renamableRowKinds,
+  type MonthSectionKey,
+  type MonthSheetRow
+} from '@shared/month'
 import type { CalendarSummary } from '@shared/planned'
 
 // What the Month sheet's cells show, and when typing into one saves something.
 
-export const rowKey = (row: Pick<MonthSheetRow, 'kind' | 'sourceId'>): string =>
-  `${row.kind}:${row.sourceId}`
+export const rowKey = (row: Pick<MonthSheetRow, 'kind' | 'sourceId'>): string => monthRowKey(row)
 
 export const sectionTitles: Record<MonthSectionKey, string> = {
   income: 'Income',
@@ -118,7 +122,15 @@ export function sheetAmount(
 
 /** A dialog "+" opens to add something new (see addMenuEntries.ts). */
 export type AddChoice =
-  'subscription' | 'installments' | 'card' | 'bank_loan' | 'borrowed' | 'lent' | 'goal' | 'account'
+  | 'subscription'
+  | 'installments'
+  | 'card'
+  | 'bank_loan'
+  | 'borrowed'
+  | 'lent'
+  | 'goal'
+  | 'account'
+  | 'transfer'
 
 export const canRename = (row: MonthSheetRow): boolean =>
   (renamableRowKinds as readonly string[]).includes(row.kind)

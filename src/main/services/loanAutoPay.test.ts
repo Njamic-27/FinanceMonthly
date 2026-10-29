@@ -114,7 +114,7 @@ describe('reminders for loans paid by hand', () => {
     expect(dueReminders(db, TODAY)).toEqual([])
   })
 
-  it('open the loan when clicked', () => {
+  it('open the loan’s row on Month when clicked', () => {
     const id = later({ autoPay: false })
     const [message] = reminderMessages(
       dueReminders(db, TODAY),
@@ -125,7 +125,7 @@ describe('reminders for loans paid by hand', () => {
     expect(message).toEqual({
       title: 'Car loan (1/3) is due on Friday 30 Oct',
       body: '€1,000.00 · Visa Debit',
-      path: `/loans/${id}`
+      path: `/?month=2026-10&row=loan%3A${id}`
     })
   })
 })

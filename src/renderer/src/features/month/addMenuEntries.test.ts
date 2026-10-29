@@ -43,7 +43,7 @@ describe('addMenu', () => {
         'Money lent'
       ],
       Savings: ['Put into Holiday', 'Take out of Holiday', 'Put into New bike', 'New savings goal'],
-      Accounts: ['Add an account or card']
+      Accounts: ['Move money between accounts', 'Add an account or card']
     })
   })
 

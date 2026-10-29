@@ -57,8 +57,18 @@ page content. `prefers-reduced-motion` disables all of it.
 Anything that mentions something else opens it, from every screen: a day → that day in the
 Calendar, a week or month → Overview (future periods → Calendar), an account → its page, a
 category → Transactions filtered to it (and the period, if any), a transaction → its edit
-dialog, a recurring item → its edit dialog on Recurring, a goal or loan → its page. Paths are
-built in `src/renderer/src/lib/links.ts`; never hand-write them.
+dialog, a recurring item → its edit dialog on Recurring, a goal or loan → its page. A planned
+payment, and every reminder, opens its **row on Month** (`/?month=…&row=kind:id`), where it's
+paid or confirmed. Paths are built in `src/renderer/src/lib/links.ts` and `monthRowPath` in
+`src/shared/month.ts`; never hand-write them.
+
+## Month first
+
+Everyday use happens on Month; the screens under "More" are for looking things up. Anything
+done every day — adding, confirming, paying, correcting a balance, editing or deleting — is
+reachable from Month without leaving it: "+" on Income and Expenses, a row's side panel
+(`DialogContent side`), Waiting for you, and Your accounts. A link to another screen from Month
+is only ever an extra ("Open full page").
 
 - `link` — a reference in text: primary and underlined on hover.
 - `link-row` — a row or tile that opens as a whole: `surface-2` background on hover.

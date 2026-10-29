@@ -172,12 +172,21 @@ describe('reminderMessages', () => {
         TODAY
       )
     ).toEqual([
-      { title: 'Netflix is due today', body: '€13.99 · Mastercard', path: '/' },
-      { title: 'Spotify is due tomorrow', body: '€13.99 · Mastercard', path: '/' },
+      // Each opens its row on Month, in the month it counts in.
+      {
+        title: 'Netflix is due today',
+        body: '€13.99 · Mastercard',
+        path: '/?month=2026-10&row=recurring%3A1'
+      },
+      {
+        title: 'Spotify is due tomorrow',
+        body: '€13.99 · Mastercard',
+        path: '/?month=2026-10&row=recurring%3A1'
+      },
       {
         title: 'Salary arrives on Friday 30 Oct',
         body: '€13.99 · Mastercard',
-        path: '/'
+        path: '/?month=2026-10&row=recurring%3A1'
       }
     ])
   })

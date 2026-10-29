@@ -144,7 +144,13 @@ export function addMenu(
           open('goal', 'New savings goal')
         ]
       },
-      { heading: 'Accounts', entries: [open('account', 'Add an account or card')] }
+      {
+        heading: 'Accounts',
+        entries: [
+          open('transfer', 'Move money between accounts', 'A cash withdrawal, a transfer'),
+          open('account', 'Add an account or card')
+        ]
+      }
     )
   }
 

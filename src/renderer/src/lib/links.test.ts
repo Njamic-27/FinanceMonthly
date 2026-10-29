@@ -31,7 +31,7 @@ describe('links', () => {
     )
   })
 
-  it('opens what a planned payment comes from', () => {
+  it('opens a planned payment’s row on Month, in the month it counts', () => {
     const planned = (patch: Partial<PlannedItem>): PlannedItem => ({
       source: 'recurring',
       sourceId: 7,
@@ -45,9 +45,19 @@ describe('links', () => {
       overdue: false,
       ...patch
     })
-    expect(plannedPath(planned({}))).toBe('/recurring?edit=7')
-    expect(plannedPath(planned({ source: 'installment_plan' }))).toBe('/accounts/2')
-    expect(plannedPath(planned({ source: 'loan_installment', loanId: 3 }))).toBe('/loans/3')
+    const row = (path: string): [string | null, string | null] => {
+      const params = new URLSearchParams(path.split('?')[1])
+      return [params.get('month'), params.get('row')]
+    }
+    expect(row(plannedPath(planned({})))).toEqual(['2026-10', 'recurring:7'])
+    // A charge on a card counts when its bill is due.
+    expect(
+      row(plannedPath(planned({ source: 'installment_plan', countsOn: '2026-11-15' })))
+    ).toEqual(['2026-11', 'installment_plan:7'])
+    expect(row(plannedPath(planned({ source: 'loan_installment', loanId: 3 })))).toEqual([
+      '2026-10',
+      'loan:3'
+    ])
   })
 
   it('opens savings and loan payments on their goal or loan', () => {
