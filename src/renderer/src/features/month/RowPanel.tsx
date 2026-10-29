@@ -5,13 +5,12 @@ import type { Account } from '@shared/accounts'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { monthRange, summaryDate, type MonthKey, type MonthSheetRow } from '@shared/month'
 import { goalShare } from '@shared/savings'
-import type { DayTotal, Transaction } from '@shared/transactions'
+import type { DayTotal } from '@shared/transactions'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle
 } from '@renderer/components/ui/dialog'
@@ -33,7 +32,7 @@ import {
   PayInstallmentDialog,
   type PayInstallmentTarget
 } from '@renderer/features/loans/PayInstallmentDialog'
-import { useLoans, useUnpayInstallment } from '@renderer/features/loans/queries'
+import { useLoans } from '@renderer/features/loans/queries'
 import {
   RepaymentDialog,
   type RepaymentDialogTarget
@@ -59,6 +58,8 @@ import { TransactionList } from '@renderer/features/transactions/TransactionList
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, categoryPath, goalPath, loanPath, recurringPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
+import { Confirm } from './Confirm'
+import { useOwnedEditor } from './useOwnedEditor'
 import { useClearMonthRow, useHideMonthRow, useMonthRowTransactions } from './queries'
 
 /** Where the thing behind a row has its own page, a secondary way to see more. */
@@ -97,44 +98,6 @@ function Fact({
 
 function Actions({ children }: { children: React.ReactNode }): React.JSX.Element {
   return <div className="flex flex-wrap gap-2">{children}</div>
-}
-
-/** Asks before something that can't be undone. */
-function Confirm({
-  open,
-  title,
-  description,
-  action,
-  pending,
-  onConfirm,
-  onCancel
-}: {
-  open: boolean
-  title: string
-  description: string
-  action: string
-  pending: boolean
-  onConfirm: () => void
-  onCancel: () => void
-}): React.JSX.Element {
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Keep it
-          </Button>
-          <Button variant="danger" disabled={pending} onClick={onConfirm}>
-            {action}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
 }
 
 function CategoryDetails({
@@ -586,14 +549,9 @@ export function RowPanel({
   const money = useCurrency()
   const accounts = useAccounts().data ?? []
   const categories = useCategories().data ?? []
-  const loans = useLoans().data ?? []
-  const goals = useSavingsGoals().data ?? []
   const list = useMonthRowTransactions(row && { month, kind: row.kind, sourceId: row.sourceId })
   const transactions = list.data ?? []
-  const unpay = useUnpayInstallment()
-  const [movement, setMovement] = useState<MovementDialogTarget | null>(null)
-  const [repayment, setRepayment] = useState<RepaymentDialogTarget | null>(null)
-  const [undoing, setUndoing] = useState<Transaction | null>(null)
+  const owned = useOwnedEditor()
 
   const dayTotals = new Map<IsoDate, DayTotal>()
   for (const tx of transactions) {
@@ -601,19 +559,6 @@ export function RowPanel({
     if (tx.type === 'income') day.income += tx.amount
     if (tx.type === 'expense') day.expenses += tx.amount
     dayTotals.set(tx.date, day)
-  }
-
-  /** Savings and loan movements open in their own dialogs, right here. */
-  const openOwned = (tx: Transaction): void => {
-    const goal = goals.find((g) => g.id === tx.savingsGoalId)
-    if (goal) {
-      setMovement({ kind: 'edit', goal, movement: tx })
-      return
-    }
-    const loan = loans.find((l) => l.id === tx.loanId)
-    if (!loan) return
-    if (loan.kind !== 'bank_loan') setRepayment({ kind: 'edit', loan, repayment: tx })
-    else if (tx.loanInstallmentId !== null) setUndoing(tx)
   }
 
   const page = row && rowPage(row, month)
@@ -666,7 +611,7 @@ export function RowPanel({
                   dayTotals={dayTotals}
                   accounts={accounts}
                   categories={categories}
-                  onOpenOwned={openOwned}
+                  onOpenOwned={owned.open}
                 />
               ) : (
                 !list.isPending && (
@@ -689,27 +634,7 @@ export function RowPanel({
             )}
           </div>
         )}
-        <MovementDialog target={movement} onClose={() => setMovement(null)} />
-        <RepaymentDialog target={repayment} onClose={() => setRepayment(null)} />
-        <Confirm
-          open={undoing !== null}
-          title="Undo this installment payment?"
-          description="The payment is deleted and the installment is due again."
-          action="Undo payment"
-          pending={unpay.isPending}
-          onCancel={() => setUndoing(null)}
-          onConfirm={() => {
-            if (undoing?.loanInstallmentId == null) return
-            unpay.mutate(undoing.loanInstallmentId, {
-              onSuccess: () => {
-                toast({ title: 'Payment undone', variant: 'success' })
-                setUndoing(null)
-              },
-              onError: (error) =>
-                toast({ title: 'Not undone', description: error.message, variant: 'error' })
-            })
-          }}
-        />
+        {owned.dialogs}
       </DialogContent>
     </Dialog>
   )

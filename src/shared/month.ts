@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { endOfMonth, isIsoDate, type DateRange, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 import type { CalendarSummary, PlannedItem } from './planned'
+import type { Transaction } from './transactions'
 import { frequencies } from './recurring'
 
 // The Month sheet (PLAN.md §3, Month): one month at a time, like a monthly spreadsheet. Every
@@ -183,20 +184,30 @@ export interface MonthSheet {
 
 const monthKey = z.string().refine(isMonthKey, 'Choose a month')
 
-/**
- * One account's spending in a month (PLAN.md step 46): expenses counted then (for a card, on
- * the bill due that month) and those still planned.
- */
-export interface AccountSpending {
-  accountId: number
-  recorded: Cents
-  /** Still to come; only for the current and later months, as in the month's net. */
-  planned: Cents
-  /** Recorded transactions. */
-  count: number
+export const monthSheetQuerySchema = z.object({ month: monthKey }).strict()
+
+/** One money-out line, to list what it's made of (PLAN.md step 50). */
+export const moneyOutQuerySchema = z
+  .object({
+    month: monthKey,
+    accountId: z.number().int().positive(),
+    group: z.enum(['subscriptions', 'bills', 'everyday', 'loans', 'savings', 'card']),
+    cardId: z.number().int().positive().nullable()
+  })
+  .strict()
+export type MoneyOutQuery = z.input<typeof moneyOutQuerySchema>
+
+/** A payment still to come on a money-out line; a savings plan has no date. */
+export interface MoneyOutPlanned {
+  title: string
+  date: IsoDate | null
+  amount: Cents
 }
 
-export const monthSheetQuerySchema = z.object({ month: monthKey }).strict()
+export interface MoneyOutItems {
+  transactions: Transaction[]
+  planned: MoneyOutPlanned[]
+}
 export type MonthSheetQuery = z.input<typeof monthSheetQuerySchema>
 
 /** Typing an amount into a row's cell. */

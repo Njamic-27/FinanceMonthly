@@ -10,7 +10,7 @@ import { createRecurringItem } from '../db/repositories/recurring'
 import { addSavingsMovement, createSavingsGoal } from '../db/repositories/savings'
 import { createTransaction } from '../db/repositories/transactions'
 import { cardBillsDue } from './cards'
-import { monthSheet } from './monthSheet'
+import { moneyOutItems, monthSheet } from './monthSheet'
 import { postDueInstallments, postDueItems } from './posting'
 
 // A credit card is a bill paid from a debit account (PLAN.md §2, step 49): its purchases count
@@ -215,6 +215,36 @@ describe('money out', () => {
     expect(line(debit, 'loans')).toBe(30000)
     expect(line(debit, 'savings')).toBe(4000)
     expect(line(debit, 'card')).toBe(10000 + 1399)
+  })
+
+  it('lists what each line is made of, adding up to it', () => {
+    const november = sheet('2026-11')
+    for (const line of november.byAccount) {
+      const { accountId, group, cardId } = line
+      const items = moneyOutItems(db, { month: '2026-11', accountId, group, cardId }, TODAY)
+      const recorded = items.transactions.reduce(
+        (sum, t) =>
+          sum + (t.type === 'loan_in' || t.type === 'savings_withdrawal' ? -t.amount : t.amount),
+        0
+      )
+      expect(recorded).toBe(line.recorded)
+      expect(items.planned.reduce((sum, p) => sum + p.amount, 0)).toBe(line.planned)
+    }
+    // The card's bill: each purchase by name, with the day it was bought.
+    const bill = moneyOutItems(
+      db,
+      { month: '2026-11', accountId: debit, group: 'card', cardId: card },
+      TODAY
+    )
+    expect(bill.transactions.map((t) => [t.date, t.title]).sort()).toEqual([
+      ['2026-10-05', 'Netflix'],
+      ['2026-10-10', 'PlayStation (1/6)']
+    ])
+    // The loan's installment, still to pay.
+    expect(
+      moneyOutItems(db, { month: '2026-11', accountId: debit, group: 'loans', cardId: null }, TODAY)
+        .planned
+    ).toEqual([expect.objectContaining({ date: '2026-11-20', amount: 30000 })])
   })
 })
 

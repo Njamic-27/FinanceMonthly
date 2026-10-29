@@ -20,8 +20,12 @@ import {
   type MonthSheetRow,
   type MonthSheetSection,
   type MonthTotals,
+  moneyOutQuerySchema,
   type MoneyOutGroup,
-  type MoneyOutLine
+  type MoneyOutItems,
+  type MoneyOutLine,
+  type MoneyOutPlanned,
+  type MoneyOutQuery
 } from '@shared/month'
 import type { PlannedItem } from '@shared/planned'
 import type { Account } from '@shared/accounts'
@@ -430,13 +434,17 @@ export function monthTotals(sections: MonthSheetSection[], projected: boolean): 
   }
 }
 
-/**
- * Money out by the account it left from (PLAN.md step 49): for each debit account and cash, a
- * line per group for what it paid itself, and a line per credit card whose bill it pays, with
- * the card's spending this month. Built from the same transactions and planned payments as the
- * sheet's rows, so the lines add up to money out.
- */
-function moneyOutByAccount(input: {
+/** One piece of money out: a transaction or a planned payment, and the line it belongs to. */
+interface MoneyOutEntry {
+  line: Pick<MoneyOutLine, 'accountId' | 'group' | 'cardId'>
+  kind: 'recorded' | 'planned'
+  /** + money out, − money back (a withdrawal, money borrowed). */
+  amount: number
+  transaction?: Transaction
+  planned?: MoneyOutPlanned
+}
+
+interface MoneyOutInput {
   txs: Transaction[]
   planned: PlannedItem[]
   savingsPlanned: MonthSheetRow[]
@@ -444,30 +452,27 @@ function moneyOutByAccount(input: {
   categories: Category[]
   recurringItems: RecurringItem[]
   projected: boolean
-}): MoneyOutLine[] {
+}
+
+/**
+ * Every piece of money out in the month (PLAN.md step 49), each on its line: for a debit
+ * account or cash, the group it's in; for a card, one line under the account its bill is paid
+ * from. Built from the same transactions and planned payments as the sheet's rows.
+ */
+function moneyOutEntries(input: MoneyOutInput): MoneyOutEntry[] {
   const { txs, planned, accounts, categories, recurringItems, projected } = input
   const firstDebit =
     accounts.find((a) => a.type === 'debit' && !a.isArchived) ??
     accounts.find((a) => a.type !== 'credit')
-  const lines = new Map<string, MoneyOutLine>()
-  const add = (
+  const lineOf = (
     accountId: number,
-    group: Exclude<MoneyOutGroup, 'card'>,
-    amount: number,
-    kind: 'recorded' | 'planned'
-  ): void => {
+    group: Exclude<MoneyOutGroup, 'card'>
+  ): MoneyOutEntry['line'] => {
     const account = accounts.find((a) => a.id === accountId)
     // A card's spending goes to the account its bill is paid from, as one line.
-    const isCard = account?.type === 'credit'
-    const owner = isCard ? (account.payFromAccountId ?? firstDebit?.id ?? accountId) : accountId
-    const line: Pick<MoneyOutLine, 'accountId' | 'group' | 'cardId'> = isCard
-      ? { accountId: owner, group: 'card', cardId: accountId }
-      : { accountId, group, cardId: null }
-    const key = `${line.accountId}:${line.group}:${line.cardId}`
-    const entry = lines.get(key) ?? { ...line, recorded: 0, planned: 0, count: 0 }
-    entry[kind] += amount
-    if (kind === 'recorded') entry.count += 1
-    lines.set(key, entry)
+    if (account?.type !== 'credit') return { accountId, group, cardId: null }
+    const owner = account.payFromAccountId ?? firstDebit?.id ?? accountId
+    return { accountId: owner, group: 'card', cardId: accountId }
   }
   const groupOf = (categoryId: number | null, recurringItemId: number | null): ExpenseGroup => {
     const item = recurringItems.find((i) => i.id === recurringItemId)
@@ -476,27 +481,96 @@ function moneyOutByAccount(input: {
     return categories.find((c) => c.id === (item?.categoryId ?? categoryId))?.group ?? 'everyday'
   }
 
+  const entries: MoneyOutEntry[] = []
+  const recorded = (t: Transaction, group: Exclude<MoneyOutGroup, 'card'>, sign: 1 | -1): void => {
+    entries.push({
+      line: lineOf(t.accountId, group),
+      kind: 'recorded',
+      amount: sign * t.amount,
+      transaction: t
+    })
+  }
   for (const t of txs) {
-    if (t.type === 'expense')
-      add(t.accountId, groupOf(t.categoryId, t.recurringItemId), t.amount, 'recorded')
-    else if (t.type === 'loan_out') add(t.accountId, 'loans', t.amount, 'recorded')
-    else if (t.type === 'loan_in') add(t.accountId, 'loans', -t.amount, 'recorded')
-    else if (t.type === 'savings_deposit') add(t.accountId, 'savings', t.amount, 'recorded')
-    else if (t.type === 'savings_withdrawal') add(t.accountId, 'savings', -t.amount, 'recorded')
+    if (t.type === 'expense') recorded(t, groupOf(t.categoryId, t.recurringItemId), 1)
+    else if (t.type === 'loan_out') recorded(t, 'loans', 1)
+    else if (t.type === 'loan_in') recorded(t, 'loans', -1)
+    else if (t.type === 'savings_deposit') recorded(t, 'savings', 1)
+    else if (t.type === 'savings_withdrawal') recorded(t, 'savings', -1)
   }
   if (projected) {
+    const plannedEntry = (
+      accountId: number,
+      group: Exclude<MoneyOutGroup, 'card'>,
+      item: MoneyOutPlanned
+    ): void => {
+      entries.push({
+        line: lineOf(accountId, group),
+        kind: 'planned',
+        amount: item.amount,
+        planned: item
+      })
+    }
     for (const p of planned) {
+      const item = { title: p.title, date: p.date, amount: p.amount }
       if (p.group === 'expense') {
         const recurringItemId = p.source === 'recurring' ? p.sourceId : null
-        add(p.accountId, groupOf(p.categoryId, recurringItemId), p.amount, 'planned')
-      } else if (p.group === 'loan') add(p.accountId, 'loans', p.amount, 'planned')
+        plannedEntry(p.accountId, groupOf(p.categoryId, recurringItemId), item)
+      } else if (p.group === 'loan') plannedEntry(p.accountId, 'loans', item)
     }
     for (const row of input.savingsPlanned) {
-      if (row.planned !== 0 && row.accountId !== null)
-        add(row.accountId, 'savings', row.planned, 'planned')
+      if (row.planned !== 0 && row.accountId !== null) {
+        plannedEntry(row.accountId, 'savings', {
+          title: row.title,
+          date: null,
+          amount: row.planned
+        })
+      }
     }
   }
-  return [...lines.values()]
+  return entries
+}
+
+const sameLine = (
+  a: Pick<MoneyOutLine, 'accountId' | 'group' | 'cardId'>,
+  b: Pick<MoneyOutLine, 'accountId' | 'group' | 'cardId'>
+): boolean => a.accountId === b.accountId && a.group === b.group && a.cardId === b.cardId
+
+/** Money out by line; the lines add up to money out. */
+function moneyOutByAccount(input: MoneyOutInput): MoneyOutLine[] {
+  const lines: MoneyOutLine[] = []
+  for (const entry of moneyOutEntries(input)) {
+    let line = lines.find((l) => sameLine(l, entry.line))
+    if (!line) {
+      line = { ...entry.line, recorded: 0, planned: 0, count: 0 }
+      lines.push(line)
+    }
+    line[entry.kind] += entry.amount
+    if (entry.kind === 'recorded') line.count += 1
+  }
+  return lines
+}
+
+/**
+ * What one money-out line is made of (PLAN.md step 50): its transactions counted in the month,
+ * newest first, and what's still planned.
+ */
+export function moneyOutItems(db: Database, input: MoneyOutQuery, today: IsoDate): MoneyOutItems {
+  const query = moneyOutQuerySchema.parse(input)
+  const range = monthRange(query.month)
+  const sheet = monthSheet(db, { month: query.month }, today)
+  const entries = moneyOutEntries({
+    txs: transactionsIn(db, query.month, '1'),
+    planned: plannedCountedIn(db, range, today),
+    savingsPlanned: sheet.sections.find((s) => s.key === 'savings')?.rows ?? [],
+    accounts: listAccounts(db, today),
+    categories: listCategories(db),
+    recurringItems: listRecurringItems(db),
+    projected: range.end >= today
+  }).filter((e) => sameLine(e.line, query))
+  return {
+    transactions: entries.flatMap((e) => e.transaction ?? []).reverse(),
+    planned: entries.flatMap((e) => e.planned ?? [])
+  }
 }
 
 const money = (db: Database, cents: Cents): string => formatMoney(cents, getSettings(db))

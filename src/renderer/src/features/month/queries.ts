@@ -7,7 +7,8 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type {
-  AccountSpending,
+  MoneyOutItems,
+  MoneyOutQuery,
   MonthCellInput,
   MonthKey,
   MonthLineInput,
@@ -26,7 +27,7 @@ import { invoke } from '@renderer/lib/api'
 export const monthKeys = {
   sheet: (month: MonthKey) => ['stats', 'month', month] as const,
   row: (query: MonthRowQuery | null) => ['stats', 'month-row', query] as const,
-  spending: (month: MonthKey) => ['stats', 'month-spending', month] as const
+  items: (query: MoneyOutQuery | null) => ['stats', 'month-items', query] as const
 }
 
 /** One month of the Month sheet: sections, rows, totals and the summary. */
@@ -38,12 +39,12 @@ export function useMonthSheet(month: MonthKey): UseQueryResult<MonthSheet> {
   })
 }
 
-/** The month's spending by the account it was paid with. */
-export function useSpendingByAccount(month: MonthKey): UseQueryResult<AccountSpending[]> {
+/** What one money-out line is made of; nothing while `query` is null. */
+export function useMoneyOutItems(query: MoneyOutQuery | null): UseQueryResult<MoneyOutItems> {
   return useQuery({
-    queryKey: monthKeys.spending(month),
-    queryFn: () => invoke('month:spendingByAccount', { month }),
-    placeholderData: keepPreviousData
+    queryKey: monthKeys.items(query),
+    queryFn: () => invoke('month:moneyOutItems', query as MoneyOutQuery),
+    enabled: query !== null
   })
 }
 

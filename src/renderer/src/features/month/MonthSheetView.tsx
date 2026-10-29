@@ -408,19 +408,20 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
 type ExpensesView = 'category' | 'method'
 
 const viewOptions: { value: ExpensesView; label: string }[] = [
-  { value: 'category', label: 'By category' },
-  { value: 'method', label: 'By payment method' }
+  { value: 'method', label: 'By payment method' },
+  { value: 'category', label: 'By category' }
 ]
 
-const VIEW_KEY = 'month-expenses-view'
+// By payment method is the main view (PLAN.md step 50); the key is new so it starts there.
+const VIEW_KEY = 'month-money-out-view'
 
 /** How Expenses are shown, remembered between visits (only on this computer). */
 function useExpensesView(): [ExpensesView, (view: ExpensesView) => void] {
   const [view, setView] = useState<ExpensesView>(() => {
     try {
-      return localStorage.getItem(VIEW_KEY) === 'method' ? 'method' : 'category'
+      return localStorage.getItem(VIEW_KEY) === 'category' ? 'category' : 'method'
     } catch {
-      return 'category'
+      return 'method'
     }
   })
   const choose = (next: ExpensesView): void => {
@@ -858,7 +859,7 @@ export function MonthSheetView({
           }
         />
         {view === 'method' ? (
-          <PaymentMethodView month={month} />
+          <PaymentMethodView month={month} lines={sheet.byAccount} />
         ) : (
           <>
             {groups.map(renderSection)}

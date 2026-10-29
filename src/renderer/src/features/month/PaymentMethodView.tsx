@@ -1,76 +1,105 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import type { Account, AccountType } from '@shared/accounts'
-import type { AccountSpending, MonthKey } from '@shared/month'
+import { ChevronDown, CreditCard } from 'lucide-react'
+import type { MonthKey, MoneyOutGroup, MoneyOutLine } from '@shared/month'
 import { ColorChip } from '@renderer/components/ColorChip'
 import { Card } from '@renderer/components/ui/card'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
 import { useAccounts } from '@renderer/features/accounts/queries'
-import { useCurrency } from '@renderer/hooks/useCurrency'
+import { useCurrency, type CurrencyTools } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
-import { AccountSpendingDialog } from './AccountSpendingDialog'
-import { useSpendingByAccount } from './queries'
+import { MoneyOutLineDialog } from './MoneyOutLineDialog'
+import { lineLabel } from './moneyOut'
 
-const groupTitles: { type: AccountType; title: string }[] = [
-  { type: 'debit', title: 'Debit cards' },
-  { type: 'cash', title: 'Cash' },
-  { type: 'credit', title: 'Credit cards' }
+type MethodGroup = 'debit' | 'cash'
+
+const methodTitles: Record<MethodGroup, string> = { debit: 'Debit', cash: 'Cash' }
+
+const groupOrder: MoneyOutGroup[] = [
+  'subscriptions',
+  'bills',
+  'everyday',
+  'loans',
+  'savings',
+  'card'
 ]
 
-const totalOf = (s: AccountSpending): number => s.recorded + s.planned
+const totalOf = (l: Pick<MoneyOutLine, 'recorded' | 'planned'>): number => l.recorded + l.planned
+
+/** Money out reads plain; money coming back (more taken out of savings than put in) gets "+". */
+function formatOut(money: CurrencyTools, amount: number): string {
+  return amount < 0 ? money.format(-amount, 'always') : money.format(amount)
+}
 
 /**
- * The month's spending by payment method (PLAN.md step 46): debit cards, cash and credit cards,
- * each account's total under its group's. Counted like the rest of the sheet (a card's is what
- * its bill due this month brings), so the groups add up to the month's expenses. A group
- * folds away on a click; an account opens its transactions.
+ * Money out by payment method (PLAN.md step 50), the main view: Debit and Cash, each account
+ * with a line per group for what it paid and a line per card whose bill it pays. The lines
+ * add up to money out. A group folds away on a click; a line opens what it's made of.
  */
-export function PaymentMethodView({ month }: { month: MonthKey }): React.JSX.Element {
+export function PaymentMethodView({
+  month,
+  lines
+}: {
+  month: MonthKey
+  lines: MoneyOutLine[]
+}): React.JSX.Element {
   const money = useCurrency()
   const accounts = useAccounts().data ?? []
-  const spending = useSpendingByAccount(month).data ?? []
-  const [folded, setFolded] = useState<Set<AccountType>>(() => new Set())
-  const [open, setOpen] = useState<Account | null>(null)
+  const [folded, setFolded] = useState<Set<MethodGroup>>(() => new Set())
+  const [open, setOpen] = useState<MoneyOutLine | null>(null)
   // Looked up again in fresh data, so the popup's total follows edits made in it.
-  const openSpending = open && spending.find((s) => s.accountId === open.id)
+  const openLine =
+    open &&
+    (lines.find(
+      (l) => l.accountId === open.accountId && l.group === open.group && l.cardId === open.cardId
+    ) ?? { ...open, recorded: 0, planned: 0, count: 0 })
 
-  const groups = groupTitles
-    .map(({ type, title }) => {
-      const rows = spending
-        .map((s) => ({ spending: s, account: accounts.find((a) => a.id === s.accountId) }))
-        .filter(
-          (r): r is { spending: AccountSpending; account: Account } =>
-            r.account?.type === type && totalOf(r.spending) > 0
-        )
-        .sort((a, b) => totalOf(b.spending) - totalOf(a.spending))
-      return { type, title, rows, total: rows.reduce((sum, r) => sum + totalOf(r.spending), 0) }
+  const shown = lines.filter((l) => totalOf(l) !== 0 || l.count > 0)
+  const methods = (['debit', 'cash'] as MethodGroup[])
+    .map((method) => {
+      // A card paid from nothing (no debit account yet) shows under Debit with its own name.
+      const owners = accounts.filter((a) =>
+        method === 'cash' ? a.type === 'cash' : a.type !== 'cash'
+      )
+      const byAccount = owners
+        .map((account) => ({
+          account,
+          lines: shown
+            .filter((l) => l.accountId === account.id)
+            .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group))
+        }))
+        .filter((a) => a.lines.length > 0)
+      const total = byAccount.reduce(
+        (sum, a) => sum + a.lines.reduce((s, l) => s + totalOf(l), 0),
+        0
+      )
+      return { method, byAccount, total }
     })
-    .filter((g) => g.rows.length > 0)
+    .filter((m) => m.byAccount.length > 0)
 
-  const toggle = (type: AccountType): void =>
+  const toggle = (method: MethodGroup): void =>
     setFolded((current) => {
       const next = new Set(current)
-      if (next.has(type)) next.delete(type)
-      else next.add(type)
+      if (next.has(method)) next.delete(method)
+      else next.add(method)
       return next
     })
 
-  if (groups.length === 0) {
-    return <p className="px-1 text-ink-muted">Nothing spent this month yet.</p>
+  if (methods.length === 0) {
+    return <p className="px-1 text-ink-muted">Nothing has left your accounts this month yet.</p>
   }
 
   return (
     <>
-      {groups.map((group) => {
-        const isOpen = !folded.has(group.type)
-        const listId = `month-method-${group.type}`
+      {methods.map(({ method, byAccount, total }) => {
+        const isOpen = !folded.has(method)
+        const listId = `month-method-${method}`
         return (
-          <Card key={group.type} className="p-0">
+          <Card key={method} className="p-0">
             <button
               type="button"
               aria-expanded={isOpen}
               aria-controls={listId}
-              onClick={() => toggle(group.type)}
+              onClick={() => toggle(method)}
               className="flex w-full cursor-pointer items-center gap-3 rounded-panel px-5 py-4 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
             >
               <ChevronDown
@@ -80,54 +109,73 @@ export function PaymentMethodView({ month }: { month: MonthKey }): React.JSX.Ele
                 )}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1">
-                <span className="block text-lg font-semibold">{group.title}</span>
-                {group.type === 'credit' && (
-                  <span className="block text-sm text-ink-muted">
-                    What this month’s bills bring: purchases from each card’s last cycle
-                  </span>
-                )}
-              </span>
-              <span className="amount text-lg">{money.format(group.total)}</span>
+              <span className="min-w-0 flex-1 text-lg font-semibold">{methodTitles[method]}</span>
+              <span className="amount text-lg">{formatOut(money, total)}</span>
             </button>
             {isOpen && (
-              <ul id={listId} className="border-t border-line px-2 py-2">
-                {group.rows.map(({ account, spending: s }) => (
-                  <li key={account.id}>
-                    <button
-                      type="button"
-                      onClick={() => setOpen(account)}
-                      className="link-row flex w-full items-center gap-3 px-3 py-2 text-left"
-                    >
-                      <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{account.name}</span>
-                        <span className="block truncate text-sm text-ink-muted">
-                          {[
-                            s.count === 1
-                              ? '1 transaction'
-                              : s.count > 1 && `${s.count} transactions`,
-                            s.planned > 0 && `${money.format(s.planned)} still planned`
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
+              <div id={listId} className="grid gap-3 border-t border-line px-2 py-3">
+                {byAccount.map(({ account, lines: accountLines }) => (
+                  <section key={account.id} aria-label={account.name}>
+                    {byAccount.length > 1 || method === 'debit' ? (
+                      <p className="flex items-center gap-2 px-3 pb-1 text-sm font-semibold text-ink-muted">
+                        <ColorChip
+                          color={account.color}
+                          icon={accountTypeIcons[account.type]}
+                          size="sm"
+                        />
+                        {account.name}
+                        <span className="amount ml-auto">
+                          {formatOut(
+                            money,
+                            accountLines.reduce((s, l) => s + totalOf(l), 0)
+                          )}
                         </span>
-                      </span>
-                      <span className="amount shrink-0">{money.format(totalOf(s))}</span>
-                    </button>
-                  </li>
+                      </p>
+                    ) : null}
+                    <ul>
+                      {accountLines.map((line) => (
+                        <li key={`${line.group}-${line.cardId}`}>
+                          <button
+                            type="button"
+                            onClick={() => setOpen(line)}
+                            className="link-row flex w-full items-center gap-3 px-3 py-2 text-left"
+                          >
+                            {line.group === 'card' && (
+                              <CreditCard className="size-4 shrink-0 text-ink-muted" aria-hidden />
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-semibold">
+                                {lineLabel(line, accounts)}
+                              </span>
+                              <span className="block truncate text-sm text-ink-muted">
+                                {[
+                                  line.count === 1
+                                    ? '1 transaction'
+                                    : line.count > 1 && `${line.count} transactions`,
+                                  line.planned !== 0 &&
+                                    `${money.format(Math.abs(line.planned))} still planned`
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </span>
+                            </span>
+                            <span
+                              className={cn('amount shrink-0', totalOf(line) < 0 && 'text-income')}
+                            >
+                              {formatOut(money, totalOf(line))}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
+              </div>
             )}
           </Card>
         )
       })}
-      <AccountSpendingDialog
-        month={month}
-        account={open}
-        spending={openSpending ?? { accountId: open?.id ?? 0, recorded: 0, planned: 0, count: 0 }}
-        onClose={() => setOpen(null)}
-      />
+      <MoneyOutLineDialog month={month} line={openLine} onClose={() => setOpen(null)} />
     </>
   )
 }
