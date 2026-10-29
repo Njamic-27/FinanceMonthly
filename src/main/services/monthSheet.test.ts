@@ -25,6 +25,7 @@ import {
   updateTransaction
 } from '../db/repositories/transactions'
 import {
+  clearMonthRow,
   copyFromLastMonth,
   monthRowTransactions,
   monthSheet,
@@ -387,6 +388,24 @@ describe('recurring rows', () => {
     expect(() => set({ kind: 'recurring', sourceId: weekly, amount: 1000 })).toThrow(
       /more than once/
     )
+  })
+})
+
+describe('removing a month’s amounts', () => {
+  it('deletes a category’s own transactions and summary in the month, nothing else', () => {
+    const groceries = categoryId('Groceries')
+    buy('2026-10-05', 1200)
+    buy('2026-09-05', 3000)
+    set({ kind: 'category', sourceId: groceries, amount: 10000 })
+    const rent = recurring({ autoPost: true, anchorDate: '2026-08-15', nextDueDate: '2026-10-15' })
+    postDueItems(db, TODAY)
+    expect(clearMonthRow(db, { month: '2026-10', kind: 'category', sourceId: groceries })).toBe(2)
+    expect(row('category', groceries)?.actual ?? 0).toBe(0)
+    expect(row('category', groceries, '2026-09')).toMatchObject({ actual: 3000 })
+    expect(row('recurring', rent)).toMatchObject({ actual: 65000 })
+    expect(() =>
+      clearMonthRow(db, { month: '2026-10', kind: 'recurring', sourceId: rent })
+    ).toThrow(/category/)
   })
 })
 

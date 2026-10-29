@@ -59,11 +59,13 @@ interface Lookup {
 function TransactionRow({
   tx,
   lookup,
-  accountFilter
+  accountFilter,
+  onOpenOwned
 }: {
   tx: Transaction
   lookup: Lookup
   accountFilter?: number
+  onOpenOwned?: (tx: Transaction) => void
 }): React.JSX.Element {
   const money = useCurrency()
   const category = tx.categoryId ? lookup.categories.get(tx.categoryId) : undefined
@@ -128,6 +130,10 @@ function TransactionRow({
             >
               {title}
             </button>
+          ) : owner && onOpenOwned ? (
+            <button type="button" onClick={() => onOpenOwned(tx)} className={coverClass}>
+              {title}
+            </button>
           ) : owner ? (
             <Link to={owner} className={coverClass}>
               {title}
@@ -174,6 +180,11 @@ interface TransactionListProps {
   accountFilter?: number
   /** Day headings open the day in the Calendar; off where the list is that day already. */
   linkDays?: boolean
+  /**
+   * Opens a savings or loan movement where the list is, instead of going to its goal or
+   * loan's page.
+   */
+  onOpenOwned?: (tx: Transaction) => void
 }
 
 /** Transactions grouped by day, newest first, each day with its income and expense totals. */
@@ -183,7 +194,8 @@ export function TransactionList({
   accounts,
   categories,
   accountFilter,
-  linkDays = true
+  linkDays = true,
+  onOpenOwned
 }: TransactionListProps): React.JSX.Element {
   const money = useCurrency()
   const lookup: Lookup = {
@@ -230,7 +242,13 @@ export function TransactionList({
             </header>
             <ul className="divide-y divide-line rounded-panel border border-line bg-surface p-2">
               {items.map((tx) => (
-                <TransactionRow key={tx.id} tx={tx} lookup={lookup} accountFilter={accountFilter} />
+                <TransactionRow
+                  key={tx.id}
+                  tx={tx}
+                  lookup={lookup}
+                  accountFilter={accountFilter}
+                  onOpenOwned={onOpenOwned}
+                />
               ))}
             </ul>
           </section>

@@ -188,6 +188,8 @@ export interface IpcContract {
   'month:hideRow': (input: MonthRowHide) => void
   /** Puts a section's category rows in a new order. */
   'month:reorderRows': (input: MonthRowOrder) => void
+  /** Removes a category row's transactions counted in the month; returns how many. */
+  'month:clearRow': (input: MonthRowQuery) => number
 
   /** Where the total balance is heading, by week or month, with milestones. */
   'projection:get': (query: ProjectionQuery) => ProjectionResult
@@ -281,6 +283,7 @@ const channels: Record<IpcChannel, true> = {
   'month:renameRow': true,
   'month:hideRow': true,
   'month:reorderRows': true,
+  'month:clearRow': true,
   'projection:get': true,
   'dev:seed': true,
   'dev:reset': true

@@ -117,6 +117,15 @@ export function useHideMonthRow(): UseMutationResult<void, Error, MonthRowHide> 
   })
 }
 
+/** Removes a category row's transactions counted in the month; resolves to how many. */
+export function useClearMonthRow(): UseMutationResult<number, Error, MonthRowQuery> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (input: MonthRowQuery) => invoke('month:clearRow', input),
+    onSuccess: invalidate
+  })
+}
+
 /** Only the sheet shows the order, so only the sheet is refetched. */
 export function useReorderMonthRows(): UseMutationResult<void, Error, MonthRowOrder> {
   const queryClient = useQueryClient()

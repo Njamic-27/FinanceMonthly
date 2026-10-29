@@ -69,7 +69,7 @@ export function lockedReason(row: MonthSheetRow): string | null {
     case 'installment_plan':
       return 'Card installments are charged by themselves on their dates.'
     case 'loan':
-      return 'Record this loan’s repayments on its page.'
+      return 'Open the row to pay an installment or record a repayment.'
     case 'recurring':
       return 'Due more than once this month: change each payment in its list.'
     default:

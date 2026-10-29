@@ -1,6 +1,7 @@
 import { today } from '@shared/dates'
 import { getDb } from '../db'
 import {
+  clearMonthRow,
   copyFromLastMonth,
   monthRowTransactions,
   monthSheet,
@@ -25,4 +26,5 @@ export function registerMonthHandlers(): void {
   handle('month:renameRow', (input) => renameMonthRow(getDb(), input))
   handle('month:hideRow', (input) => hideMonthRow(getDb(), input, today()))
   handle('month:reorderRows', (input) => reorderMonthRows(getDb(), input, today()))
+  handle('month:clearRow', (input) => clearMonthRow(getDb(), input))
 }

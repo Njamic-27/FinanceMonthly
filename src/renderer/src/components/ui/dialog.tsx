@@ -9,14 +9,21 @@ export const DialogClose = DialogPrimitive.Close
 export function DialogContent({
   className,
   children,
+  side = false,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>): React.JSX.Element {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** A panel along the window's right edge, full height, instead of a centred dialog. */
+  side?: boolean
+}): React.JSX.Element {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] data-[state=open]:animate-overlay-in" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-4rem)] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-panel border border-line bg-surface p-6 text-ink shadow-float has-data-[slot=dialog-footer]:pb-0 focus:outline-none data-[state=open]:animate-dialog-in',
+          'fixed z-50 overflow-y-auto border border-line bg-surface p-6 text-ink shadow-float has-data-[slot=dialog-footer]:pb-0 focus:outline-none',
+          side
+            ? 'inset-y-0 right-0 w-[min(32rem,100vw)] rounded-l-panel border-r-0 data-[state=open]:animate-sheet-in'
+            : 'top-1/2 left-1/2 max-h-[calc(100vh-4rem)] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-panel data-[state=open]:animate-dialog-in',
           className
         )}
         {...props}

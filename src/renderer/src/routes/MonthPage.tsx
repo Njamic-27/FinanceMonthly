@@ -190,7 +190,7 @@ export function MonthPage(): React.JSX.Element {
         </div>
       )}
 
-      <RowPanel month={month} row={openRow} onClose={() => setOpen(null)} />
+      <RowPanel month={month} row={openRow} onClose={() => setOpen(null)} onRename={setRenaming} />
       <RenameRowDialog
         row={
           renaming && canRename(renaming)

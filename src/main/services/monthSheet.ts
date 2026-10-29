@@ -589,6 +589,22 @@ export function monthRowTransactions(db: Database, input: MonthRowQuery): Transa
 }
 
 /**
+ * Removes what a category row holds in the month: its own transactions counted then and its
+ * typed summary. The row stays; payments posted by recurring items or plans have their own
+ * rows. Returns how many were removed.
+ */
+export function clearMonthRow(db: Database, input: MonthRowQuery): number {
+  const { month, kind, sourceId } = monthRowQuerySchema.parse(input)
+  if (kind !== 'category') {
+    throw new AppError('validation', 'Only a category row’s amounts can be removed at once.')
+  }
+  const ids = transactionsIn(db, month, ownOfCategory, sourceId).map((t) => t.id)
+  const remove = db.prepare('DELETE FROM transactions WHERE id = ?')
+  db.transaction(() => ids.forEach((id) => remove.run(id)))()
+  return ids.length
+}
+
+/**
  * Chooses a row's account. A category remembers it for its new summaries (and is added to the
  * sheet if it wasn't); on any row, the month's summary, or its one recurring payment, moves to
  * it. Payments still to confirm take the account when they're typed into.
