@@ -1,15 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  ArrowDown,
+  ArrowUp,
+  EyeOff,
+  GripVertical,
+  MoreHorizontal,
+  Pencil,
+  Plus
+} from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import type { Cents } from '@shared/money'
 import type {
   MonthCellInput,
   MonthKey,
+  MonthLineType,
+  MonthSectionKey,
   MonthSheet,
   MonthSheetRow,
   MonthSheetSection
 } from '@shared/month'
 import { ColorChip } from '@renderer/components/ColorChip'
+import { Button } from '@renderer/components/ui/button'
 import { Card } from '@renderer/components/ui/card'
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger
+} from '@renderer/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -18,22 +36,35 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { accountTypeIcons } from '@renderer/features/accounts/appearance'
-import { useCurrency, type CurrencyTools } from '@renderer/hooks/useCurrency'
+import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import {
+  canRename,
   cellValue,
   editStart,
+  isCategoryRow,
   lockedReason,
+  moneyIn,
+  moneyOut,
+  moveCategory,
   needsSaving,
   rowKey,
   rowNote,
   savingValue,
+  sectionAdds,
   sectionEmpty,
   sectionNotes,
-  sectionTitles
+  sectionTitles,
+  signedAmount,
+  type AddChoice
 } from './cells'
-import { useSetMonthCell, useSetMonthRowAccount } from './queries'
+import {
+  useHideMonthRow,
+  useReorderMonthRows,
+  useSetMonthCell,
+  useSetMonthRowAccount
+} from './queries'
 
 /** A cell being typed into. */
 interface Editing {
@@ -47,10 +78,10 @@ interface Editing {
 /** Keys that start typing over a cell, as in a spreadsheet. */
 const TYPING = /^[\d.,\-−]$/
 
-const signed = (row: MonthSheetRow): boolean => row.kind === 'loan'
-
-function formatCell(row: MonthSheetRow, amount: Cents, money: CurrencyTools): string {
-  return signed(row) ? money.format(amount, 'exceptZero') : money.format(amount)
+/** The category sections a row can be moved within, by category type. */
+const lineTypes: Partial<Record<MonthSectionKey, MonthLineType>> = {
+  income: 'income',
+  expenses: 'expense'
 }
 
 /** The Account column: which account the row's new amounts use. */
@@ -68,10 +99,7 @@ function AccountCell({
   const current = accounts.find((a) => a.id === value)
   if (!row.editable) {
     return current ? (
-      <span className="flex items-center gap-2 px-3 text-sm text-ink-muted">
-        <ColorChip color={current.color} icon={accountTypeIcons[current.type]} size="sm" />
-        <span className="truncate">{current.name}</span>
-      </span>
+      <span className="block truncate px-2 text-sm text-ink-muted">{current.name}</span>
     ) : (
       <span />
     )
@@ -84,9 +112,10 @@ function AccountCell({
     <Select value={value === null ? '' : String(value)} onValueChange={(v) => onChange(Number(v))}>
       <SelectTrigger
         aria-label={`Account for ${row.title}`}
-        className="h-9 border-transparent bg-transparent text-sm hover:border-line"
+        className="h-9 border-transparent bg-transparent px-2 text-sm hover:border-line"
       >
-        <SelectValue placeholder="Choose…" />
+        {/* Just the name: the column is narrow. */}
+        <SelectValue placeholder="Choose…">{current?.name}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((a) => (
@@ -102,15 +131,68 @@ function AccountCell({
   )
 }
 
+/** What a row's menu can do; absent entries aren't offered. */
+interface RowActions {
+  rename?: () => void
+  moveUp?: () => void
+  moveDown?: () => void
+  hide?: () => void
+}
+
+function RowMenu({ title, actions }: { title: string; actions: RowActions }): React.JSX.Element {
+  const items = [
+    { key: 'rename', label: 'Rename…', icon: Pencil, run: actions.rename },
+    { key: 'up', label: 'Move up', icon: ArrowUp, run: actions.moveUp },
+    { key: 'down', label: 'Move down', icon: ArrowDown, run: actions.moveDown },
+    { key: 'hide', label: 'Hide from the sheet', icon: EyeOff, run: actions.hide }
+  ].filter((item) => item.run)
+  if (items.length === 0) return <span className="size-8 shrink-0" />
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label={`More for ${title}`}
+        title="More"
+        className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-control text-ink-muted opacity-0 transition group-hover/row:opacity-100 group-focus-within/row:opacity-100 hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:opacity-100"
+      >
+        <MoreHorizontal className="size-4" />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="grid w-52 gap-0.5 p-1">
+        {items.map(({ key, label, icon: Icon, run }) => (
+          <PopoverClose
+            key={key}
+            onClick={run}
+            className="flex h-9 cursor-pointer items-center gap-2.5 rounded-[0.4rem] px-2.5 text-left text-body hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
+          >
+            <Icon className="size-4 text-ink-muted" />
+            {label}
+          </PopoverClose>
+        ))}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/** Where a dragged row would land: before or after this one. */
+type DropMark = 'before' | 'after' | null
+
 interface SheetRowProps {
   row: MonthSheetRow
-  /** In the Income section: amounts in the income colour. */
-  isIncome: boolean
+  section: MonthSectionKey
   accounts: Account[]
   accountId: number | null
   editing: Editing | null
   /** The amount being saved, shown until the sheet catches up. */
   saving: Cents | undefined
+  actions: RowActions
+  /** Category rows can be dragged within their section. */
+  drag: {
+    draggable: boolean
+    mark: DropMark
+    onStart: (event: React.DragEvent) => void
+    onOver: (event: React.DragEvent<HTMLTableRowElement>) => void
+    onDrop: (event: React.DragEvent) => void
+    onEnd: () => void
+  }
   cellRef: (element: HTMLElement | null) => void
   onOpen: () => void
   onAccount: (accountId: number) => void
@@ -123,11 +205,13 @@ interface SheetRowProps {
 
 function SheetRow({
   row,
-  isIncome,
+  section,
   accounts,
   accountId,
   editing,
   saving,
+  actions,
+  drag,
   cellRef,
   onOpen,
   onAccount,
@@ -143,9 +227,11 @@ function SheetRow({
   const shown =
     saving === undefined ? cellValue(row) : { amount: savingValue(row, saving), planned: false }
   const extraPlanned = !shown.planned && row.planned !== 0 && saving === undefined
+  const format = (amount: Cents): string =>
+    money.format(signedAmount(section, amount), 'exceptZero')
   const label = [
     row.title,
-    shown.amount === 0 && !shown.planned ? 'nothing yet' : formatCell(row, shown.amount, money),
+    shown.amount === 0 && !shown.planned ? 'nothing yet' : format(shown.amount),
     shown.planned && (row.overdue ? 'planned, overdue' : 'planned'),
     locked ?? 'press Enter to change'
   ]
@@ -153,22 +239,49 @@ function SheetRow({
     .join(', ')
 
   return (
-    <tr className="border-t border-line first:border-t-0">
-      <td className="py-1 pr-2">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="group flex max-w-full min-w-0 cursor-pointer items-baseline gap-2 rounded-control px-2 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-primary"
-        >
-          <span className="truncate font-semibold group-hover:text-primary">{row.title}</span>
-          {note && (
-            <span className={cn('shrink-0 text-sm text-ink-muted', row.overdue && 'text-expense')}>
-              {note}
-            </span>
+    <tr
+      draggable={drag.draggable && !editing}
+      onDragStart={drag.onStart}
+      onDragOver={drag.onOver}
+      onDrop={drag.onDrop}
+      onDragEnd={drag.onEnd}
+      className={cn(
+        'group/row border-t border-line first:border-t-0',
+        drag.mark === 'before' && 'shadow-[inset_0_2px_0_var(--primary)]',
+        drag.mark === 'after' && 'shadow-[inset_0_-2px_0_var(--primary)]'
+      )}
+    >
+      <td className="py-1 pr-1">
+        <div className="flex min-w-0 items-center">
+          {drag.draggable ? (
+            <GripVertical
+              className="size-4 shrink-0 cursor-grab text-ink-muted/50 group-hover/row:text-ink-muted"
+              aria-hidden
+            />
+          ) : (
+            <span className="w-4 shrink-0" />
           )}
-        </button>
+          <button
+            type="button"
+            onClick={onOpen}
+            title={row.title}
+            className="group grid max-w-full min-w-0 cursor-pointer rounded-control px-2 py-1 text-left focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            <span className="truncate font-semibold group-hover:text-primary">{row.title}</span>
+            {note && (
+              <span
+                className={cn('truncate text-xs text-ink-muted', row.overdue && 'text-expense')}
+              >
+                {note}
+              </span>
+            )}
+          </button>
+          <span className="ml-auto">
+            <RowMenu title={row.title} actions={actions} />
+          </span>
+        </div>
       </td>
-      <td className="py-1 pr-2">
+      <td className="py-1 pr-1">
         <AccountCell row={row} accounts={accounts} value={accountId} onChange={onAccount} />
       </td>
       <td className="py-1">
@@ -215,7 +328,7 @@ function SheetRow({
                     : 'border-ink-muted/40 text-ink-muted'
                 )}
               >
-                {formatCell(row, shown.amount, money)}
+                {format(shown.amount)}
               </span>
             ) : shown.amount === 0 && row.count === 0 ? (
               <span className="text-ink-muted/60" aria-hidden>
@@ -225,17 +338,15 @@ function SheetRow({
               <span
                 className={cn(
                   'amount font-semibold',
-                  isIncome && 'text-income',
+                  section === 'income' && 'text-income',
                   saving !== undefined && 'opacity-60'
                 )}
               >
-                {formatCell(row, shown.amount, money)}
+                {format(shown.amount)}
               </span>
             )}
             {extraPlanned && (
-              <span className="text-xs text-ink-muted">
-                {formatCell(row, row.planned, money)} planned
-              </span>
+              <span className="text-xs text-ink-muted">{format(row.planned)} planned</span>
             )}
           </button>
         )}
@@ -246,13 +357,15 @@ function SheetRow({
 
 function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.Element {
   const money = useCurrency()
-  const isSigned = section.key === 'loans'
   const format = (cents: Cents): string =>
-    isSigned ? money.format(cents, 'exceptZero') : money.format(cents)
+    money.format(signedAmount(section.key, cents), 'exceptZero')
   return (
-    <p className="text-right">
+    <p className="shrink-0 text-right">
       <span
-        className={cn('amount text-lg font-semibold', section.key === 'income' && 'text-income')}
+        className={cn(
+          'amount text-lg font-semibold whitespace-nowrap',
+          section.key === 'income' && 'text-income'
+        )}
       >
         {format(section.actual + section.planned)}
       </span>
@@ -267,23 +380,80 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
   )
 }
 
+/** "+" under a section: one button, or a short menu when there's more than one thing to add. */
+function AddButton({
+  section,
+  onAdd
+}: {
+  section: MonthSectionKey
+  onAdd: (choice: AddChoice) => void
+}): React.JSX.Element {
+  const { label, choices } = sectionAdds[section]
+  if (choices.length === 1) {
+    return (
+      <Button variant="ghost" size="sm" onClick={() => onAdd(choices[0].choice)}>
+        <Plus />
+        {label}
+      </Button>
+    )
+  }
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <Plus />
+          {label}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="grid w-72 gap-0.5 p-1">
+        {choices.map(({ choice, label: name, description }) => (
+          <PopoverClose
+            key={choice}
+            onClick={() => onAdd(choice)}
+            className="grid cursor-pointer gap-0.5 rounded-[0.4rem] px-3 py-2 text-left hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
+          >
+            <span className="font-semibold">{name}</span>
+            {description && <span className="text-sm text-ink-muted">{description}</span>}
+          </PopoverClose>
+        ))}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 /**
- * The month's sections as a spreadsheet: click an amount or press Enter to type, Enter or Tab
- * saves and moves to the next row (Shift+Tab back), Esc cancels, arrows move between rows.
+ * The month as a spreadsheet in two columns, money in and money out. Click an amount or press
+ * Enter to type; Enter or Tab saves and moves to the next row (Shift+Tab back), Esc cancels,
+ * arrows move between rows. Category rows can be renamed, hidden and dragged into order.
  */
 export function MonthSheetView({
   sheet,
   accounts,
-  onOpenRow
+  onOpenRow,
+  onAdd,
+  onRename
 }: {
   sheet: MonthSheet
   accounts: Account[]
   onOpenRow: (row: MonthSheetRow) => void
+  onAdd: (choice: AddChoice) => void
+  onRename: (row: MonthSheetRow) => void
 }): React.JSX.Element {
   const money = useCurrency()
   const month: MonthKey = sheet.month
-  const rows = sheet.sections.flatMap((s) => s.rows)
-  const keys = rows.map(rowKey)
+
+  // A new order shows at once, while it's saved.
+  const [order, setOrder] = useState<{ section: MonthSectionKey; ids: number[] } | null>(null)
+  const sections = sheet.sections.map((section) => {
+    if (order?.section !== section.key) return section
+    const position = (row: MonthSheetRow): number =>
+      isCategoryRow(row) ? order.ids.indexOf(row.sourceId) : Number.MAX_SAFE_INTEGER
+    return { ...section, rows: [...section.rows].sort((a, b) => position(a) - position(b)) }
+  })
+  const columns = [moneyIn, moneyOut].map((keys) =>
+    keys.flatMap((key) => sections.filter((s) => s.key === key))
+  )
+  const keys = columns.flat().flatMap((s) => s.rows.map(rowKey))
 
   const [editing, setEditingState] = useState<Editing | null>(null)
   // Mirrors `editing` at once, so a blur after Enter doesn't save the cell a second time.
@@ -323,6 +493,8 @@ export function MonthSheetView({
     if (error) toast({ title: 'Not saved', description: error.message, variant: 'error' })
   })
   const setAccount = useSetMonthRowAccount()
+  const hideRow = useHideMonthRow()
+  const reorder = useReorderMonthRows()
 
   const accountOf = (row: MonthSheetRow): number | null =>
     pickedIds.get(rowKey(row)) ?? row.accountId
@@ -424,73 +596,181 @@ export function MonthSheetView({
     )
   }
 
-  return (
-    <div className="grid gap-4">
-      {sheet.sections.map((section) => {
-        const titleId = `month-section-${section.key}`
-        return (
-          <Card key={section.key} className="p-0" aria-labelledby={titleId}>
-            <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-2">
-              <div className="min-w-0">
-                <h3 id={titleId} className="text-lg font-semibold">
-                  {sectionTitles[section.key]}
-                </h3>
-                {sectionNotes[section.key] && (
-                  <p className="text-sm text-ink-muted">{sectionNotes[section.key]}</p>
-                )}
-              </div>
-              {section.rows.length > 0 && <SectionTotal section={section} />}
-            </header>
-            {section.rows.length === 0 ? (
-              <p className="px-5 pb-5 text-sm text-ink-muted">{sectionEmpty[section.key]}</p>
-            ) : (
-              <table className="w-full table-fixed border-collapse">
-                <colgroup>
-                  <col />
-                  <col className="w-56" />
-                  <col className="w-44" />
-                </colgroup>
-                <thead className="sr-only">
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Account</th>
-                    <th scope="col">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="[&>tr>td:first-child]:pl-3 [&>tr>td:last-child]:pr-3">
-                  {section.rows.map((row) => {
-                    const key = rowKey(row)
-                    return (
-                      <SheetRow
-                        key={key}
-                        row={row}
-                        isIncome={section.key === 'income'}
-                        accounts={accounts}
-                        accountId={accountOf(row)}
-                        editing={editing?.key === key ? editing : null}
-                        saving={saving.get(key)}
-                        cellRef={(element) => {
-                          if (element) cells.current.set(key, element)
-                          else cells.current.delete(key)
-                        }}
-                        onOpen={() => onOpenRow(row)}
-                        onAccount={(accountId) => onAccount(row, accountId)}
-                        onCellKey={(event) => onCellKey(row, event)}
-                        onCellClick={() => startEditing(row)}
-                        onInputKey={(event) => onInputKey(row, event)}
-                        onInputChange={(text) =>
-                          editing && setEditing({ ...editing, text, error: undefined })
-                        }
-                        onInputBlur={() => onInputBlur(row)}
-                      />
-                    )
-                  })}
-                </tbody>
-              </table>
+  /** Saves a section's category rows in a new order. */
+  const saveOrder = (section: MonthSectionKey, ids: number[]): void => {
+    const type = lineTypes[section]
+    if (!type) return
+    setOrder({ section, ids })
+    reorder.mutate(
+      { type, categoryIds: ids },
+      {
+        onError: (error) =>
+          toast({ title: 'Order not saved', description: error.message, variant: 'error' }),
+        onSettled: () => setOrder(null)
+      }
+    )
+  }
+
+  const hide = (row: MonthSheetRow): void =>
+    hideRow.mutate(
+      { categoryId: row.sourceId, hidden: true },
+      {
+        onSuccess: () =>
+          toast({
+            title: `${row.title} hidden`,
+            description:
+              row.count > 0
+                ? 'It still shows in months with its transactions, like this one.'
+                : 'It still shows in months with its transactions. Add it again with “+”.'
+          }),
+        onError: (error) =>
+          toast({ title: 'Not hidden', description: error.message, variant: 'error' })
+      }
+    )
+
+  // Dragging a category row within its section.
+  const [dragging, setDragging] = useState<{ section: MonthSectionKey; id: number } | null>(null)
+  const [drop, setDrop] = useState<{ id: number; mark: 'before' | 'after' } | null>(null)
+  const endDrag = (): void => {
+    setDragging(null)
+    setDrop(null)
+  }
+
+  const renderSection = (section: MonthSheetSection): React.JSX.Element => {
+    const titleId = `month-section-${section.key}`
+    const movable = lineTypes[section.key] !== undefined
+    const categoryIds = section.rows.filter(isCategoryRow).map((r) => r.sourceId)
+
+    return (
+      <Card key={section.key} className="p-0" aria-labelledby={titleId}>
+        <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-2">
+          <div className="min-w-0">
+            <h3 id={titleId} className="text-lg font-semibold">
+              {sectionTitles[section.key]}
+            </h3>
+            {sectionNotes[section.key] && (
+              <p className="text-sm text-ink-muted">{sectionNotes[section.key]}</p>
             )}
-          </Card>
-        )
-      })}
+          </div>
+          {section.rows.length > 0 && <SectionTotal section={section} />}
+        </header>
+        {section.rows.length === 0 ? (
+          <p className="px-5 pb-2 text-sm text-ink-muted">{sectionEmpty[section.key]}</p>
+        ) : (
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col />
+              <col className="w-32" />
+              <col className="w-32" />
+            </colgroup>
+            <thead className="sr-only">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Account</th>
+                <th scope="col">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="[&>tr>td:first-child]:pl-1.5 [&>tr>td:last-child]:pr-3">
+              {section.rows.map((row) => {
+                const key = rowKey(row)
+                const isCategory = movable && isCategoryRow(row)
+                const index = categoryIds.indexOf(row.sourceId)
+                const actions: RowActions = {
+                  rename: canRename(row) ? () => onRename(row) : undefined,
+                  moveUp:
+                    isCategory && index > 0
+                      ? () =>
+                          saveOrder(section.key, moveCategory(categoryIds, row.sourceId, index - 1))
+                      : undefined,
+                  moveDown:
+                    isCategory && index < categoryIds.length - 1
+                      ? () =>
+                          saveOrder(section.key, moveCategory(categoryIds, row.sourceId, index + 1))
+                      : undefined,
+                  hide: isCategory ? () => hide(row) : undefined
+                }
+                const canDrop =
+                  isCategory && dragging?.section === section.key && dragging.id !== row.sourceId
+                return (
+                  <SheetRow
+                    key={key}
+                    row={row}
+                    section={section.key}
+                    accounts={accounts}
+                    accountId={accountOf(row)}
+                    editing={editing?.key === key ? editing : null}
+                    saving={saving.get(key)}
+                    actions={actions}
+                    drag={{
+                      draggable: isCategory,
+                      mark: canDrop && drop?.id === row.sourceId ? drop.mark : null,
+                      onStart: (event) => {
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', row.title)
+                        setDragging({ section: section.key, id: row.sourceId })
+                      },
+                      onOver: (event) => {
+                        if (!canDrop) return
+                        event.preventDefault()
+                        const box = event.currentTarget.getBoundingClientRect()
+                        const mark = event.clientY < box.top + box.height / 2 ? 'before' : 'after'
+                        if (drop?.id !== row.sourceId || drop.mark !== mark) {
+                          setDrop({ id: row.sourceId, mark })
+                        }
+                      },
+                      onDrop: (event) => {
+                        if (!canDrop || !dragging || !drop) return
+                        event.preventDefault()
+                        const rest = categoryIds.filter((id) => id !== dragging.id)
+                        const to = rest.indexOf(row.sourceId) + (drop.mark === 'after' ? 1 : 0)
+                        saveOrder(section.key, moveCategory(categoryIds, dragging.id, to))
+                        endDrag()
+                      },
+                      onEnd: endDrag
+                    }}
+                    cellRef={(element) => {
+                      if (element) cells.current.set(key, element)
+                      else cells.current.delete(key)
+                    }}
+                    onOpen={() => onOpenRow(row)}
+                    onAccount={(accountId) => onAccount(row, accountId)}
+                    onCellKey={(event) => onCellKey(row, event)}
+                    onCellClick={() => startEditing(row)}
+                    onInputKey={(event) => onInputKey(row, event)}
+                    onInputChange={(text) =>
+                      editing && setEditing({ ...editing, text, error: undefined })
+                    }
+                    onInputBlur={() => onInputBlur(row)}
+                  />
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+        <div className="border-t border-line px-3 py-2">
+          <AddButton section={section.key} onAdd={onAdd} />
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    // Two columns once the sheet has room for them, whatever the window's size.
+    <div className="@container">
+      <div className="grid items-start gap-6 @4xl:grid-cols-2">
+        {columns.map((column, i) => (
+          <section
+            key={i}
+            aria-labelledby={`month-column-${i}`}
+            className="grid min-w-0 content-start gap-4"
+          >
+            <h2 id={`month-column-${i}`} className="text-title font-bold">
+              {i === 0 ? 'Money in' : 'Money out'}
+            </h2>
+            {column.map(renderSection)}
+          </section>
+        ))}
+      </div>
     </div>
   )
 }

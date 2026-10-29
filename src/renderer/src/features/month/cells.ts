@@ -1,5 +1,5 @@
 import type { Cents } from '@shared/money'
-import type { MonthSectionKey, MonthSheetRow } from '@shared/month'
+import { renamableRowKinds, type MonthSectionKey, type MonthSheetRow } from '@shared/month'
 
 // What the Month sheet's cells show, and when typing into one saves something.
 
@@ -82,4 +82,93 @@ export function rowNote(row: MonthSheetRow): string | null {
   if (row.overdue) parts.push('Overdue')
   if (row.count > 1) parts.push(`${row.count} transactions`)
   return parts.length > 0 ? parts.join(' · ') : null
+}
+
+/** The sheet's two columns: money coming in, and money going out. */
+export const moneyIn: readonly MonthSectionKey[] = ['income']
+export const moneyOut: readonly MonthSectionKey[] = [
+  'expenses',
+  'subscriptions',
+  'cards',
+  'loans',
+  'savings'
+]
+
+/**
+ * An amount as the sheet shows it: money in +, money out −. Loan rows already carry their sign
+ * (+ borrowed, − repaid), and a savings row that took more out than it put in shows +.
+ */
+export function signedAmount(section: MonthSectionKey, amount: Cents): Cents {
+  if (section === 'loans') return amount
+  return section === 'income' ? amount : -amount
+}
+
+/** What "+" under a section adds. */
+export type AddChoice =
+  | 'income'
+  | 'expense'
+  | 'subscription'
+  | 'installments'
+  | 'card'
+  | 'bank_loan'
+  | 'borrowed'
+  | 'lent'
+  | 'goal'
+
+export const sectionAdds: Record<
+  MonthSectionKey,
+  { label: string; choices: { choice: AddChoice; label: string; description: string }[] }
+> = {
+  income: {
+    label: 'Add income',
+    choices: [{ choice: 'income', label: 'Add income', description: '' }]
+  },
+  expenses: {
+    label: 'Add expense',
+    choices: [{ choice: 'expense', label: 'Add expense', description: '' }]
+  },
+  subscriptions: {
+    label: 'Add subscription',
+    choices: [{ choice: 'subscription', label: 'Add subscription', description: '' }]
+  },
+  cards: {
+    label: 'Add card or installments',
+    choices: [
+      {
+        choice: 'installments',
+        label: 'Buy in installments',
+        description: 'A purchase on a card, paid off in monthly installments'
+      },
+      { choice: 'card', label: 'Add a card', description: 'A credit card and its payment dates' }
+    ]
+  },
+  loans: {
+    label: 'Add loan',
+    choices: [
+      {
+        choice: 'bank_loan',
+        label: 'Bank loan',
+        description: 'Paid back in installments, automatically or with a reminder'
+      },
+      { choice: 'borrowed', label: 'Money borrowed', description: 'From a friend or family' },
+      { choice: 'lent', label: 'Money lent', description: 'To a friend or family' }
+    ]
+  },
+  savings: {
+    label: 'Add savings goal',
+    choices: [{ choice: 'goal', label: 'Add savings goal', description: '' }]
+  }
+}
+
+export const canRename = (row: MonthSheetRow): boolean =>
+  (renamableRowKinds as readonly string[]).includes(row.kind)
+
+/** Category rows can be hidden and moved; the others come and go with their items. */
+export const isCategoryRow = (row: MonthSheetRow): boolean => row.kind === 'category'
+
+/** A section's category ids with `id` moved to `to` (an index among them). */
+export function moveCategory(ids: number[], id: number, to: number): number[] {
+  const rest = ids.filter((other) => other !== id)
+  const index = Math.max(0, Math.min(rest.length, to))
+  return [...rest.slice(0, index), id, ...rest.slice(index)]
 }

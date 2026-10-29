@@ -241,6 +241,7 @@ Left sidebar navigation (collapsible), top bar with period navigator where relev
 0. **Month (home screen, steps 33–36)** — the main way to use the app, like a monthly Excel sheet: one month at a time, so you don't have to enter every purchase.
    - ‹ › to change month, "Today", and **"Copy from last month"** (fills empty rows only, never overwrites).
    - Summary at the top: income, expenses, net, balance at month end — the same numbers as the Calendar's month summary (actual for past months, with planned items for the current and later months).
+   - Two columns: **Money in** (Income) and **Money out** (the other sections), side by side when there's room. Amounts are signed: + money in, − money out (loans as they move the balance).
    - Sections, each with its rows, a section total and a **"+"** to add a row:
      - **Income** — income categories (Bonus, Other income) and recurring income items (Salary).
      - **Expenses** — expense categories (Groceries, Fuel) and recurring expense items (Rent).

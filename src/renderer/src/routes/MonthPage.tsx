@@ -2,18 +2,33 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { CopyPlus } from 'lucide-react'
 import { addMonths, formatDate, today, type IsoDate } from '@shared/dates'
-import { monthKeyOf, type MonthSheetRow } from '@shared/month'
+import {
+  monthKeyOf,
+  summaryDate,
+  type MonthLineType,
+  type MonthRowRename,
+  type MonthSheetRow
+} from '@shared/month'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardTitle } from '@renderer/components/ui/card'
+import { AccountDialog } from '@renderer/features/accounts/AccountDialog'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { calendarParams, readCalendarMonth } from '@renderer/features/calendar/month'
 import { MonthNav } from '@renderer/features/calendar/MonthNav'
 import { MonthSummary } from '@renderer/features/calendar/MonthSummary'
-import { rowKey } from '@renderer/features/month/cells'
+import { BankLoanDialog } from '@renderer/features/loans/BankLoanDialog'
+import { LoanDialog } from '@renderer/features/loans/LoanDialog'
+import { AddRowDialog } from '@renderer/features/month/AddRowDialog'
+import { canRename, rowKey, type AddChoice } from '@renderer/features/month/cells'
 import { MonthSheetView } from '@renderer/features/month/MonthSheetView'
 import { useCopyFromLastMonth, useMonthSheet } from '@renderer/features/month/queries'
+import { RenameRowDialog } from '@renderer/features/month/RenameRowDialog'
 import { RowPanel } from '@renderer/features/month/RowPanel'
+import { RecurringDialog } from '@renderer/features/recurring/RecurringDialog'
+import { GoalDialog } from '@renderer/features/savings/GoalDialog'
+import { useSavingsGoals } from '@renderer/features/savings/queries'
+import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
@@ -26,7 +41,10 @@ export function MonthPage(): React.JSX.Element {
   const month = monthKeyOf(first)
   const sheet = useMonthSheet(month)
   const accounts = useAccounts().data ?? []
+  const goals = useSavingsGoals().data ?? []
   const copy = useCopyFromLastMonth()
+  const [adding, setAdding] = useState<AddChoice | null>(null)
+  const [renaming, setRenaming] = useState<MonthSheetRow | null>(null)
 
   // The open row is looked up again in fresh data, so its panel follows edits.
   const [open, setOpen] = useState<MonthSheetRow | null>(null)
@@ -37,6 +55,31 @@ export function MonthPage(): React.JSX.Element {
     setOpen(null)
     setParams(calendarParams(next), { replace: true })
   }
+
+  /** "+" under a section: the dialog that adds that kind of row. */
+  const add = (choice: AddChoice): void => {
+    if (choice !== 'installments') {
+      setAdding(choice)
+      return
+    }
+    const card = accounts.find((a) => a.type === 'credit' && !a.isArchived)
+    if (!card) {
+      toast({ title: 'Add a card first', description: 'Installments are paid off on a card.' })
+      setAdding('card')
+      return
+    }
+    openTransactionDialog({
+      kind: 'new',
+      prefill: {
+        type: 'expense',
+        accountId: card.id,
+        inInstallments: true,
+        date: summaryDate(month, today())
+      }
+    })
+  }
+  const lineType: MonthLineType | null = adding === 'income' || adding === 'expense' ? adding : null
+  const close = (): void => setAdding(null)
 
   const copyLastMonth = (): void => {
     const last = formatDate(addMonths(first, -1), money.locale, { month: 'long' })
@@ -86,18 +129,52 @@ export function MonthPage(): React.JSX.Element {
       )}
 
       {sheet.data && (
-        <div
-          className={cn('max-w-5xl transition-opacity', sheet.isPlaceholderData && 'opacity-60')}
-        >
+        <div className={cn('transition-opacity', sheet.isPlaceholderData && 'opacity-60')}>
           <MonthSummary
             summary={sheet.data.summary}
             overdueHint="Press Enter on its row to confirm it."
           />
-          <MonthSheetView sheet={sheet.data} accounts={accounts} onOpenRow={setOpen} />
+          <MonthSheetView
+            sheet={sheet.data}
+            accounts={accounts}
+            onOpenRow={setOpen}
+            onAdd={add}
+            onRename={setRenaming}
+          />
         </div>
       )}
 
       <RowPanel month={month} row={openRow} onClose={() => setOpen(null)} />
+      <RenameRowDialog
+        row={
+          renaming && canRename(renaming)
+            ? (renaming as MonthSheetRow & { kind: MonthRowRename['kind'] })
+            : null
+        }
+        onClose={() => setRenaming(null)}
+      />
+      <AddRowDialog month={month} type={lineType} onClose={close} />
+      <RecurringDialog
+        target={adding === 'subscription' ? { kind: 'new', itemKind: 'subscription' } : null}
+        onClose={close}
+      />
+      <AccountDialog
+        target={adding === 'card' ? { kind: 'new', type: 'credit' } : null}
+        accounts={accounts}
+        onClose={close}
+      />
+      <BankLoanDialog open={adding === 'bank_loan'} loan={null} onClose={close} />
+      <LoanDialog
+        target={
+          adding === 'borrowed' || adding === 'lent' ? { kind: 'new', loanKind: adding } : null
+        }
+        onClose={close}
+      />
+      <GoalDialog
+        target={adding === 'goal' ? { kind: 'new' } : null}
+        goals={goals}
+        onClose={close}
+      />
     </>
   )
 }

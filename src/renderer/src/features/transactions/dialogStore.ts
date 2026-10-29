@@ -17,6 +17,8 @@ export interface TransactionPrefill {
   amount?: Cents
   title?: string
   note?: string | null
+  /** A purchase on a credit card: start with "Pay in installments" on. */
+  inInstallments?: boolean
 }
 
 export type TransactionDialogTarget =

@@ -81,3 +81,19 @@ export function setMonthRowAccount(
     .get(input.categoryId) as MonthRowRow
   return toMonthRow(row)
 }
+
+export function setMonthRowHidden(db: Database, categoryId: number, hidden: boolean): void {
+  db.prepare('UPDATE month_rows SET is_hidden = ? WHERE category_id = ?').run(
+    hidden ? 1 : 0,
+    categoryId
+  )
+}
+
+/** Puts a section's rows in this order; rows left out follow, in the order they had. */
+export function setMonthRowOrder(db: Database, section: CategoryType, categoryIds: number[]): void {
+  const rest = listMonthRows(db)
+    .filter((r) => r.section === section && !categoryIds.includes(r.categoryId))
+    .map((r) => r.categoryId)
+  const update = db.prepare('UPDATE month_rows SET sort_order = ? WHERE category_id = ?')
+  ;[...categoryIds, ...rest].forEach((categoryId, i) => update.run(i + 1, categoryId))
+}

@@ -9,7 +9,12 @@ import {
 import type {
   MonthCellInput,
   MonthKey,
+  MonthLineInput,
   MonthRowAccountInput,
+  MonthRowHide,
+  MonthRowKind,
+  MonthRowOrder,
+  MonthRowRename,
   MonthRowQuery,
   MonthSheet
 } from '@shared/month'
@@ -81,5 +86,42 @@ export function useCopyFromLastMonth(): UseMutationResult<number, Error, MonthKe
   return useMutation({
     mutationFn: (month: MonthKey) => invoke('month:copyFromLastMonth', { month }),
     onSuccess: invalidate
+  })
+}
+
+export function useAddMonthLine(): UseMutationResult<
+  { kind: MonthRowKind; sourceId: number },
+  Error,
+  MonthLineInput
+> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (input: MonthLineInput) => invoke('month:addLine', input),
+    onSuccess: invalidate
+  })
+}
+
+export function useRenameMonthRow(): UseMutationResult<void, Error, MonthRowRename> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (input: MonthRowRename) => invoke('month:renameRow', input),
+    onSuccess: invalidate
+  })
+}
+
+export function useHideMonthRow(): UseMutationResult<void, Error, MonthRowHide> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (input: MonthRowHide) => invoke('month:hideRow', input),
+    onSuccess: invalidate
+  })
+}
+
+/** Only the sheet shows the order, so only the sheet is refetched. */
+export function useReorderMonthRows(): UseMutationResult<void, Error, MonthRowOrder> {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: MonthRowOrder) => invoke('month:reorderRows', input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['stats', 'month'] })
   })
 }

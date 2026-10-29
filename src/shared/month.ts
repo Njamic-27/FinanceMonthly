@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { endOfMonth, type DateRange, type IsoDate } from './dates'
+import { endOfMonth, isIsoDate, type DateRange, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 import type { CalendarSummary } from './planned'
 
@@ -131,3 +131,71 @@ export const monthRowAccountInputSchema = monthRowQuerySchema
   .extend({ accountId: z.number().int().positive() })
   .strict()
 export type MonthRowAccountInput = z.input<typeof monthRowAccountInputSchema>
+
+const id = z.number().int().positive()
+
+/** The sections a category row can be added to, by category type. */
+export const monthLineTypes = ['income', 'expense'] as const
+export type MonthLineType = (typeof monthLineTypes)[number]
+
+/**
+ * "+" under Income or Expenses: a row by name. An existing category is reused by name,
+ * otherwise one is created; "Every month" makes it a recurring item instead.
+ */
+export const monthLineInputSchema = z
+  .object({
+    month: monthKey,
+    type: z.enum(monthLineTypes),
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Give the row a name')
+      .max(40, 'Keep the name to 40 characters or fewer'),
+    /** This month's amount; 0 adds the row empty. */
+    amount: z
+      .number({ error: 'Enter an amount' })
+      .int()
+      .min(0, 'Enter 0 or more')
+      .max(MAX_CENTS, 'That amount is too large'),
+    accountId: z.number({ error: 'Choose an account' }).int().positive('Choose an account'),
+    everyMonth: z.boolean(),
+    /** Every month: the first payment's date. */
+    date: z.string().refine(isIsoDate, 'Choose a date').optional()
+  })
+  .strict()
+  .superRefine((line, ctx) => {
+    if (!line.everyMonth) return
+    if (line.amount === 0) {
+      ctx.addIssue({ code: 'custom', path: ['amount'], message: 'Enter the amount each month' })
+    }
+    if (!line.date) {
+      ctx.addIssue({ code: 'custom', path: ['date'], message: 'Choose the first date' })
+    }
+  })
+export type MonthLineInput = z.input<typeof monthLineInputSchema>
+
+/** Rows that can be renamed on the sheet: the others are edited on their own pages. */
+export const renamableRowKinds = ['category', 'recurring', 'savings'] as const
+
+export const monthRowRenameSchema = z
+  .object({
+    kind: z.enum(renamableRowKinds),
+    sourceId: id,
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Give the row a name')
+      .max(40, 'Keep the name to 40 characters or fewer')
+  })
+  .strict()
+export type MonthRowRename = z.input<typeof monthRowRenameSchema>
+
+/** Hiding a category's row; it still shows in months with transactions. */
+export const monthRowHideSchema = z.object({ categoryId: id, hidden: z.boolean() }).strict()
+export type MonthRowHide = z.input<typeof monthRowHideSchema>
+
+/** A section's category rows in their new order. */
+export const monthRowOrderSchema = z
+  .object({ type: z.enum(monthLineTypes), categoryIds: z.array(id).min(1).max(500) })
+  .strict()
+export type MonthRowOrder = z.input<typeof monthRowOrderSchema>

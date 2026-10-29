@@ -14,7 +14,12 @@ import type {
 } from './loans'
 import type {
   MonthCellInput,
+  MonthLineInput,
   MonthRowAccountInput,
+  MonthRowHide,
+  MonthRowKind,
+  MonthRowOrder,
+  MonthRowRename,
   MonthRowQuery,
   MonthSheet,
   MonthSheetQuery
@@ -171,6 +176,14 @@ export interface IpcContract {
   'month:rowTransactions': (query: MonthRowQuery) => Transaction[]
   /** Sets the account a row uses, moving the month's summary (or payment) there too. */
   'month:setRowAccount': (input: MonthRowAccountInput) => void
+  /** "+" under Income or Expenses: adds a row by name (or a monthly item); returns the row. */
+  'month:addLine': (input: MonthLineInput) => { kind: MonthRowKind; sourceId: number }
+  /** Renames a category, recurring item or savings goal from its row. */
+  'month:renameRow': (input: MonthRowRename) => void
+  /** Hides a category's row from months without its transactions, or shows it again. */
+  'month:hideRow': (input: MonthRowHide) => void
+  /** Puts a section's category rows in a new order. */
+  'month:reorderRows': (input: MonthRowOrder) => void
 
   /** Where the total balance is heading, by week or month, with milestones. */
   'projection:get': (query: ProjectionQuery) => ProjectionResult
@@ -258,6 +271,10 @@ const channels: Record<IpcChannel, true> = {
   'month:copyFromLastMonth': true,
   'month:rowTransactions': true,
   'month:setRowAccount': true,
+  'month:addLine': true,
+  'month:renameRow': true,
+  'month:hideRow': true,
+  'month:reorderRows': true,
   'projection:get': true,
   'dev:seed': true,
   'dev:reset': true

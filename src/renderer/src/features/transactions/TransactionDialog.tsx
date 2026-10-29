@@ -132,7 +132,7 @@ function TransactionForm({
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [inInstallments, setInInstallments] = useState(false)
+  const [inInstallments, setInInstallments] = useState(prefill?.inInstallments ?? false)
   const [count, setCount] = useState('3')
 
   const createTransaction = useCreateTransaction()

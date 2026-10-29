@@ -138,6 +138,16 @@ function accountPicker(db: Database, today: IsoDate): AccountPicker {
   }
 }
 
+/** The account a category's row uses: its own, else its latest transaction's, else a default. */
+export function categoryRowAccount(
+  db: Database,
+  categoryId: number,
+  today: IsoDate
+): number | null {
+  const row = listMonthRows(db).find((r) => r.categoryId === categoryId)
+  return accountPicker(db, today).category(categoryId, row?.defaultAccountId ?? null)
+}
+
 /** Everything the Month sheet shows for one month. */
 export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate): MonthSheet {
   const { month } = monthSheetQuerySchema.parse(input)
@@ -534,13 +544,7 @@ export function setMonthCell(db: Database, input: MonthCellInput, today: IsoDate
     .find((r) => r.kind === kind && r.sourceId === sourceId)
   // A category can be typed into before it shows on the month's sheet.
   const rowAccountId =
-    row?.accountId ??
-    (kind === 'category'
-      ? accountPicker(db, today).category(
-          sourceId,
-          listMonthRows(db).find((r) => r.categoryId === sourceId)?.defaultAccountId ?? null
-        )
-      : null)
+    row?.accountId ?? (kind === 'category' ? categoryRowAccount(db, sourceId, today) : null)
   db.transaction(() =>
     setters[kind](db, {
       month,

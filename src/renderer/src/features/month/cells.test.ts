@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthSheetRow } from '@shared/month'
-import { cellValue, editStart, needsSaving, rowNote, savingValue } from './cells'
+import {
+  cellValue,
+  editStart,
+  moveCategory,
+  needsSaving,
+  rowNote,
+  savingValue,
+  signedAmount
+} from './cells'
 
 const row = (overrides: Partial<MonthSheetRow> = {}): MonthSheetRow => ({
   kind: 'category',
@@ -50,5 +58,25 @@ describe('cells', () => {
     expect(rowNote(row({ kind: 'installment_plan', overdue: true }))).toBe(
       'Charged automatically · Overdue'
     )
+  })
+})
+
+describe('the sheet’s signs', () => {
+  it('show money in as + and money out as −, loans as they are', () => {
+    expect(signedAmount('income', 245000)).toBe(245000)
+    expect(signedAmount('expenses', 12000)).toBe(-12000)
+    expect(signedAmount('savings', 15000)).toBe(-15000)
+    expect(signedAmount('savings', -5000)).toBe(5000)
+    expect(signedAmount('loans', -28127)).toBe(-28127)
+    expect(signedAmount('loans', 100000)).toBe(100000)
+  })
+})
+
+describe('moveCategory', () => {
+  it('moves a row to a new place among the others', () => {
+    expect(moveCategory([1, 2, 3, 4], 4, 0)).toEqual([4, 1, 2, 3])
+    expect(moveCategory([1, 2, 3, 4], 1, 2)).toEqual([2, 3, 1, 4])
+    expect(moveCategory([1, 2, 3], 2, 9)).toEqual([1, 3, 2])
+    expect(moveCategory([1, 2, 3], 2, -1)).toEqual([2, 1, 3])
   })
 })
