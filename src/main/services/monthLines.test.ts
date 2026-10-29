@@ -4,6 +4,7 @@ import type { MonthLineInput, MonthSheetRow } from '@shared/month'
 import { createTestDb } from '../db/testing'
 import { createAccount } from '../db/repositories/accounts'
 import { listCategories, updateCategory } from '../db/repositories/categories'
+import { getInstallmentPlan } from '../db/repositories/installments'
 import { listMonthRows } from '../db/repositories/monthRows'
 import { getRecurringItem } from '../db/repositories/recurring'
 import { createSavingsGoal, getSavingsGoal } from '../db/repositories/savings'
@@ -167,6 +168,103 @@ describe('adding a row', () => {
 
   it('needs an amount for a recurring line', () => {
     expect(() => add({ repeat: { frequency: 'monthly', interval: 1 } })).toThrow(/amount each time/)
+  })
+})
+
+describe('adding from a group (step 51)', () => {
+  it('creates a subcategory in the group it was added from', () => {
+    add({ name: 'Streaming', group: 'subscriptions', amount: 1500 })
+    expect(listCategories(db).find((c) => c.name === 'Streaming')?.group).toBe('subscriptions')
+    expect(titles('subscriptions')).toEqual(['Streaming'])
+    expect(titles('everyday')).toEqual([])
+    const netflix = add({
+      name: 'Streaming',
+      title: 'Netflix',
+      amount: 1399,
+      repeat: { frequency: 'monthly', interval: 1 }
+    })
+    expect(getRecurringItem(db, netflix.sourceId)).toMatchObject({
+      kind: 'subscription',
+      title: 'Netflix'
+    })
+    // An existing category keeps its own group.
+    add({ name: 'Groceries', group: 'bills' })
+    expect(listCategories(db).find((c) => c.name === 'Groceries')?.group).toBe('everyday')
+  })
+
+  it('buys on a card in installments', () => {
+    const card = createAccount(db, {
+      type: 'credit',
+      name: 'Mastercard',
+      openingBalance: 0,
+      openingDate: '2026-01-01',
+      color: 'orange',
+      creditLimit: 300000,
+      statementDay: 25,
+      paymentDueDay: 15,
+      payFromAccountId: debit
+    }).id
+    const row = add({
+      name: 'Shopping',
+      title: 'PlayStation',
+      amount: 60000,
+      accountId: card,
+      date: '2026-10-20',
+      installments: 6
+    })
+    expect(row.kind).toBe('installment_plan')
+    expect(getInstallmentPlan(db, row.sourceId)).toMatchObject({
+      title: 'PlayStation',
+      totalAmount: 60000,
+      count: 6,
+      categoryId: categoryId('Shopping')
+    })
+    // The first rate is charged straight away and counts with the bill in November.
+    expect(listTransactions(db, { accountId: card }).items).toEqual([
+      expect.objectContaining({
+        date: '2026-10-20',
+        amount: 10000,
+        installmentPlanId: row.sourceId
+      })
+    ])
+    expect(section('everyday', '2026-11')).toEqual([
+      expect.objectContaining({ kind: 'installment_plan', title: 'PlayStation', actual: 10000 })
+    ])
+    expect(section('everyday', '2026-12')[0]).toMatchObject({ planned: 10000 })
+
+    // Only on a card, once, and with an amount.
+    expect(() => add({ amount: 60000, installments: 6 })).toThrow(/credit card/)
+    expect(() =>
+      add({
+        amount: 60000,
+        accountId: card,
+        installments: 6,
+        repeat: { frequency: 'monthly', interval: 1 }
+      })
+    ).toThrow(/one-time/)
+  })
+
+  it('repeats every 4 months, up to every 24', () => {
+    const row = add({
+      name: 'Water',
+      group: 'bills',
+      amount: 4500,
+      date: '2026-11-10',
+      repeat: { frequency: 'monthly', interval: 4 }
+    })
+    expect(getRecurringItem(db, row.sourceId)).toMatchObject({ frequency: 'monthly', interval: 4 })
+    const water = (month: string): number | undefined =>
+      section('bills', month).find((r) => r.title === 'Water')?.planned
+    expect(
+      ['2026-11', '2026-12', '2027-01', '2027-02', '2027-03'].map((month) => water(month))
+    ).toEqual([4500, undefined, undefined, undefined, 4500])
+
+    expect(
+      add({ name: 'Passport', amount: 1000, repeat: { frequency: 'monthly', interval: 24 } })
+    ).toMatchObject({ kind: 'recurring' })
+    expect(() =>
+      add({ name: 'Passport', amount: 1000, repeat: { frequency: 'monthly', interval: 25 } })
+    ).toThrow(/24 or fewer/)
   })
 })
 

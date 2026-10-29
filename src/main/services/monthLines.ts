@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3'
-import type { Category, CategoryType } from '@shared/categories'
+import type { Category, CategoryType, ExpenseGroup } from '@shared/categories'
 import { fallbackCategoryIcon } from '@shared/categories'
 import type { IsoDate } from '@shared/dates'
 import {
@@ -28,16 +28,26 @@ import {
   setMonthRowHidden,
   setMonthRowOrder
 } from '../db/repositories/monthRows'
+import { createInstallmentPlan } from '../db/repositories/installments'
 import { createRecurringItem, getRecurringItem } from '../db/repositories/recurring'
 import { getSavingsGoal } from '../db/repositories/savings'
 import { createTransaction } from '../db/repositories/transactions'
 import { categoryRowAccount, monthSheet } from './monthSheet'
+import { postDueInstallments } from './posting'
 
 // Changing the Month sheet's rows (PLAN.md §3, Month): "+" under a section, rename, hide and
 // reorder. Only categories are stored as rows; the other rows come from their own items.
 
-/** The category called `name` (ignoring case), restored if archived, or a new one. */
-function categoryByName(db: Database, type: CategoryType, name: string): Category {
+/**
+ * The category called `name` (ignoring case), restored if archived, or a new one (an expense
+ * one in `group`).
+ */
+function categoryByName(
+  db: Database,
+  type: CategoryType,
+  name: string,
+  group?: ExpenseGroup
+): Category {
   const categories = listCategories(db).filter((c) => c.type === type)
   const existing = categories.find((c) => c.name.toLowerCase() === name.toLowerCase())
   if (existing) {
@@ -47,7 +57,8 @@ function categoryByName(db: Database, type: CategoryType, name: string): Categor
     name,
     type,
     color: nextPaletteColor(categories.filter((c) => !c.isArchived).map((c) => c.color)),
-    icon: fallbackCategoryIcon
+    icon: fallbackCategoryIcon,
+    group: type === 'expense' ? group : undefined
   })
 }
 
@@ -63,9 +74,11 @@ function ensureRow(db: Database, categoryId: number, today: IsoDate, accountId?:
 }
 
 /**
- * "+" under Income or Expenses: something in a category, picked or created by name. One-time
- * puts the category on the sheet (shown again if it was hidden) with a transaction on its
- * date; with `repeat` it's a recurring item from that date on. Returns the row it lands in.
+ * "+" under Income or Expenses: something in a category, picked or created by name (a new
+ * expense one in the group it was added from). One-time puts the category on the sheet (shown
+ * again if it was hidden) with a transaction on its date; with `repeat` it's a recurring item
+ * from that date on; with `installments` (on a card) an installment plan whose first rate is
+ * on that date. Returns the row it lands in.
  */
 export function addMonthLine(
   db: Database,
@@ -74,11 +87,12 @@ export function addMonthLine(
 ): { kind: MonthRowKind; sourceId: number } {
   const line = monthLineInputSchema.parse(input)
   monthSheet(db, { month: line.month }, today) // checks the month is in reach
-  return db.transaction(() => {
-    const category = categoryByName(db, line.type, line.name)
+  const added = db.transaction(() => {
+    const category = categoryByName(db, line.type, line.name, line.group)
     if (line.repeat) {
       const item = createRecurringItem(db, {
-        kind: line.type,
+        // In a Subscriptions category it's a subscription.
+        kind: category.group === 'subscriptions' ? 'subscription' : line.type,
         title: line.title || category.name,
         amount: line.amount,
         accountId: line.accountId,
@@ -91,6 +105,18 @@ export function addMonthLine(
         reminderDaysBefore: null
       })
       return { kind: 'recurring' as const, sourceId: item.id }
+    }
+    if (line.installments !== undefined) {
+      const plan = createInstallmentPlan(db, {
+        accountId: line.accountId,
+        title: line.title || category.name,
+        categoryId: category.id,
+        totalAmount: line.amount,
+        count: line.installments,
+        firstDate: line.date,
+        note: null
+      })
+      return { kind: 'installment_plan' as const, sourceId: plan.id }
     }
     ensureRow(db, category.id, today, line.accountId)
     setMonthRowHidden(db, category.id, false)
@@ -107,6 +133,9 @@ export function addMonthLine(
     }
     return { kind: 'category' as const, sourceId: category.id }
   })()
+  // The first installment is usually today's: it's charged straight away.
+  if (added.kind === 'installment_plan') postDueInstallments(db, today)
+  return added
 }
 
 /** Renames a category, recurring item or savings goal from its row. */

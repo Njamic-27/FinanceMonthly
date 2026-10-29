@@ -90,7 +90,7 @@ export const recurringItemInputSchema = z
     accountId,
     categoryId: z.number({ error: 'Choose a category' }).int().positive('Choose a category'),
     frequency: z.enum(frequencies),
-    interval: z.number().int().min(1, 'Enter 1 or more').max(12, 'Enter 12 or fewer'),
+    interval: z.number().int().min(1, 'Enter 1 or more').max(24, 'Enter 24 or fewer'),
     anchorDate: isoDate,
     nextDueDate: isoDate,
     endDate: isoDate.nullable().default(null),

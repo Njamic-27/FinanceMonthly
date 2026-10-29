@@ -32,7 +32,6 @@ import { MonthSheetView } from '@renderer/features/month/MonthSheetView'
 import { useCopyFromLastMonth, useMonthSheet } from '@renderer/features/month/queries'
 import { RenameRowDialog } from '@renderer/features/month/RenameRowDialog'
 import { RowPanel } from '@renderer/features/month/RowPanel'
-import { RecurringDialog } from '@renderer/features/recurring/RecurringDialog'
 import { GoalDialog } from '@renderer/features/savings/GoalDialog'
 import {
   MovementDialog,
@@ -87,26 +86,11 @@ export function MonthPage(): React.JSX.Element {
   const date = summaryDate(month, today())
   const payFrom = accounts.find((a) => a.type !== 'credit' && !a.isArchived)
 
-  /** A dialog that adds something new: buying in installments needs a card first. */
+  /** A dialog that adds something new. */
   const openNew = (choice: AddChoice): void => {
-    if (choice === 'transfer') {
+    if (choice === 'transfer')
       openTransactionDialog({ kind: 'new', prefill: { type: 'transfer', date } })
-      return
-    }
-    if (choice !== 'installments') {
-      setAdding(choice)
-      return
-    }
-    const card = accounts.find((a) => a.type === 'credit' && !a.isArchived)
-    if (!card) {
-      toast({ title: 'Add a card first', description: 'Installments are paid off on a card.' })
-      setAdding('card')
-      return
-    }
-    openTransactionDialog({
-      kind: 'new',
-      prefill: { type: 'expense', accountId: card.id, inInstallments: true, date }
-    })
+    else setAdding(choice)
   }
 
   /** What "+" picked, opened right here on Month. */
@@ -219,10 +203,6 @@ export function MonthPage(): React.JSX.Element {
       <PayInstallmentDialog target={paying} onClose={() => setPaying(null)} />
       <RepaymentDialog target={repaying} onClose={() => setRepaying(null)} />
       <MovementDialog target={moving} onClose={() => setMoving(null)} />
-      <RecurringDialog
-        target={adding === 'subscription' ? { kind: 'new', itemKind: 'subscription' } : null}
-        onClose={close}
-      />
       <AccountDialog
         target={
           adding === 'card'

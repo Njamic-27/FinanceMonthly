@@ -430,7 +430,7 @@ function RecurringForm({
                   id="recurring-interval"
                   type="number"
                   min={1}
-                  max={12}
+                  max={24}
                   className="w-16"
                   value={interval}
                   {...errorProps('recurring-interval', errors.interval)}

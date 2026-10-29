@@ -124,16 +124,7 @@ export function sheetAmount(
 }
 
 /** A dialog "+" opens to add something new (see addMenuEntries.ts). */
-export type AddChoice =
-  | 'subscription'
-  | 'installments'
-  | 'card'
-  | 'bank_loan'
-  | 'borrowed'
-  | 'lent'
-  | 'goal'
-  | 'account'
-  | 'transfer'
+export type AddChoice = 'card' | 'bank_loan' | 'borrowed' | 'lent' | 'goal' | 'account' | 'transfer'
 
 export const canRename = (row: MonthSheetRow): boolean =>
   (renamableRowKinds as readonly string[]).includes(row.kind)
