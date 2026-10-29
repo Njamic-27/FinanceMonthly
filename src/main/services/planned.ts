@@ -6,6 +6,7 @@ import {
   formatDate,
   startOfMonth,
   startOfWeek,
+  type DateRange,
   type IsoDate
 } from '@shared/dates'
 import {
@@ -16,6 +17,7 @@ import {
   type CalendarQuery,
   type PlannedItem
 } from '@shared/planned'
+import { countedDate } from '@shared/cards'
 import { installmentSchedule, installmentTitle } from '@shared/installments'
 import { occurrences } from '@shared/recurrence'
 import { postedType } from '@shared/recurring'
@@ -43,6 +45,28 @@ export function plannedItems(
   to: IsoDate,
   today: IsoDate
 ): PlannedItem[] {
+  // Charges on a card count when its bill is due, like recorded ones (transactions.counts_on).
+  const mode = getSettings(db).cardSpendingMonth
+  const cards = new Map(
+    (
+      db.prepare('SELECT id, type, statement_day, payment_due_day FROM accounts').all() as {
+        id: number
+        type: string
+        statement_day: number | null
+        payment_due_day: number | null
+      }[]
+    ).map((a) => [
+      a.id,
+      { type: a.type, statementDay: a.statement_day, paymentDueDay: a.payment_due_day }
+    ])
+  )
+  const counts = (date: IsoDate, accountId: number, group: PlannedItem['group']): IsoDate => {
+    const account = cards.get(accountId)
+    return account && (group === 'income' || group === 'expense')
+      ? countedDate(date, account, mode)
+      : date
+  }
+
   const settledQuery = db.prepare(
     `SELECT planned_date AS date FROM transactions
      WHERE recurring_item_id = ? AND planned_date BETWEEN ? AND ?`
@@ -61,6 +85,7 @@ export function plannedItems(
         source: 'recurring',
         sourceId: item.id,
         date,
+        countsOn: counts(date, item.accountId, postedType(item.kind)),
         title: item.title,
         amount: item.amount,
         group: postedType(item.kind),
@@ -85,6 +110,7 @@ export function plannedItems(
         source: 'installment_plan',
         sourceId: plan.id,
         date,
+        countsOn: counts(date, plan.accountId, 'expense'),
         title: installmentTitle(plan.title, seq, plan.count),
         amount,
         group: 'expense',
@@ -120,6 +146,7 @@ export function plannedItems(
       sourceId: row.id,
       loanId: row.loan_id,
       date: row.due_date,
+      countsOn: row.due_date,
       title: installmentTitle(row.title, row.seq, row.installments_count),
       amount: row.amount,
       group: 'loan',
@@ -181,6 +208,16 @@ export function projectedBalance(db: Database, date: IsoDate, today: IsoDate): n
   )
 }
 
+/**
+ * Planned payments that count in `range`. A card charge counts when its bill is due, at most
+ * two months after the charge, so those from the two months before are looked at too.
+ */
+export function plannedCountedIn(db: Database, range: DateRange, today: IsoDate): PlannedItem[] {
+  return plannedItems(db, addMonths(range.start, -2), range.end, today).filter(
+    (p) => p.countsOn >= range.start && p.countsOn <= range.end
+  )
+}
+
 /** Everything the Calendar shows for one month. */
 export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate): CalendarMonth {
   const { month: day } = calendarQuerySchema.parse(input)
@@ -196,7 +233,9 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
   const { weekStart } = getSettings(db)
   const grid = { start: startOfWeek(month.start, weekStart), end: endOfWeek(month.end, weekStart) }
 
-  const days = getSeries(db, { from: grid.start, to: grid.end, by: 'day' }).map((d) => ({
+  // Day cells show what happened on each day; the month's totals count card spending when
+  // its bill is due.
+  const days = getSeries(db, { from: grid.start, to: grid.end, by: 'day' }, 'actual').map((d) => ({
     date: d.start,
     income: d.income,
     expenses: d.expenses,
@@ -205,7 +244,7 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
     count: d.count
   }))
   const planned = plannedItems(db, grid.start, grid.end, today)
-  const inMonth = planned.filter((p) => p.date >= month.start && p.date <= month.end)
+  const inMonth = plannedCountedIn(db, month, today)
   const totals = getTotals(db, { from: month.start, to: month.end })
   const projected = month.end >= today
 

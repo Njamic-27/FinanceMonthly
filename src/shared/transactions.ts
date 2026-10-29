@@ -35,6 +35,11 @@ export interface Transaction {
   plannedDate: IsoDate | null
   /** The monthly summary of a Month sheet row: what its individual transactions don't hold. */
   isMonthTotal: boolean
+  /**
+   * The day it counts as income or spending: `date`, or for a purchase on a credit card the
+   * due date of the bill it's on (PLAN.md §2, step 42). Balances use `date`.
+   */
+  countsOn: IsoDate
   note: string | null
   createdAt: string
   updatedAt: string
@@ -101,6 +106,11 @@ export const transactionQuerySchema = z
     amount: z.number().int().positive().max(MAX_CENTS).optional(),
     from: isoDate.optional(),
     to: isoDate.optional(),
+    /**
+     * What `from` and `to` match: the day a transaction counts (the default; card spending
+     * on its bill's due date, PLAN.md step 42) or the day it happened.
+     */
+    dates: z.enum(['counted', 'actual']).optional(),
     /** Transfers match on either side. */
     accountId: transactionIdSchema.optional(),
     categoryId: transactionIdSchema.optional(),

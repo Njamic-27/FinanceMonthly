@@ -163,9 +163,10 @@ export function project(input: ProjectionInput): Projection {
     return flows
   }
 
+  // Each payment on the day it counts: a card charge when its bill is due (PLAN.md step 42).
   for (const item of input.planned) {
-    if (item.date > end) continue
-    const flows = at(item.date)
+    if (item.countsOn > end) continue
+    const flows = at(item.countsOn)
     if (item.group === 'income') flows.inflow += item.amount
     else if (item.group === 'loan') flows.loans += item.amount
     else if (item.group === 'savings') flows.savings += item.amount

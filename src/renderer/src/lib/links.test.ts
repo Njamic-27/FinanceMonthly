@@ -36,6 +36,7 @@ describe('links', () => {
       source: 'recurring',
       sourceId: 7,
       date: TODAY,
+      countsOn: TODAY,
       title: 'Rent',
       amount: 50000,
       group: 'expense',

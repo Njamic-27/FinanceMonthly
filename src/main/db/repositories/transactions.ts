@@ -36,6 +36,7 @@ export interface TransactionRow {
   installment_plan_id: number | null
   planned_date: string | null
   is_month_total: number
+  counts_on: string | null
   note: string | null
   created_at: string
   updated_at: string
@@ -58,6 +59,8 @@ export function toTransaction(row: TransactionRow): Transaction {
     installmentPlanId: row.installment_plan_id,
     plannedDate: row.planned_date,
     isMonthTotal: row.is_month_total === 1,
+    // Triggers fill it as the row is written; the date is only a fallback.
+    countsOn: row.counts_on ?? row.date,
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -264,13 +267,14 @@ function filterSql(query: ReturnType<typeof transactionQuerySchema.parse>): {
     }
     conditions.push(`(${matches.join(' OR ')})`)
   }
+  const day = query.dates === 'actual' ? 't.date' : 't.counts_on'
   if (query.from) {
     params.from = query.from
-    conditions.push('t.date >= @from')
+    conditions.push(`${day} >= @from`)
   }
   if (query.to) {
     params.to = query.to
-    conditions.push('t.date <= @to')
+    conditions.push(`${day} <= @to`)
   }
   if (query.accountId !== undefined) {
     params.accountId = query.accountId

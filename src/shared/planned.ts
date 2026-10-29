@@ -21,6 +21,11 @@ export interface PlannedItem {
   loanId?: number
   /** The day it falls due; settling it records this as the transaction's planned date. */
   date: IsoDate
+  /**
+   * The day it will count as income or spending: `date`, or for a charge on a credit card the
+   * due date of the bill it goes on (PLAN.md step 42).
+   */
+  countsOn: IsoDate
   title: string
   amount: Cents
   group: PlannedGroup

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { cardSpendingMonths } from './cards'
 
 export const themeModes = ['system', 'light', 'dark'] as const
 export type ThemeMode = (typeof themeModes)[number]
@@ -20,7 +21,9 @@ export const settingsSchema = z.object({
   startWithWindows: z.boolean(),
   projectionIncludeVariable: z.boolean(),
   projectionVariableMonths: z.number().int().min(1).max(12),
-  projectionIncludeSavings: z.boolean()
+  projectionIncludeSavings: z.boolean(),
+  /** Card spending counts in the month the card is paid (its bill's due date) or bought. */
+  cardSpendingMonth: z.enum(cardSpendingMonths)
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -39,5 +42,6 @@ export const defaultSettings: Settings = {
   startWithWindows: false,
   projectionIncludeVariable: true,
   projectionVariableMonths: 3,
-  projectionIncludeSavings: true
+  projectionIncludeSavings: true,
+  cardSpendingMonth: 'payment'
 }

@@ -165,7 +165,7 @@ describe('migration 005', () => {
       ).map((r) => r.name)
     const before = indexes()
 
-    migrate(old, migrations)
+    migrate(old, migrations.slice(0, 5))
     expect(old.prepare('SELECT * FROM transactions ORDER BY id').all()).toEqual(rows)
     expect(indexes()).toEqual(before)
     expect(old.pragma('foreign_key_check')).toEqual([])

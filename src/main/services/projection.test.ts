@@ -124,6 +124,9 @@ describe('buildProjection', () => {
     })
     spend('2026-11-03', 4000) // entered for later
 
+    // Counting card spending in the month of purchase, each month ends on the Calendar's
+    // expected balance: both follow the real dates.
+    updateSettings(db, { cardSpendingMonth: 'purchase' })
     const projection = buildProjection(db, { months: 3, granularity: 'month' }, TODAY)
     for (const period of projection.periods.slice(0, -1)) {
       expect(period.balance).toBe(
@@ -139,6 +142,15 @@ describe('buildProjection', () => {
     })
     // The overdue October rent counts today.
     expect(projection.periods[0].fixed).toBe(65000)
+
+    // Counted when the card is paid (the default), November's Netflix and laptop rate are on
+    // the bill due 15 December.
+    updateSettings(db, { cardSpendingMonth: 'payment' })
+    const byBill = buildProjection(db, { months: 3, granularity: 'month' }, TODAY)
+    expect(byBill.periods[1].fixed).toBe(65000 + 4000)
+    expect(byBill.periods[2].fixed).toBe(65000 + 1399 + 30000)
+    // December's own Netflix and laptop rate are on January's bill.
+    expect(byBill.periods[2].balance).toBe(projection.periods[2].balance + 1399 + 30000)
   })
 
   it('leaves paused subscriptions out', () => {

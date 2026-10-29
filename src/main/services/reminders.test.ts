@@ -146,6 +146,7 @@ describe('reminderMessages', () => {
       source: 'recurring' as const,
       sourceId: 1,
       date,
+      countsOn: date,
       title,
       amount: 1399,
       group,

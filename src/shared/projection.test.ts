@@ -14,6 +14,7 @@ const item = (
   source: group === 'loan' ? 'loan_installment' : 'recurring',
   sourceId: 1,
   date,
+  countsOn: date,
   title,
   amount,
   group,
@@ -71,6 +72,19 @@ describe('project', () => {
       ['2027-01-01', '2027-01-31', 0, 705000]
     ])
     expect(projection.periods[1]).toMatchObject({ inflow: 245000, fixed: 65000 })
+  })
+
+  it('counts a card charge in the month its bill is due', () => {
+    // Netflix on the card on 5 November, on the bill due 15 December.
+    const projection = project(
+      input({ planned: [{ ...item('2026-11-05', 1399), countsOn: '2026-12-15' }] })
+    )
+    expect(months(projection).map(([start, , net]) => [start, net])).toEqual([
+      ['2026-10-27', 0],
+      ['2026-11-01', 0],
+      ['2026-12-01', -1399],
+      ['2027-01-01', 0]
+    ])
   })
 
   it('counts overdue payments today', () => {

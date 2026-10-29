@@ -270,9 +270,17 @@ describe('rows', () => {
     expect(find('category', categoryId('Rent'))).toMatchObject({ actual: 2000, count: 1 })
     // Rent, a recurring expense, is a bill; its category's own purchases stay everyday spending.
     expect(section('bills').rows.map((r) => [r.kind, r.title])).toEqual([['recurring', 'Rent']])
-    expect(section('expenses').rows.map((r) => r.kind)).toEqual(['category', 'category'])
+    expect(section('expenses').rows.map((r) => r.title)).toEqual(['Rent'])
+    // The card's statement closes on the 25th and is paid by the 15th: the laptop's September
+    // rate is on the bill due 15 October; its October rate and the shopping on 14 October are
+    // on the one due 15 November, so they count then.
     expect(find('installment_plan', plan)).toMatchObject({ actual: 25000, editable: false })
-    expect(find('category', categoryId('Shopping'))).toMatchObject({ actual: 4500, count: 1 })
+    expect(find('category', categoryId('Shopping'))).toBeUndefined()
+    expect(row('installment_plan', plan, '2026-11')).toMatchObject({ actual: 25000, planned: 0 })
+    expect(row('category', categoryId('Shopping'), '2026-11')).toMatchObject({
+      actual: 4500,
+      count: 1
+    })
     // The installment due 15 October isn't paid: planned, overdue, and out of the balance.
     expect(find('loan', loan)).toMatchObject({ actual: 0, planned: -100000, overdue: true })
 
@@ -280,7 +288,7 @@ describe('rows', () => {
       .filter((s) => s.key !== 'loans' && s.key !== 'savings' && s.key !== 'income')
       .flatMap((s) => s.rows)
       .filter((r) => r.kind !== 'card_payment')
-    expect(expenses.reduce((sum, r) => sum + r.actual, 0)).toBe(65000 + 2000 + 25000 + 4500)
+    expect(expenses.reduce((sum, r) => sum + r.actual, 0)).toBe(65000 + 2000 + 25000)
   })
 
   it('add up to the Calendar’s and Overview’s totals', () => {
@@ -461,10 +469,12 @@ describe('other rows', () => {
       firstDate: '2026-10-30',
       note: null
     }).id
-    expect(row('installment_plan', plan)).toMatchObject({ planned: 25000 })
-    expect(() => set({ kind: 'installment_plan', sourceId: plan, amount: 25000 })).toThrow(
-      /by themselves/
-    )
+    // Charged 30 October, after the statement on the 25th: on the bill due 15 December.
+    expect(row('installment_plan', plan)).toBeUndefined()
+    expect(row('installment_plan', plan, '2026-12')).toMatchObject({ planned: 25000 })
+    expect(() =>
+      set({ kind: 'installment_plan', sourceId: plan, amount: 25000, month: '2026-12' })
+    ).toThrow(/by themselves/)
   })
 })
 

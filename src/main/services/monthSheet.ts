@@ -46,16 +46,20 @@ import {
   updateTransaction,
   type TransactionRow
 } from '../db/repositories/transactions'
-import { calendarMonth, plannedItems } from './planned'
+import { calendarMonth, plannedCountedIn } from './planned'
 import { postOccurrence, skipOccurrence } from './posting'
 
 // The Month sheet (PLAN.md §3–4): a month as sections of rows, each row backed by real
-// transactions. Every income and expense transaction of the month lands in exactly one row
+// transactions. Every income and expense transaction counted in the month lands in exactly one row
 // (a category's own, or the recurring item's, installment plan's or loan's that posted it),
 // so the sheet adds up to the same totals as the Calendar and Overview.
 
 const sum = (values: number[]): number => values.reduce((total, v) => total + v, 0)
 
+/**
+ * Transactions that count in the month: card spending when its bill is due (`counts_on`,
+ * PLAN.md step 42), everything else on its date.
+ */
 function transactionsIn(
   db: Database,
   month: MonthKey,
@@ -65,7 +69,8 @@ function transactionsIn(
   const { start, end } = monthRange(month)
   const rows = db
     .prepare(
-      `SELECT * FROM transactions WHERE date BETWEEN ? AND ? AND (${where}) ORDER BY date, id`
+      `SELECT * FROM transactions WHERE counts_on BETWEEN ? AND ? AND (${where})
+       ORDER BY date, id`
     )
     .all(start, end, ...params) as TransactionRow[]
   return rows.map(toTransaction)
@@ -154,7 +159,7 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
   const range = monthRange(month)
   // Also checks the month is within the Calendar's reach.
   const calendar = calendarMonth(db, { month: range.start }, today)
-  const planned = calendar.planned.filter((p) => p.date >= range.start && p.date <= range.end)
+  const planned = plannedCountedIn(db, range, today)
   const txs = transactionsIn(db, month, '1')
 
   const { accounts, pick, category: categoryAccount } = accountPicker(db, today)
@@ -453,7 +458,7 @@ function setRecurringCell(db: Database, cell: Cell): void {
   const item = getRecurringItem(db, cell.sourceId)
   const { start, end } = monthRange(cell.month)
   const posted = transactionsIn(db, cell.month, 'recurring_item_id = ?', item.id)
-  const due = plannedItems(db, start, end, cell.today).filter(
+  const due = plannedCountedIn(db, { start, end }, cell.today).filter(
     (p) => p.source === 'recurring' && p.sourceId === item.id
   )
   if (posted.length + due.length !== 1) {

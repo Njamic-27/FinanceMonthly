@@ -159,17 +159,22 @@ export function getAverageVariableSpending(
     .prepare(
       `SELECT coalesce(sum(amount), 0) AS total FROM transactions
        WHERE type = 'expense' AND recurring_item_id IS NULL AND installment_plan_id IS NULL
-         AND date >= ? AND date < ?`
+         AND counts_on >= ? AND counts_on < ?`
     )
     .get(from, thisMonth) as { total: number }
   return Math.round(total / counted)
 }
 
-/** Totals for every transaction from `from` to `to`, inclusive. */
+/**
+ * Totals for every transaction counted from `from` to `to`, inclusive: card spending counts
+ * when its bill is due (`counts_on`, PLAN.md step 42).
+ */
 export function getTotals(db: Database, input: StatsRange): Totals {
   const { from, to } = statsRangeSchema.parse(input)
   const row = db
-    .prepare(`SELECT ${totalsColumnsSql} FROM transactions t WHERE t.date BETWEEN @from AND @to`)
+    .prepare(
+      `SELECT ${totalsColumnsSql} FROM transactions t WHERE t.counts_on BETWEEN @from AND @to`
+    )
     .get({ from, to }) as TotalsRow
   return toTotals(row)
 }
@@ -177,8 +182,15 @@ export function getTotals(db: Database, input: StatsRange): Totals {
 /**
  * Totals for each day, week or month from `from` to `to`, including empty ones, in date
  * order. Periods are cut to the range, so a month-to-date range ends with a partial month.
+ * Income and spending go by the day they count (card spending on its bill's due date) unless
+ * `dates` is 'actual', as in the Calendar's day cells; balances always use real dates.
  */
-export function getSeries(db: Database, input: StatsSeriesQuery): PeriodTotals[] {
+export function getSeries(
+  db: Database,
+  input: StatsSeriesQuery,
+  dates: 'counted' | 'actual' = 'counted'
+): PeriodTotals[] {
+  const day = dates === 'actual' ? 't.date' : 't.counts_on'
   const { from, to, by } = statsSeriesQuerySchema.parse(input)
   const periods: DateRange[] =
     by === 'day'
@@ -190,8 +202,8 @@ export function getSeries(db: Database, input: StatsSeriesQuery): PeriodTotals[]
 
   const days = db
     .prepare(
-      `SELECT t.date AS date, ${totalsColumnsSql} FROM transactions t
-       WHERE t.date BETWEEN @from AND @to GROUP BY t.date ORDER BY t.date`
+      `SELECT ${day} AS date, ${totalsColumnsSql} FROM transactions t
+       WHERE ${day} BETWEEN @from AND @to GROUP BY ${day} ORDER BY ${day}`
     )
     .all({ from, to }) as (TotalsRow & { date: IsoDate })[]
 
@@ -209,11 +221,11 @@ export function getSeries(db: Database, input: StatsSeriesQuery): PeriodTotals[]
 
   // Both lists are in date order, as are the periods: walk them side by side.
   let balance = before
-  let day = 0
+  let next = 0
   let change = 0
   return periods.map(({ start, end }) => {
     const sum = emptyRow()
-    while (day < days.length && days[day].date <= end) addRow(sum, days[day++])
+    while (next < days.length && days[next].date <= end) addRow(sum, days[next++])
     while (change < changes.length && changes[change].date <= end) {
       balance += changes[change++].delta
     }
@@ -222,7 +234,7 @@ export function getSeries(db: Database, input: StatsSeriesQuery): PeriodTotals[]
 }
 
 /**
- * Income or expense totals per category from `from` to `to`, largest first. Archived
+ * Income or expense totals per category counted from `from` to `to`, largest first. Archived
  * categories are included: their transactions still happened.
  */
 export function getCategoryTotals(db: Database, input: CategoryTotalsQuery): CategoryTotal[] {
@@ -231,19 +243,19 @@ export function getCategoryTotals(db: Database, input: CategoryTotalsQuery): Cat
     .prepare(
       `SELECT t.category_id AS categoryId, sum(t.amount) AS total, count(*) AS count
        FROM transactions t
-       WHERE t.type = @type AND t.date BETWEEN @from AND @to
+       WHERE t.type = @type AND t.counts_on BETWEEN @from AND @to
        GROUP BY t.category_id ORDER BY total DESC, t.category_id`
     )
     .all({ from, to, type }) as CategoryTotal[]
 }
 
-/** The largest income or expense transactions from `from` to `to`; the earliest first on ties. */
+/** The largest income or expense transactions counted from `from` to `to`; earliest first on ties. */
 export function getLargest(db: Database, input: LargestQuery): Transaction[] {
   const { from, to, type, limit } = largestQuerySchema.parse(input)
   const rows = db
     .prepare(
       `SELECT t.* FROM transactions t
-       WHERE t.type = @type AND t.date BETWEEN @from AND @to
+       WHERE t.type = @type AND t.counts_on BETWEEN @from AND @to
        ORDER BY t.amount DESC, t.date, t.id LIMIT @limit`
     )
     .all({ from, to, type, limit }) as TransactionRow[]

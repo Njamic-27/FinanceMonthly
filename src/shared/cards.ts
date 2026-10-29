@@ -28,6 +28,36 @@ function dayAfter(date: IsoDate, day: number): IsoDate {
   return sameMonth > date ? sameMonth : dayIn(date, 1, day)
 }
 
+/**
+ * The due date of the card bill a purchase on `date` goes on: the first statement on or after
+ * `date` (a purchase on the statement day is on that statement), then the first payment due
+ * day after that statement. Purchase 20 Oct, statement day 25, due day 15 → 15 Nov.
+ */
+export function billDueDate(date: IsoDate, statementDay: number, paymentDueDay: number): IsoDate {
+  const sameMonth = dayIn(date, 0, statementDay)
+  const statement = sameMonth >= date ? sameMonth : dayIn(date, 1, statementDay)
+  return dayAfter(statement, paymentDueDay)
+}
+
+/** Whether card spending counts in the month the card is paid (default) or of the purchase. */
+export const cardSpendingMonths = ['payment', 'purchase'] as const
+export type CardSpendingMonth = (typeof cardSpendingMonths)[number]
+
+/**
+ * The day income or spending on an account counts (PLAN.md §2, step 42): on a credit card
+ * with both its days set, the due date of the bill it's on, unless spending counts in the
+ * month of purchase; otherwise the day itself. Transactions store this as `counts_on`.
+ */
+export function countedDate(
+  date: IsoDate,
+  account: { type: string; statementDay: number | null; paymentDueDay: number | null },
+  mode: CardSpendingMonth
+): IsoDate {
+  if (mode === 'purchase' || account.type !== 'credit') return date
+  if (account.statementDay === null || account.paymentDueDay === null) return date
+  return billDueDate(date, account.statementDay, account.paymentDueDay)
+}
+
 export function cardCycle(
   statementDay: number | null,
   paymentDueDay: number | null,

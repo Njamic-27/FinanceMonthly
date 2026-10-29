@@ -92,7 +92,8 @@ export function DayPanel({
   const money = useCurrency()
   const accounts = useAccounts().data ?? []
   const categories = useCategories().data ?? []
-  const list = useTransactionList({ from: date, to: date })
+  // What happened on the day itself, card purchases included.
+  const list = useTransactionList({ from: date, to: date, dates: 'actual' })
   const pages = list.data?.pages ?? []
   const transactions = pages.flatMap((p) => p.items)
   const dayTotals = new Map<IsoDate, DayTotal>(
