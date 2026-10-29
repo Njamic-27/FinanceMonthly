@@ -105,6 +105,19 @@ export interface MonthSheet {
 
 const monthKey = z.string().refine(isMonthKey, 'Choose a month')
 
+/**
+ * One account's spending in a month (PLAN.md step 46): expenses counted then (for a card, on
+ * the bill due that month) and those still planned.
+ */
+export interface AccountSpending {
+  accountId: number
+  recorded: Cents
+  /** Still to come; only for the current and later months, as in the month's net. */
+  planned: Cents
+  /** Recorded transactions. */
+  count: number
+}
+
 export const monthSheetQuerySchema = z.object({ month: monthKey }).strict()
 export type MonthSheetQuery = z.input<typeof monthSheetQuerySchema>
 

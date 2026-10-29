@@ -14,6 +14,7 @@ import type {
 } from '@shared/month'
 import { ColorChip } from '@renderer/components/ColorChip'
 import { Card } from '@renderer/components/ui/card'
+import { SegmentedControl } from '@renderer/components/ui/segmented-control'
 import {
   Popover,
   PopoverClose,
@@ -52,6 +53,7 @@ import {
   sheetAmount
 } from './cells'
 import { AddMenu } from './AddMenu'
+import { PaymentMethodView } from './PaymentMethodView'
 import type { AddAction } from './addMenuEntries'
 import {
   useHideMonthRow,
@@ -397,6 +399,35 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
   )
 }
 
+type ExpensesView = 'category' | 'method'
+
+const viewOptions: { value: ExpensesView; label: string }[] = [
+  { value: 'category', label: 'By category' },
+  { value: 'method', label: 'By payment method' }
+]
+
+const VIEW_KEY = 'month-expenses-view'
+
+/** How Expenses are shown, remembered between visits (only on this computer). */
+function useExpensesView(): [ExpensesView, (view: ExpensesView) => void] {
+  const [view, setView] = useState<ExpensesView>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'method' ? 'method' : 'category'
+    } catch {
+      return 'category'
+    }
+  })
+  const choose = (next: ExpensesView): void => {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {
+      // Storage unavailable: the choice lasts until the app closes.
+    }
+  }
+  return [view, choose]
+}
+
 /** "Income" or "Expenses" over its rows, with its "+" and the month's total. */
 function SheetHeading({
   id,
@@ -468,8 +499,11 @@ export function MonthSheetView({
   const groups = expenseGroups.flatMap((key) =>
     sections.filter((s) => s.key === key && s.rows.length > 0)
   )
+  const [view, setView] = useExpensesView()
   // Arrows and Enter move down the one column.
-  const keys = [...income, ...groups].flatMap((s) => s.rows.map(rowKey))
+  const keys = [...income, ...(view === 'category' ? groups : [])].flatMap((s) =>
+    s.rows.map(rowKey)
+  )
 
   const [editing, setEditingState] = useState<Editing | null>(null)
   // Mirrors `editing` at once, so a blur after Enter doesn't save the cell a second time.
@@ -804,13 +838,30 @@ export function MonthSheetView({
           title="Expenses"
           total={totals.expenses}
           note="Spending this month. Card payments, loans and savings move money: they’re in your balance, not in this total."
-          action={<AddMenu section="expenses" onAction={onAdd} />}
+          action={
+            <div className="flex flex-wrap items-center gap-3">
+              <AddMenu section="expenses" onAction={onAdd} />
+              <SegmentedControl
+                name="expenses-view"
+                aria-label="Show expenses"
+                value={view}
+                options={viewOptions}
+                onValueChange={setView}
+              />
+            </div>
+          }
         />
-        {groups.map(renderSection)}
-        {groups.length === 0 && (
-          <p className="px-1 text-ink-muted">
-            Nothing spent this month yet. Add it with “Add expense”.
-          </p>
+        {view === 'method' ? (
+          <PaymentMethodView month={month} />
+        ) : (
+          <>
+            {groups.map(renderSection)}
+            {groups.length === 0 && (
+              <p className="px-1 text-ink-muted">
+                Nothing spent this month yet. Add it with “Add expense”.
+              </p>
+            )}
+          </>
         )}
       </section>
     </div>

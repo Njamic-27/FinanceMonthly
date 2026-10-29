@@ -14,6 +14,7 @@ import {
   renameMonthRow,
   reorderMonthRows
 } from '../services/monthLines'
+import { spendingByAccount } from '../services/spendingByAccount'
 import { handle } from './handle'
 
 export function registerMonthHandlers(): void {
@@ -27,4 +28,5 @@ export function registerMonthHandlers(): void {
   handle('month:hideRow', (input) => hideMonthRow(getDb(), input, today()))
   handle('month:reorderRows', (input) => reorderMonthRows(getDb(), input, today()))
   handle('month:clearRow', (input) => clearMonthRow(getDb(), input))
+  handle('month:spendingByAccount', (query) => spendingByAccount(getDb(), query, today()))
 }

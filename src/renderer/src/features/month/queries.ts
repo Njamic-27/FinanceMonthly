@@ -7,6 +7,7 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  AccountSpending,
   MonthCellInput,
   MonthKey,
   MonthLineInput,
@@ -24,7 +25,8 @@ import { invoke } from '@renderer/lib/api'
 // Under 'stats' so account changes, which refresh statistics, refresh the sheet too.
 export const monthKeys = {
   sheet: (month: MonthKey) => ['stats', 'month', month] as const,
-  row: (query: MonthRowQuery | null) => ['stats', 'month-row', query] as const
+  row: (query: MonthRowQuery | null) => ['stats', 'month-row', query] as const,
+  spending: (month: MonthKey) => ['stats', 'month-spending', month] as const
 }
 
 /** One month of the Month sheet: sections, rows, totals and the summary. */
@@ -32,6 +34,15 @@ export function useMonthSheet(month: MonthKey): UseQueryResult<MonthSheet> {
   return useQuery({
     queryKey: monthKeys.sheet(month),
     queryFn: () => invoke('month:sheet', { month }),
+    placeholderData: keepPreviousData
+  })
+}
+
+/** The month's spending by the account it was paid with. */
+export function useSpendingByAccount(month: MonthKey): UseQueryResult<AccountSpending[]> {
+  return useQuery({
+    queryKey: monthKeys.spending(month),
+    queryFn: () => invoke('month:spendingByAccount', { month }),
     placeholderData: keepPreviousData
   })
 }

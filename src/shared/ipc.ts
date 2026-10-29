@@ -14,6 +14,7 @@ import type {
   SettleLoanInput
 } from './loans'
 import type {
+  AccountSpending,
   MonthCellInput,
   MonthLineInput,
   MonthRowAccountInput,
@@ -190,6 +191,8 @@ export interface IpcContract {
   'month:reorderRows': (input: MonthRowOrder) => void
   /** Removes a category row's transactions counted in the month; returns how many. */
   'month:clearRow': (input: MonthRowQuery) => number
+  /** The month's spending by the account it was paid with. */
+  'month:spendingByAccount': (query: MonthSheetQuery) => AccountSpending[]
 
   /** Where the total balance is heading, by week or month, with milestones. */
   'projection:get': (query: ProjectionQuery) => ProjectionResult
@@ -284,6 +287,7 @@ const channels: Record<IpcChannel, true> = {
   'month:hideRow': true,
   'month:reorderRows': true,
   'month:clearRow': true,
+  'month:spendingByAccount': true,
   'projection:get': true,
   'dev:seed': true,
   'dev:reset': true
