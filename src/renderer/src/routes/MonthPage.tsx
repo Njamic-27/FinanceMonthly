@@ -16,11 +16,11 @@ import { AccountDialog } from '@renderer/features/accounts/AccountDialog'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { calendarParams, readCalendarMonth } from '@renderer/features/calendar/month'
 import { MonthNav } from '@renderer/features/calendar/MonthNav'
-import { MonthSummary } from '@renderer/features/calendar/MonthSummary'
 import { BankLoanDialog } from '@renderer/features/loans/BankLoanDialog'
 import { LoanDialog } from '@renderer/features/loans/LoanDialog'
 import { AddRowDialog } from '@renderer/features/month/AddRowDialog'
 import { canRename, rowKey, type AddChoice } from '@renderer/features/month/cells'
+import { MonthHeader } from '@renderer/features/month/MonthHeader'
 import { MonthSheetView } from '@renderer/features/month/MonthSheetView'
 import { useCopyFromLastMonth, useMonthSheet } from '@renderer/features/month/queries'
 import { RenameRowDialog } from '@renderer/features/month/RenameRowDialog'
@@ -130,10 +130,7 @@ export function MonthPage(): React.JSX.Element {
 
       {sheet.data && (
         <div className={cn('transition-opacity', sheet.isPlaceholderData && 'opacity-60')}>
-          <MonthSummary
-            summary={sheet.data.summary}
-            overdueHint="Press Enter on its row to confirm it."
-          />
+          <MonthHeader month={first} summary={sheet.data.summary} />
           <MonthSheetView
             sheet={sheet.data}
             accounts={accounts}

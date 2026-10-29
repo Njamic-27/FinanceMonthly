@@ -28,14 +28,7 @@ function Tile({
  * Income, spending and the balance at the end of the month. Past months show what was
  * recorded; the current and later months add what is still planned.
  */
-export function MonthSummary({
-  summary,
-  overdueHint = 'Open its day to mark it paid.'
-}: {
-  summary: CalendarSummary
-  /** How to settle an overdue payment on this screen. */
-  overdueHint?: string
-}): React.JSX.Element {
+export function MonthSummary({ summary }: { summary: CalendarSummary }): React.JSX.Element {
   const money = useCurrency()
   const { projected } = summary
   const income = summary.income + (projected ? summary.plannedIncome : 0)
@@ -73,7 +66,7 @@ export function MonthSummary({
           {summary.overdue === 1
             ? '1 planned payment this month is overdue.'
             : `${summary.overdue} planned payments this month are overdue.`}{' '}
-          {overdueHint}
+          Open its day to mark it paid.
         </p>
       )}
     </section>

@@ -1,5 +1,6 @@
 import type { Cents } from '@shared/money'
 import { renamableRowKinds, type MonthSectionKey, type MonthSheetRow } from '@shared/month'
+import type { CalendarSummary } from '@shared/planned'
 
 // What the Month sheet's cells show, and when typing into one saves something.
 
@@ -171,4 +172,28 @@ export function moveCategory(ids: number[], id: number, to: number): number[] {
   const rest = ids.filter((other) => other !== id)
   const index = Math.max(0, Math.min(rest.length, to))
   return [...rest.slice(0, index), id, ...rest.slice(index)]
+}
+
+/**
+ * The month's income, expenses and net as the sheet shows them: what's recorded, plus what's
+ * still planned for the current and later months. `recorded` is the net of what's recorded.
+ */
+export function monthNet(summary: CalendarSummary): {
+  income: Cents
+  expenses: Cents
+  net: Cents
+  recorded: Cents
+  withPlanned: boolean
+} {
+  const withPlanned =
+    summary.projected && (summary.plannedIncome !== 0 || summary.plannedExpenses !== 0)
+  const income = summary.income + (summary.projected ? summary.plannedIncome : 0)
+  const expenses = summary.expenses + (summary.projected ? summary.plannedExpenses : 0)
+  return {
+    income,
+    expenses,
+    net: income - expenses,
+    recorded: summary.income - summary.expenses,
+    withPlanned
+  }
 }

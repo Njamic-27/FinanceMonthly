@@ -6,7 +6,9 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type { Account, AccountInput } from '@shared/accounts'
+import type { BalanceTarget } from '@shared/adjustments'
 import type { AccountSeriesQuery, BalancePoint, CardStatus } from '@shared/cards'
+import type { Transaction } from '@shared/transactions'
 import { statsKeys } from '@renderer/features/stats/queries'
 import { invoke } from '@renderer/lib/api'
 
@@ -87,5 +89,17 @@ export function useDeleteAccount(): UseMutationResult<void, Error, number> {
   return useMutation({
     mutationFn: (id: number) => invoke('accounts:delete', id),
     onSuccess: invalidate
+  })
+}
+
+/**
+ * Sets accounts to the balances typed, adding a balance adjustment for each difference. That
+ * moves every balance and list, so everything is refetched.
+ */
+export function useAdjustBalances(): UseMutationResult<Transaction[], Error, BalanceTarget[]> {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (targets: BalanceTarget[]) => invoke('accounts:adjustBalances', targets),
+    onSuccess: () => queryClient.invalidateQueries()
   })
 }

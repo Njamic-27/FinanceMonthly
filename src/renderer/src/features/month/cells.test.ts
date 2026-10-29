@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthSheetRow } from '@shared/month'
+import type { CalendarSummary } from '@shared/planned'
 import {
   cellValue,
   editStart,
+  monthNet,
   moveCategory,
   needsSaving,
   rowNote,
@@ -78,5 +80,44 @@ describe('moveCategory', () => {
     expect(moveCategory([1, 2, 3, 4], 1, 2)).toEqual([2, 3, 1, 4])
     expect(moveCategory([1, 2, 3], 2, 9)).toEqual([1, 3, 2])
     expect(moveCategory([1, 2, 3], 2, -1)).toEqual([2, 1, 3])
+  })
+})
+
+describe('monthNet', () => {
+  const summary = (patch: Partial<CalendarSummary>): CalendarSummary => ({
+    income: 245000,
+    expenses: 120000,
+    plannedIncome: 0,
+    plannedExpenses: 0,
+    overdue: 0,
+    endingBalance: 0,
+    projected: false,
+    ...patch
+  })
+
+  it('is what was recorded in a past month', () => {
+    expect(monthNet(summary({ plannedExpenses: 5000 }))).toEqual({
+      income: 245000,
+      expenses: 120000,
+      net: 125000,
+      recorded: 125000,
+      withPlanned: false
+    })
+  })
+
+  it('adds what is still planned in the current and later months', () => {
+    expect(
+      monthNet(summary({ projected: true, plannedIncome: 10000, plannedExpenses: 65000 }))
+    ).toEqual({
+      income: 255000,
+      expenses: 185000,
+      net: 70000,
+      recorded: 125000,
+      withPlanned: true
+    })
+  })
+
+  it('can come out negative', () => {
+    expect(monthNet(summary({ income: 0 })).net).toBe(-120000)
   })
 })

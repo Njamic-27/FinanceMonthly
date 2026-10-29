@@ -15,6 +15,18 @@ export function lastCalendarMonth(today: IsoDate): IsoDate {
   return startOfMonth(addMonths(startOfMonth(today), CALENDAR_MONTHS_AHEAD))
 }
 
+/**
+ * The months the month picker offers: from the month your data starts (the first transaction
+ * or account opening, or this month if that's later) to the last month the Calendar shows.
+ */
+export function pickableMonths(
+  firstDate: IsoDate | null,
+  today: IsoDate
+): { first: IsoDate; last: IsoDate } {
+  const start = firstDate && firstDate < today ? firstDate : today
+  return { first: startOfMonth(start), last: lastCalendarMonth(today) }
+}
+
 const clamp = (month: IsoDate, today: IsoDate): IsoDate => {
   const last = lastCalendarMonth(today)
   return month > last ? last : month

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   calendarParams,
   lastCalendarMonth,
+  pickableMonths,
   readCalendarDay,
   readCalendarMonth,
   stepMonth,
@@ -59,5 +60,16 @@ describe('weekdayLabels', () => {
     expect(weekdayLabels(1, 'en-GB')).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
     expect(weekdayLabels(0, 'en-GB')[0]).toBe('Sun')
     expect(weekdayLabels(6, 'en-GB')[0]).toBe('Sat')
+  })
+})
+
+describe('pickableMonths', () => {
+  it('runs from the month the data starts to 24 months ahead', () => {
+    expect(pickableMonths('2025-03-17', TODAY)).toEqual({ first: '2025-03-01', last: '2028-10-01' })
+  })
+
+  it('starts this month with no data, or data only later', () => {
+    expect(pickableMonths(null, TODAY).first).toBe('2026-10-01')
+    expect(pickableMonths('2027-01-05', TODAY).first).toBe('2026-10-01')
   })
 })
