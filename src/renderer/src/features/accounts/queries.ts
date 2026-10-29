@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query'
 import type { Account, AccountInput } from '@shared/accounts'
 import type { BalanceTarget } from '@shared/adjustments'
-import type { AccountSeriesQuery, BalancePoint, CardStatus } from '@shared/cards'
+import type { AccountSeriesQuery, BalancePoint, CardBillDue, CardStatus } from '@shared/cards'
 import type { Transaction } from '@shared/transactions'
 import { statsKeys } from '@renderer/features/stats/queries'
 import { invoke } from '@renderer/lib/api'
@@ -30,6 +30,14 @@ export function useCardStatus(id: number, enabled = true): UseQueryResult<CardSt
     queryKey: [...statsKeys.all, 'card', id],
     queryFn: () => invoke('accounts:card', id),
     enabled
+  })
+}
+
+/** Card bills due within a week and not paid in full (Waiting for you on Month). */
+export function useCardBillsDue(): UseQueryResult<CardBillDue[]> {
+  return useQuery({
+    queryKey: [...statsKeys.all, 'card-bills-due'],
+    queryFn: () => invoke('accounts:billsDue')
   })
 }
 

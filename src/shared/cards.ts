@@ -87,6 +87,20 @@ export function cardCycle(
       }
 }
 
+/** A card bill due soon (or overdue) and not paid in full: Month offers to pay it. */
+export interface CardBillDue {
+  accountId: number
+  name: string
+  dueDate: IsoDate
+  /** What's left to pay on the statement. */
+  amount: Cents
+  /** The account the bill is paid from. */
+  payFromAccountId: number | null
+}
+
+/** How many days before its due date a card bill waits on Month. */
+export const CARD_BILL_NOTICE_DAYS = 7
+
 /** A credit card's usage and what to pay next (PLAN.md step 24). */
 export interface CardStatus {
   accountId: number

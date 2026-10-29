@@ -1,4 +1,5 @@
 import { CircleAlert } from 'lucide-react'
+import type { MonthTotals } from '@shared/month'
 import type { CalendarSummary } from '@shared/planned'
 import { Card } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
@@ -25,34 +26,44 @@ function Tile({
 }
 
 /**
- * Income, spending and the balance at the end of the month. Past months show what was
- * recorded; the current and later months add what is still planned.
+ * Money in, money out and the balance at the end of the month: the same numbers as Month's
+ * (PLAN.md step 49). Past months show what was recorded; the current and later months add what
+ * is still planned.
  */
-export function MonthSummary({ summary }: { summary: CalendarSummary }): React.JSX.Element {
+export function MonthSummary({
+  summary,
+  totals
+}: {
+  summary: CalendarSummary
+  /** Month's totals; while they load, the tiles show what's known so far. */
+  totals: MonthTotals | undefined
+}): React.JSX.Element {
   const money = useCurrency()
   const { projected } = summary
-  const income = summary.income + (projected ? summary.plannedIncome : 0)
-  const expenses = summary.expenses + (projected ? summary.plannedExpenses : 0)
-  const split = (recorded: number, planned: number): string | undefined =>
-    projected && planned > 0 && recorded > 0
-      ? `${money.format(recorded)} recorded · ${money.format(planned)} planned`
-      : undefined
+  const withPlanned = totals?.withPlanned ?? false
 
   return (
     <section aria-label="Month summary" className="mb-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
-          label={projected ? 'Income, with planned' : 'Income'}
-          value={money.format(income)}
-          caption={split(summary.income, summary.plannedIncome)}
+          label={withPlanned ? 'Income, with planned' : 'Income'}
+          value={totals ? money.format(totals.moneyIn) : '…'}
           className="text-income"
         />
         <Tile
-          label={projected ? 'Spending, with planned' : 'Spent'}
-          value={money.format(expenses)}
-          caption={split(summary.expenses, summary.plannedExpenses)}
+          label={withPlanned ? 'Money out, with planned' : 'Money out'}
+          value={totals ? money.format(totals.moneyOut) : '…'}
+          caption="Spending, loan payments and savings"
         />
-        <Tile label="Income minus spending" value={money.format(income - expenses, 'exceptZero')} />
+        <Tile
+          label="Net"
+          value={totals ? money.format(totals.net, 'exceptZero') : '…'}
+          caption={
+            totals && withPlanned
+              ? `${money.format(totals.recordedNet, 'exceptZero')} recorded so far`
+              : undefined
+          }
+        />
         <Tile
           label={projected ? 'Expected balance at month end' : 'Balance at month end'}
           value={money.format(summary.endingBalance)}

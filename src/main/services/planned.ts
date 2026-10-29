@@ -232,9 +232,9 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
   const { weekStart } = getSettings(db)
   const grid = { start: startOfWeek(month.start, weekStart), end: endOfWeek(month.end, weekStart) }
 
-  // Day cells show what happened on each day; the month's totals count card spending when
-  // its bill is due.
-  const days = getSeries(db, { from: grid.start, to: grid.end, by: 'day' }, 'actual').map((d) => ({
+  // Everything on the day it counts (PLAN.md step 49): card purchases on their bill's due day,
+  // not the day they were bought.
+  const days = getSeries(db, { from: grid.start, to: grid.end, by: 'day' }).map((d) => ({
     date: d.start,
     income: d.income,
     expenses: d.expenses,
@@ -242,7 +242,7 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
     loans: d.loansOut + d.loansIn,
     count: d.count
   }))
-  const planned = plannedItems(db, grid.start, grid.end, today)
+  const planned = plannedCountedIn(db, grid, today)
   const inMonth = plannedCountedIn(db, month, today)
   const totals = getTotals(db, { from: month.start, to: month.end })
   const projected = month.end >= today

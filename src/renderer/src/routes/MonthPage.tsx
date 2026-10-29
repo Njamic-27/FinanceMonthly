@@ -193,7 +193,7 @@ export function MonthPage(): React.JSX.Element {
 
       {sheet.data && (
         <div className={cn('transition-opacity', sheet.isPlaceholderData && 'opacity-60')}>
-          <MonthHeader month={first} summary={sheet.data.summary} />
+          <MonthHeader month={first} summary={sheet.data.summary} totals={sheet.data.totals} />
           <CardDaysNotice />
           <WaitingStrip />
           <MonthSheetView

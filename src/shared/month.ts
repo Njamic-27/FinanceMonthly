@@ -57,16 +57,19 @@ export function summaryDate(month: MonthKey, today: IsoDate): IsoDate {
 }
 
 /**
- * The sheet's sections, top to bottom. `expenses` holds expense categories (everyday
- * spending); `bills` holds recurring expenses and subscriptions.
+ * The sheet's sections (PLAN.md step 49): Income, then what money out is made of —
+ * Subscriptions, Bills and Everyday (by category group; a subscription item always
+ * Subscriptions), Loans and Savings — and Credit cards, each card's bill this month, shown but
+ * not counted (its purchases are already in their groups).
  */
 export const monthSectionKeys = [
   'income',
-  'expenses',
+  'subscriptions',
   'bills',
-  'cards',
+  'everyday',
   'loans',
-  'savings'
+  'savings',
+  'cards'
 ] as const
 export type MonthSectionKey = (typeof monthSectionKeys)[number]
 
@@ -112,6 +115,52 @@ export interface MonthSheetRow {
    * With card spending counted when the card is paid, that's what its bill brings this month.
    */
   onBill?: Cents
+  /**
+   * Of this row, what's on credit cards (recorded and planned), by card: card purchases count
+   * in the month their bill is paid and are marked with their card.
+   */
+  byCard?: { accountId: number; amount: Cents }[]
+}
+
+/**
+ * The month's totals on Month and in the Calendar (PLAN.md §2, step 49). Money out is what
+ * leaves your debit accounts and cash: spending (card purchases on the bill they count on),
+ * loan payments (less money borrowed) and savings deposits (less withdrawals). Planned amounts
+ * count from the current month on.
+ */
+export interface MonthTotals {
+  moneyIn: Cents
+  moneyOut: Cents
+  /** Money in less money out. */
+  net: Cents
+  /** Money out's parts. */
+  spending: Cents
+  loans: Cents
+  savings: Cents
+  /** The net of what's recorded so far, without anything planned. */
+  recordedNet: Cents
+  /** Planned amounts are included (the current and later months, when there are any). */
+  withPlanned: boolean
+}
+
+/** What money out is grouped into, by the account it left from (PLAN.md step 49). */
+export type MoneyOutGroup = 'subscriptions' | 'bills' | 'everyday' | 'loans' | 'savings' | 'card'
+
+/**
+ * One line of money out by payment method: what a debit account or cash paid for one group,
+ * or a card's spending ("Credit card (Mastercard)") under the account its bill is paid from.
+ */
+export interface MoneyOutLine {
+  /** A debit account or cash (a card's bill falls back to the card when there are none). */
+  accountId: number
+  group: MoneyOutGroup
+  /** The card, for `card` lines. */
+  cardId: number | null
+  recorded: Cents
+  /** Still to come, counted from the current month on. */
+  planned: Cents
+  /** Recorded transactions. */
+  count: number
 }
 
 export interface MonthSheetSection {
@@ -125,8 +174,11 @@ export interface MonthSheet {
   month: MonthKey
   range: DateRange
   sections: MonthSheetSection[]
-  /** The same numbers as the Calendar's month summary. */
+  /** The month's ending balance, overdue count and planned items, as the Calendar has them. */
   summary: CalendarSummary
+  totals: MonthTotals
+  /** Money out by the account it left from; adds up to `totals.moneyOut`. */
+  byAccount: MoneyOutLine[]
 }
 
 const monthKey = z.string().refine(isMonthKey, 'Choose a month')

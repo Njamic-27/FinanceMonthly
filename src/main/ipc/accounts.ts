@@ -10,7 +10,7 @@ import {
   updateAccount
 } from '../db/repositories/accounts'
 import { adjustBalances } from '../db/repositories/adjustments'
-import { cardStatus } from '../services/cards'
+import { cardBillsDue, cardStatus } from '../services/cards'
 import { handle } from './handle'
 
 export function registerAccountHandlers(): void {
@@ -22,6 +22,7 @@ export function registerAccountHandlers(): void {
   )
   handle('accounts:delete', (id) => deleteAccount(getDb(), id))
   handle('accounts:card', (id) => cardStatus(getDb(), id, today()))
+  handle('accounts:billsDue', () => cardBillsDue(getDb(), today()))
   handle('accounts:series', (query) => getAccountBalanceSeries(getDb(), query))
   handle('accounts:adjustBalances', (targets) => adjustBalances(getDb(), targets, today()))
 }

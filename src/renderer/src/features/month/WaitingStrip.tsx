@@ -5,7 +5,7 @@ import { formatDate, today, type IsoDate } from '@shared/dates'
 import type { Cents } from '@shared/money'
 import { Button } from '@renderer/components/ui/button'
 import { Card } from '@renderer/components/ui/card'
-import { useAccounts } from '@renderer/features/accounts/queries'
+import { useAccounts, useCardBillsDue } from '@renderer/features/accounts/queries'
 import { CategoryChip } from '@renderer/features/categories/CategoryChip'
 import { useCategories } from '@renderer/features/categories/queries'
 import {
@@ -21,6 +21,7 @@ import {
   useSkipOccurrence,
   useUpcomingPayments
 } from '@renderer/features/recurring/queries'
+import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
@@ -52,6 +53,7 @@ export function WaitingStrip(): React.JSX.Element | null {
   const due = useDueOccurrences().data ?? []
   const upcoming = useUpcomingPayments().data ?? []
   const accounts = useAccounts().data ?? []
+  const bills = useCardBillsDue().data ?? []
   const categories = useCategories().data ?? []
   const skip = useSkipOccurrence()
   const [confirming, setConfirming] = useState<ConfirmPaymentTarget | null>(null)
@@ -108,7 +110,34 @@ export function WaitingStrip(): React.JSX.Element | null {
             accountId: planned.accountId
           }),
         confirmLabel: 'Pay…'
-      }))
+      })),
+    // Card bills: paid from the card's Paid from account, which isn't counted again.
+    ...bills.map((bill) => {
+      const from =
+        bill.payFromAccountId ?? accounts.find((a) => a.type === 'debit' && !a.isArchived)?.id
+      return {
+        key: `card-${bill.accountId}`,
+        title: `${bill.name} bill`,
+        date: bill.dueDate,
+        amount: bill.amount,
+        income: false,
+        accountId: from ?? bill.accountId,
+        categoryId: null,
+        problem: null,
+        confirm: () =>
+          openTransactionDialog({
+            kind: 'new',
+            prefill: {
+              type: 'transfer',
+              accountId: from,
+              toAccountId: bill.accountId,
+              amount: bill.amount,
+              date: today()
+            }
+          }),
+        confirmLabel: 'Pay bill…'
+      }
+    })
   ].sort((a, b) => a.date.localeCompare(b.date))
 
   if (items.length === 0) return null

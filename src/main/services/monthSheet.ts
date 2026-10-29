@@ -17,10 +17,16 @@ import {
   type MonthSectionKey,
   type MonthSheet,
   type MonthSheetQuery,
-  type MonthSheetRow
+  type MonthSheetRow,
+  type MonthSheetSection,
+  type MonthTotals,
+  type MoneyOutGroup,
+  type MoneyOutLine
 } from '@shared/month'
 import type { PlannedItem } from '@shared/planned'
 import type { Account } from '@shared/accounts'
+import type { Category, ExpenseGroup } from '@shared/categories'
+import type { RecurringItem } from '@shared/recurring'
 import type { Transaction, TransactionInput } from '@shared/transactions'
 import { AppError } from '../errors'
 import { incomingTypes } from '../db/ledger'
@@ -172,11 +178,36 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
 
   const sections: Record<MonthSectionKey, MonthSheetRow[]> = {
     income: [],
-    expenses: [],
+    subscriptions: [],
     bills: [],
-    cards: [],
+    everyday: [],
     loans: [],
-    savings: []
+    savings: [],
+    cards: []
+  }
+  const categories = listCategories(db)
+  const recurringItems = listRecurringItems(db)
+  /** An expense category's group; Everyday if it has none. */
+  const groupOf = (categoryId: number | null): ExpenseGroup =>
+    categories.find((c) => c.id === categoryId)?.group ?? 'everyday'
+  // What's on credit cards, by card, so rows can say so (card purchases count on the bill).
+  const cardIds = new Set(accounts.filter((a) => a.type === 'credit').map((a) => a.id))
+  const byCard = (
+    posted: Transaction[],
+    due: PlannedItem[] = []
+  ): Pick<MonthSheetRow, 'byCard'> => {
+    const amounts = new Map<number, number>()
+    for (const t of posted) {
+      if (cardIds.has(t.accountId))
+        amounts.set(t.accountId, (amounts.get(t.accountId) ?? 0) + t.amount)
+    }
+    for (const p of due) {
+      if (cardIds.has(p.accountId))
+        amounts.set(p.accountId, (amounts.get(p.accountId) ?? 0) + p.amount)
+    }
+    return amounts.size === 0
+      ? {}
+      : { byCard: [...amounts].map(([accountId, amount]) => ({ accountId, amount })) }
   }
   const base = {
     rowId: null,
@@ -197,7 +228,6 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
       continue
     own.set(t.categoryId, [...(own.get(t.categoryId) ?? []), t])
   }
-  const categories = listCategories(db)
   const monthRows = listMonthRows(db)
   const added = new Set(monthRows.map((r) => r.categoryId))
   const categoryLines = [
@@ -210,7 +240,7 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
     if (!category) continue
     const posted = own.get(category.id) ?? []
     if ((row?.isHidden || category.isArchived) && posted.length === 0) continue
-    sections[category.type === 'income' ? 'income' : 'expenses'].push({
+    sections[category.type === 'income' ? 'income' : groupOf(category.id)].push({
       ...base,
       kind: 'category',
       sourceId: category.id,
@@ -219,22 +249,26 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
       accountId: categoryAccount(category.id, row?.defaultAccountId ?? null),
       categoryId: category.id,
       ...recorded(posted),
+      ...byCard(posted),
       editable: true
     })
   }
 
-  // Recurring income, bills and subscriptions due or posted in the month. Recurring expenses
-  // sit with the subscriptions, apart from everyday spending.
-  for (const item of listRecurringItems(db)) {
+  // Recurring income, bills and subscriptions due or posted in the month: a subscription is
+  // always a subscription, a recurring expense goes with its category's group.
+  for (const item of recurringItems) {
     const posted = txs.filter((t) => t.recurringItemId === item.id)
     const due = planned.filter((p) => p.source === 'recurring' && p.sourceId === item.id)
     if (posted.length === 0 && due.length === 0) continue
-    const section = {
-      income: 'income',
-      expense: 'bills',
-      subscription: 'bills'
-    } as const
-    sections[section[item.kind]].push({
+    const section: MonthSectionKey =
+      item.kind === 'income'
+        ? 'income'
+        : item.kind === 'subscription'
+          ? 'subscriptions'
+          : item.categoryId === null
+            ? 'bills'
+            : groupOf(item.categoryId)
+    sections[section].push({
       ...base,
       kind: 'recurring',
       sourceId: item.id,
@@ -243,12 +277,14 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
       categoryId: item.categoryId,
       ...recorded(posted),
       ...expected(due),
+      ...(item.kind !== 'income' && byCard(posted, due)),
       // A weekly item has several payments a month: those are changed one by one.
       editable: posted.length + due.length === 1
     })
   }
 
-  // Credit cards: each card's payment, then its purchases in installments.
+  // Credit cards: each card's bill this month, for information (its purchases are in their
+  // groups), and its purchases in installments, with their category's group.
   const plans = listInstallmentPlans(db).reverse()
   for (const card of accounts.filter((a) => a.type === 'credit')) {
     const payments = txs.filter((t) => t.type === 'transfer' && t.toAccountId === card.id)
@@ -274,7 +310,7 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
       const posted = txs.filter((t) => t.installmentPlanId === plan.id)
       const due = planned.filter((p) => p.source === 'installment_plan' && p.sourceId === plan.id)
       if (posted.length === 0 && due.length === 0) continue
-      sections.cards.push({
+      sections[groupOf(plan.categoryId)].push({
         ...base,
         kind: 'installment_plan',
         sourceId: plan.id,
@@ -282,7 +318,8 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
         accountId: card.id,
         categoryId: plan.categoryId,
         ...recorded(posted),
-        ...expected(due)
+        ...expected(due),
+        ...byCard(posted, due)
       })
     }
   }
@@ -331,17 +368,135 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
     })
   }
 
+  const sheetSections = (Object.keys(sections) as MonthSectionKey[]).map((key) => ({
+    key,
+    rows: sections[key],
+    actual: sum(sections[key].map((r) => r.actual)),
+    planned: sum(sections[key].map((r) => r.planned))
+  }))
+  const projected = range.end >= today
   return {
     month,
     range,
-    sections: (Object.keys(sections) as MonthSectionKey[]).map((key) => ({
-      key,
-      rows: sections[key],
-      actual: sum(sections[key].map((r) => r.actual)),
-      planned: sum(sections[key].map((r) => r.planned))
-    })),
-    summary: calendar.summary
+    sections: sheetSections,
+    summary: calendar.summary,
+    totals: monthTotals(sheetSections, projected),
+    byAccount: moneyOutByAccount({
+      txs,
+      planned,
+      savingsPlanned: sections.savings,
+      accounts,
+      categories,
+      recurringItems,
+      projected
+    })
   }
+}
+
+/**
+ * The month's totals from its sections (PLAN.md step 49): money in, and money out made of
+ * spending, loans (payments less money borrowed; loan rows carry + in, − out) and savings
+ * (deposits less withdrawals). The Credit cards section isn't counted: its purchases are in
+ * their groups. Planned amounts count when `projected` (the current and later months).
+ */
+export function monthTotals(sections: MonthSheetSection[], projected: boolean): MonthTotals {
+  const part = (keys: MonthSectionKey[], withPlanned = projected): number =>
+    sum(
+      sections
+        .filter((s) => keys.includes(s.key))
+        .map((s) => s.actual + (withPlanned ? s.planned : 0))
+    )
+  const totals = (
+    withPlanned: boolean
+  ): { moneyIn: number; spending: number; loans: number; savings: number } => ({
+    moneyIn: part(['income'], withPlanned),
+    spending: part(['subscriptions', 'bills', 'everyday'], withPlanned),
+    loans: -part(['loans'], withPlanned),
+    savings: part(['savings'], withPlanned)
+  })
+  const all = totals(projected)
+  const recorded = totals(false)
+  const moneyOut = all.spending + all.loans + all.savings
+  const planned = sections.some((s) => s.planned !== 0)
+  return {
+    moneyIn: all.moneyIn,
+    moneyOut,
+    net: all.moneyIn - moneyOut,
+    spending: all.spending,
+    loans: all.loans,
+    savings: all.savings,
+    recordedNet: recorded.moneyIn - (recorded.spending + recorded.loans + recorded.savings),
+    withPlanned: projected && planned
+  }
+}
+
+/**
+ * Money out by the account it left from (PLAN.md step 49): for each debit account and cash, a
+ * line per group for what it paid itself, and a line per credit card whose bill it pays, with
+ * the card's spending this month. Built from the same transactions and planned payments as the
+ * sheet's rows, so the lines add up to money out.
+ */
+function moneyOutByAccount(input: {
+  txs: Transaction[]
+  planned: PlannedItem[]
+  savingsPlanned: MonthSheetRow[]
+  accounts: Account[]
+  categories: Category[]
+  recurringItems: RecurringItem[]
+  projected: boolean
+}): MoneyOutLine[] {
+  const { txs, planned, accounts, categories, recurringItems, projected } = input
+  const firstDebit =
+    accounts.find((a) => a.type === 'debit' && !a.isArchived) ??
+    accounts.find((a) => a.type !== 'credit')
+  const lines = new Map<string, MoneyOutLine>()
+  const add = (
+    accountId: number,
+    group: Exclude<MoneyOutGroup, 'card'>,
+    amount: number,
+    kind: 'recorded' | 'planned'
+  ): void => {
+    const account = accounts.find((a) => a.id === accountId)
+    // A card's spending goes to the account its bill is paid from, as one line.
+    const isCard = account?.type === 'credit'
+    const owner = isCard ? (account.payFromAccountId ?? firstDebit?.id ?? accountId) : accountId
+    const line: Pick<MoneyOutLine, 'accountId' | 'group' | 'cardId'> = isCard
+      ? { accountId: owner, group: 'card', cardId: accountId }
+      : { accountId, group, cardId: null }
+    const key = `${line.accountId}:${line.group}:${line.cardId}`
+    const entry = lines.get(key) ?? { ...line, recorded: 0, planned: 0, count: 0 }
+    entry[kind] += amount
+    if (kind === 'recorded') entry.count += 1
+    lines.set(key, entry)
+  }
+  const groupOf = (categoryId: number | null, recurringItemId: number | null): ExpenseGroup => {
+    const item = recurringItems.find((i) => i.id === recurringItemId)
+    if (item?.kind === 'subscription') return 'subscriptions'
+    if (item && item.categoryId === null) return 'bills'
+    return categories.find((c) => c.id === (item?.categoryId ?? categoryId))?.group ?? 'everyday'
+  }
+
+  for (const t of txs) {
+    if (t.type === 'expense')
+      add(t.accountId, groupOf(t.categoryId, t.recurringItemId), t.amount, 'recorded')
+    else if (t.type === 'loan_out') add(t.accountId, 'loans', t.amount, 'recorded')
+    else if (t.type === 'loan_in') add(t.accountId, 'loans', -t.amount, 'recorded')
+    else if (t.type === 'savings_deposit') add(t.accountId, 'savings', t.amount, 'recorded')
+    else if (t.type === 'savings_withdrawal') add(t.accountId, 'savings', -t.amount, 'recorded')
+  }
+  if (projected) {
+    for (const p of planned) {
+      if (p.group === 'expense') {
+        const recurringItemId = p.source === 'recurring' ? p.sourceId : null
+        add(p.accountId, groupOf(p.categoryId, recurringItemId), p.amount, 'planned')
+      } else if (p.group === 'loan') add(p.accountId, 'loans', p.amount, 'planned')
+    }
+    for (const row of input.savingsPlanned) {
+      if (row.planned !== 0 && row.accountId !== null)
+        add(row.accountId, 'savings', row.planned, 'planned')
+    }
+  }
+  return [...lines.values()]
 }
 
 const money = (db: Database, cents: Cents): string => formatMoney(cents, getSettings(db))

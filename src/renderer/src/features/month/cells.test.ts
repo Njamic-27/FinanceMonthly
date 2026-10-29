@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthSheetRow } from '@shared/month'
-import type { CalendarSummary } from '@shared/planned'
 import {
   cellValue,
   editStart,
-  monthNet,
   moveCategory,
   needsSaving,
   rowNote,
@@ -67,7 +65,7 @@ describe('cells', () => {
 describe('the sheet’s signs', () => {
   it('show money in as + and money out as −, loans as they are', () => {
     expect(signedAmount('income', 245000)).toBe(245000)
-    expect(signedAmount('expenses', 12000)).toBe(-12000)
+    expect(signedAmount('everyday', 12000)).toBe(-12000)
     expect(signedAmount('savings', 15000)).toBe(-15000)
     expect(signedAmount('savings', -5000)).toBe(5000)
     expect(signedAmount('loans', -28127)).toBe(-28127)
@@ -84,49 +82,10 @@ describe('moveCategory', () => {
   })
 })
 
-describe('monthNet', () => {
-  const summary = (patch: Partial<CalendarSummary>): CalendarSummary => ({
-    income: 245000,
-    expenses: 120000,
-    plannedIncome: 0,
-    plannedExpenses: 0,
-    overdue: 0,
-    endingBalance: 0,
-    projected: false,
-    ...patch
-  })
-
-  it('is what was recorded in a past month', () => {
-    expect(monthNet(summary({ plannedExpenses: 5000 }))).toEqual({
-      income: 245000,
-      expenses: 120000,
-      net: 125000,
-      recorded: 125000,
-      withPlanned: false
-    })
-  })
-
-  it('adds what is still planned in the current and later months', () => {
-    expect(
-      monthNet(summary({ projected: true, plannedIncome: 10000, plannedExpenses: 65000 }))
-    ).toEqual({
-      income: 255000,
-      expenses: 185000,
-      net: 70000,
-      recorded: 125000,
-      withPlanned: true
-    })
-  })
-
-  it('can come out negative', () => {
-    expect(monthNet(summary({ income: 0 })).net).toBe(-120000)
-  })
-})
-
 describe('sheetAmount', () => {
   it('reads plain, with a "+" only for money coming in under Expenses', () => {
     expect(sheetAmount('income', 245000)).toEqual({ value: 245000, plus: false })
-    expect(sheetAmount('expenses', 28040)).toEqual({ value: 28040, plus: false })
+    expect(sheetAmount('everyday', 28040)).toEqual({ value: 28040, plus: false })
     // Loans carry their sign: repaid is out, borrowed is in.
     expect(sheetAmount('loans', -30000)).toEqual({ value: 30000, plus: false })
     expect(sheetAmount('loans', 100000)).toEqual({ value: 100000, plus: true })

@@ -5,7 +5,6 @@ import {
   type MonthSectionKey,
   type MonthSheetRow
 } from '@shared/month'
-import type { CalendarSummary } from '@shared/planned'
 
 // What the Month sheet's cells show, and when typing into one saves something.
 
@@ -13,25 +12,28 @@ export const rowKey = (row: Pick<MonthSheetRow, 'kind' | 'sourceId'>): string =>
 
 export const sectionTitles: Record<MonthSectionKey, string> = {
   income: 'Income',
-  expenses: 'Everyday',
-  bills: 'Bills & subscriptions',
-  cards: 'Credit cards',
+  subscriptions: 'Subscriptions',
+  bills: 'Bills',
+  everyday: 'Everyday',
   loans: 'Loans',
-  savings: 'Savings'
+  savings: 'Savings',
+  cards: 'Credit card bills'
 }
 
 export const sectionEmpty: Record<MonthSectionKey, string> = {
   income: 'No income this month yet.',
-  expenses: 'No everyday spending this month yet.',
-  bills: 'No bills or subscriptions this month.',
+  subscriptions: 'No subscriptions this month.',
+  bills: 'No bills this month.',
+  everyday: 'No everyday spending this month yet.',
   cards: 'No credit cards.',
   loans: 'No loan payments this month.',
   savings: 'No savings goals.'
 }
 
-/** Sections whose money isn't income or spending, and why. */
+/** Sections that need a word on how they count. */
 export const sectionNotes: Partial<Record<MonthSectionKey, string>> = {
-  cards: 'Paying a card moves money between your accounts, so only installments count as spending.',
+  cards:
+    'Each card’s bill this month. Its purchases are already in their groups above, so it isn’t counted again.',
   loans: 'Loans change your balance but aren’t income or spending.',
   savings: 'Money put aside from your accounts, not spending.'
 }
@@ -90,13 +92,14 @@ export function rowNote(row: MonthSheetRow): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-/** The groups under Expenses, top to bottom (Income comes first, above a divider). */
-export const expenseGroups: readonly MonthSectionKey[] = [
-  'expenses',
+/** The groups under Money out, top to bottom (Income comes first, above a divider). */
+export const moneyOutSections: readonly MonthSectionKey[] = [
+  'subscriptions',
   'bills',
-  'cards',
+  'everyday',
   'loans',
-  'savings'
+  'savings',
+  'cards'
 ]
 
 /**
@@ -143,28 +146,4 @@ export function moveCategory(ids: number[], id: number, to: number): number[] {
   const rest = ids.filter((other) => other !== id)
   const index = Math.max(0, Math.min(rest.length, to))
   return [...rest.slice(0, index), id, ...rest.slice(index)]
-}
-
-/**
- * The month's income, expenses and net as the sheet shows them: what's recorded, plus what's
- * still planned for the current and later months. `recorded` is the net of what's recorded.
- */
-export function monthNet(summary: CalendarSummary): {
-  income: Cents
-  expenses: Cents
-  net: Cents
-  recorded: Cents
-  withPlanned: boolean
-} {
-  const withPlanned =
-    summary.projected && (summary.plannedIncome !== 0 || summary.plannedExpenses !== 0)
-  const income = summary.income + (summary.projected ? summary.plannedIncome : 0)
-  const expenses = summary.expenses + (summary.projected ? summary.plannedExpenses : 0)
-  return {
-    income,
-    expenses,
-    net: income - expenses,
-    recorded: summary.income - summary.expenses,
-    withPlanned
-  }
 }

@@ -1,5 +1,11 @@
 import type { Database } from 'better-sqlite3'
-import { CARD_DUE_REMINDER_DAYS, cardCycle, type CardStatus } from '@shared/cards'
+import {
+  CARD_BILL_NOTICE_DAYS,
+  CARD_DUE_REMINDER_DAYS,
+  cardCycle,
+  type CardBillDue,
+  type CardStatus
+} from '@shared/cards'
 import {
   addDays,
   addMonths,
@@ -23,6 +29,30 @@ import { when } from './when'
 const owedOn = (balance: number): number => Math.max(0, -balance)
 
 /** Usage, cycle and what to pay next for a credit card, as of `today`. */
+/**
+ * Card bills to pay now (PLAN.md step 49): each active card whose payment is due within
+ * CARD_BILL_NOTICE_DAYS, or overdue, with something left to pay on its statement.
+ */
+export function cardBillsDue(db: Database, today: IsoDate): CardBillDue[] {
+  const until = addDays(today, CARD_BILL_NOTICE_DAYS)
+  return listAccounts(db, today)
+    .filter((a) => a.type === 'credit' && !a.isArchived)
+    .flatMap((card): CardBillDue[] => {
+      const status = cardStatus(db, card.id, today)
+      const due = status.cycle.dueDate
+      if (!due || due > until || !status.leftToPay || status.leftToPay <= 0) return []
+      return [
+        {
+          accountId: card.id,
+          name: card.name,
+          dueDate: due,
+          amount: status.leftToPay,
+          payFromAccountId: card.payFromAccountId
+        }
+      ]
+    })
+}
+
 export function cardStatus(db: Database, accountId: number, today: IsoDate): CardStatus {
   const account = getAccount(db, accountId, today)
   if (account.type !== 'credit') {

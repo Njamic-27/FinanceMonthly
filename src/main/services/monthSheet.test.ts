@@ -230,7 +230,7 @@ describe('rows', () => {
     addMonthRow(db, { categoryId: categoryId('Eating out'), accountId: debit })
     buy('2026-10-05', 3000, 'Health')
     buy('2026-09-05', 3000, 'Transport')
-    expect(section('expenses').rows.map((r) => r.title)).toEqual(['Eating out', 'Health'])
+    expect(section('everyday').rows.map((r) => r.title)).toEqual(['Eating out', 'Health'])
   })
 
   it('count every transaction once: categories, recurring items, installments and loans', () => {
@@ -269,9 +269,15 @@ describe('rows', () => {
       rows(october).find((r) => r.kind === kind && r.sourceId === id)
     expect(find('recurring', rent)).toMatchObject({ actual: 65000, planned: 0, count: 1 })
     expect(find('category', categoryId('Rent'))).toMatchObject({ actual: 2000, count: 1 })
-    // Rent, a recurring expense, is a bill; its category's own purchases stay everyday spending.
-    expect(section('bills').rows.map((r) => [r.kind, r.title])).toEqual([['recurring', 'Rent']])
-    expect(section('expenses').rows.map((r) => r.title)).toEqual(['Rent'])
+    // Rent is in the Bills group: its recurring payment and its own purchases are bills.
+    expect(section('bills').rows.map((r) => [r.kind, r.title])).toEqual([
+      ['category', 'Rent'],
+      ['recurring', 'Rent']
+    ])
+    // The laptop is in Shopping, an everyday category, so its installments are everyday.
+    expect(section('everyday').rows.map((r) => [r.kind, r.title])).toEqual([
+      ['installment_plan', 'Laptop']
+    ])
     // The card's statement closes on the 25th and is paid by the 15th: the laptop's September
     // rate is on the bill due 15 October; its October rate and the shopping on 14 October are
     // on the one due 15 November, so they count then.
@@ -286,9 +292,8 @@ describe('rows', () => {
     expect(find('loan', loan)).toMatchObject({ actual: 0, planned: -100000, overdue: true })
 
     const expenses = october.sections
-      .filter((s) => s.key !== 'loans' && s.key !== 'savings' && s.key !== 'income')
+      .filter((s) => ['subscriptions', 'bills', 'everyday'].includes(s.key))
       .flatMap((s) => s.rows)
-      .filter((r) => r.kind !== 'card_payment')
     expect(expenses.reduce((sum, r) => sum + r.actual, 0)).toBe(65000 + 2000 + 25000)
   })
 
@@ -341,9 +346,8 @@ describe('rows', () => {
       const totals = getTotals(db, range)
       const calendar = calendarMonth(db, { month: s.range.start }, TODAY).summary
       const spending = s.sections
-        .filter((x) => ['expenses', 'bills', 'cards'].includes(x.key))
+        .filter((x) => ['subscriptions', 'bills', 'everyday'].includes(x.key))
         .flatMap((x) => x.rows)
-        .filter((r) => r.kind !== 'card_payment')
       const income = s.sections.find((x) => x.key === 'income')
       expect(s.summary).toEqual(calendar)
       expect(income?.actual).toBe(totals.income)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { startOfMonth, today, type IsoDate } from '@shared/dates'
+import { monthKeyOf } from '@shared/month'
 import type { PlannedItem } from '@shared/planned'
 import { defaultSettings } from '@shared/settings'
 import { PageHeader } from '@renderer/components/PageHeader'
@@ -15,6 +16,7 @@ import {
 import { MonthNav } from '@renderer/features/calendar/MonthNav'
 import { MonthSummary } from '@renderer/features/calendar/MonthSummary'
 import { useCalendarMonth } from '@renderer/features/calendar/queries'
+import { useMonthSheet } from '@renderer/features/month/queries'
 import {
   ConfirmPaymentDialog,
   type ConfirmPaymentTarget
@@ -36,6 +38,8 @@ export function CalendarPage(): React.JSX.Element {
   const month = readCalendarMonth(params, now)
   const isCurrent = month === startOfMonth(now)
   const calendar = useCalendarMonth(month)
+  // Money in, money out and net as Month counts them.
+  const sheet = useMonthSheet(monthKeyOf(month))
   const recurring = useRecurringItems().data ?? []
 
   // The open day is in the URL (`?day=`), so other screens can link to it; without one the
@@ -94,7 +98,10 @@ export function CalendarPage(): React.JSX.Element {
 
       {data && (
         <div className={cn('transition-opacity', calendar.isPlaceholderData && 'opacity-60')}>
-          <MonthSummary summary={data.summary} />
+          <MonthSummary
+            summary={data.summary}
+            totals={sheet.data?.month === monthKeyOf(month) ? sheet.data.totals : undefined}
+          />
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <CalendarGrid
               data={data}
@@ -102,7 +109,7 @@ export function CalendarPage(): React.JSX.Element {
               selected={selected}
               onSelect={pick}
               onPlanned={(item) => {
-                pick(item.date)
+                pick(item.countsOn)
                 confirm(item)
               }}
             />
@@ -110,7 +117,7 @@ export function CalendarPage(): React.JSX.Element {
               ref={panel}
               date={selected}
               cardDues={data.cardDues.filter((m) => m.date === selected)}
-              planned={data.planned.filter((p) => p.date === selected)}
+              planned={data.planned.filter((p) => p.countsOn === selected)}
               onConfirm={confirm}
             />
           </div>

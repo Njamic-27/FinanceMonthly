@@ -184,7 +184,8 @@ export function CalendarGrid({
   const money = useCurrency()
   const plannedByDay = new Map<IsoDate, PlannedItem[]>()
   for (const item of data.planned) {
-    plannedByDay.set(item.date, [...(plannedByDay.get(item.date) ?? []), item])
+    // On the day it counts: a charge on a card on its bill's due day.
+    plannedByDay.set(item.countsOn, [...(plannedByDay.get(item.countsOn) ?? []), item])
   }
   const cardDuesByDay = new Map<IsoDate, CardDueMarker[]>()
   for (const marker of data.cardDues) {

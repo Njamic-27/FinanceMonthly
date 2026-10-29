@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Minus, Pencil, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatDate, type IsoDate } from '@shared/dates'
+import type { MonthTotals } from '@shared/month'
 import type { CalendarSummary } from '@shared/planned'
 import { Card } from '@renderer/components/ui/card'
 import { useAccounts } from '@renderer/features/accounts/queries'
 import { YourAccountsDialog } from '@renderer/features/accounts/YourAccountsDialog'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
-import { monthNet } from './cells'
 
 /**
  * The one bold panel: money in your accounts today (debit cards and cash) as the main number,
@@ -57,16 +57,18 @@ function BalanceTile(): React.JSX.Element {
   )
 }
 
-/** Income minus expenses in the month, with its sign spelled out and an arrow. */
+/** Income minus money out in the month, with its sign spelled out and an arrow. */
 function NetTile({
   month,
-  summary
+  summary,
+  totals
 }: {
   month: IsoDate
   summary: CalendarSummary
+  totals: MonthTotals
 }): React.JSX.Element {
   const money = useCurrency()
-  const { income, expenses, net, recorded, withPlanned } = monthNet(summary)
+  const { moneyIn, moneyOut, net, recordedNet, withPlanned } = totals
   const Icon = net > 0 ? TrendingUp : net < 0 ? TrendingDown : Minus
   const name = formatDate(month, money.locale, { month: 'long' })
 
@@ -87,9 +89,9 @@ function NetTile({
         <Icon className="size-8 shrink-0" aria-label={net > 0 ? 'up' : net < 0 ? 'down' : 'even'} />
       </p>
       <p className="mt-2 text-sm text-ink-muted">
-        Income <span className="amount text-ink">{money.format(income)}</span> · Expenses{' '}
-        <span className="amount text-ink">{money.format(expenses)}</span>
-        {withPlanned && <> · {money.format(recorded, 'exceptZero')} recorded so far</>}
+        Income <span className="amount text-ink">{money.format(moneyIn)}</span> · Money out{' '}
+        <span className="amount text-ink">{money.format(moneyOut)}</span>
+        {withPlanned && <> · {money.format(recordedNet, 'exceptZero')} recorded so far</>}
       </p>
       <p className="mt-auto pt-2 text-sm text-ink-muted">
         {summary.projected ? 'Expected balance at month end' : 'Balance at month end'}{' '}
@@ -104,17 +106,19 @@ function NetTile({
 /** The top of Month: money in accounts and owed on cards (click to correct) and the month's net. */
 export function MonthHeader({
   month,
-  summary
+  summary,
+  totals
 }: {
   /** The month's first day. */
   month: IsoDate
   summary: CalendarSummary
+  totals: MonthTotals
 }): React.JSX.Element {
   return (
     <section aria-label="Balance and net" className="mb-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <BalanceTile />
-        <NetTile month={month} summary={summary} />
+        <NetTile month={month} summary={summary} totals={totals} />
       </div>
     </section>
   )

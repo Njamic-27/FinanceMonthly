@@ -73,7 +73,7 @@ describe('adding a row', () => {
     const row = add({ name: 'groceries', amount: 25000, accountId: cash })
     expect(row).toEqual({ kind: 'category', sourceId: categoryId('Groceries') })
     expect(listCategories(db)).toHaveLength(before)
-    expect(section('expenses')).toEqual([
+    expect(section('everyday')).toEqual([
       expect.objectContaining({ title: 'Groceries', actual: 25000, summary: 0, accountId: cash })
     ])
     const [tx] = listTransactions(db, { categoryId: categoryId('Groceries') }).items
@@ -81,13 +81,13 @@ describe('adding a row', () => {
 
     // Another one adds to it.
     add({ name: 'Groceries', amount: 4000, accountId: cash, title: 'Market' })
-    expect(section('expenses')[0]).toMatchObject({ actual: 29000, count: 2 })
+    expect(section('everyday')[0]).toMatchObject({ actual: 29000, count: 2 })
   })
 
   it('creates a category for a new name, and restores an archived one', () => {
     add({ name: 'Bike repairs', type: 'expense' })
     expect(listCategories(db).find((c) => c.name === 'Bike repairs')?.type).toBe('expense')
-    expect(titles('expenses')).toEqual(['Bike repairs'])
+    expect(titles('everyday')).toEqual(['Bike repairs'])
 
     updateCategory(db, categoryId('Bonus'), { isArchived: true })
     add({ name: 'Bonus', type: 'income', amount: 50000 })
@@ -109,11 +109,11 @@ describe('adding a row', () => {
       frequency: 'monthly',
       nextDueDate: '2026-10-30'
     })
-    // A recurring expense is a bill, not everyday spending.
-    expect(section('bills')).toEqual([
+    // A recurring expense goes with its category's group: a new category is Everyday.
+    expect(section('everyday')).toEqual([
       expect.objectContaining({ kind: 'recurring', title: 'Gym', planned: 3500 })
     ])
-    expect(section('bills', '2026-11')[0]).toMatchObject({ planned: 3500 })
+    expect(section('everyday', '2026-11')[0]).toMatchObject({ planned: 3500 })
     // Not added as a category row as well.
     expect(listMonthRows(db)).toEqual([])
   })
@@ -146,7 +146,7 @@ describe('adding a row', () => {
     })
     // Every third month from November: not in December or January.
     const insurance = (month: string): MonthSheetRow | undefined =>
-      section('bills', month).find((r) => r.title === 'Car insurance')
+      section('everyday', month).find((r) => r.title === 'Car insurance')
     expect(insurance('2026-11')).toMatchObject({ planned: 12000 })
     expect(insurance('2026-12')).toBeUndefined()
     expect(insurance('2027-01')).toBeUndefined()
@@ -175,11 +175,11 @@ describe('hiding a row', () => {
     add({ name: 'Groceries' })
     buy('Groceries', '2026-09-10')
     hideMonthRow(db, { categoryId: categoryId('Groceries'), hidden: true }, TODAY)
-    expect(titles('expenses')).toEqual([])
-    expect(titles('expenses', '2026-09')).toEqual(['Groceries'])
+    expect(titles('everyday')).toEqual([])
+    expect(titles('everyday', '2026-09')).toEqual(['Groceries'])
 
     add({ name: 'Groceries' })
-    expect(titles('expenses')).toEqual(['Groceries'])
+    expect(titles('everyday')).toEqual(['Groceries'])
   })
 
   it('works on a row shown only for its transactions', () => {
@@ -195,7 +195,7 @@ describe('renaming a row', () => {
   it('renames its category, recurring item or goal', () => {
     add({ name: 'Groceries' })
     renameMonthRow(db, { kind: 'category', sourceId: categoryId('Groceries'), name: 'Food' })
-    expect(titles('expenses')).toEqual(['Food'])
+    expect(titles('everyday')).toEqual(['Food'])
 
     const gym = add({
       name: 'Gym',
@@ -228,13 +228,13 @@ describe('renaming a row', () => {
 describe('reordering rows', () => {
   it('puts the section in the new order, adding rows shown only for their transactions', () => {
     add({ name: 'Groceries' })
-    add({ name: 'Rent' })
+    add({ name: 'Health' })
     buy('Transport')
-    expect(titles('expenses')).toEqual(['Groceries', 'Rent', 'Transport'])
+    expect(titles('everyday')).toEqual(['Groceries', 'Health', 'Transport'])
 
-    const ids = ['Transport', 'Groceries', 'Rent'].map(categoryId)
+    const ids = ['Transport', 'Groceries', 'Health'].map(categoryId)
     reorderMonthRows(db, { type: 'expense', categoryIds: ids }, TODAY)
-    expect(titles('expenses')).toEqual(['Transport', 'Groceries', 'Rent'])
+    expect(titles('everyday')).toEqual(['Transport', 'Groceries', 'Health'])
     expect(listMonthRows(db).map((r) => r.categoryId)).toEqual(ids)
   })
 

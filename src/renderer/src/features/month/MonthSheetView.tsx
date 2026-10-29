@@ -39,10 +39,9 @@ import {
   editStart,
   isCategoryRow,
   lockedReason,
-  expenseGroups,
+  moneyOutSections,
   moveCategory,
   needsSaving,
-  monthNet,
   rowKey,
   rowNote,
   savingValue,
@@ -76,7 +75,9 @@ const TYPING = /^[\d.,\-−]$/
 /** The category sections a row can be moved within, by category type. */
 const lineTypes: Partial<Record<MonthSectionKey, MonthLineType>> = {
   income: 'income',
-  expenses: 'expense'
+  subscriptions: 'expense',
+  bills: 'expense',
+  everyday: 'expense'
 }
 
 /** The Account column: which account the row's new amounts use. */
@@ -227,7 +228,14 @@ function SheetRow({
     : row.onBill > 0
       ? `${money.format(row.onBill)} on this month’s bill`
       : `${money.format(-row.onBill)} in refunds on this month’s bill`
-  const note = [rowNote(row), onBill].filter(Boolean).join(' · ') || null
+  // Card purchases in the row count on their bill; say which card.
+  const onCards = row.byCard
+    ?.map(
+      (c) =>
+        `${money.format(c.amount)} on ${accounts.find((a) => a.id === c.accountId)?.name ?? 'a card'}`
+    )
+    .join(', ')
+  const note = [rowNote(row), onBill, onCards].filter(Boolean).join(' · ') || null
   const locked = lockedReason(row)
   const shown =
     saving === undefined ? cellValue(row) : { amount: savingValue(row, saving), planned: false }
@@ -494,7 +502,7 @@ export function MonthSheetView({
   })
   const income = sections.filter((s) => s.key === 'income')
   // Groups with nothing this month are left out; "+" adds to any of them.
-  const groups = expenseGroups.flatMap((key) =>
+  const groups = moneyOutSections.flatMap((key) =>
     sections.filter((s) => s.key === key && s.rows.length > 0)
   )
   const [view, setView] = useExpensesView()
@@ -812,7 +820,7 @@ export function MonthSheetView({
     )
   }
 
-  const totals = monthNet(sheet.summary)
+  const totals = sheet.totals
 
   return (
     <div className="max-w-4xl">
@@ -820,7 +828,7 @@ export function MonthSheetView({
         <SheetHeading
           id="month-income"
           title="Income"
-          total={totals.income}
+          total={totals.moneyIn}
           income
           action={<AddMenu section="income" onAction={onAdd} />}
         />
@@ -833,9 +841,9 @@ export function MonthSheetView({
       <section aria-labelledby="month-expenses" className="grid gap-4">
         <SheetHeading
           id="month-expenses"
-          title="Expenses"
-          total={totals.expenses}
-          note="Spending this month. Card payments, loans and savings move money: they’re in your balance, not in this total."
+          title="Money out"
+          total={totals.moneyOut}
+          note="Everything leaving your accounts this month: spending (card purchases in the month their bill is paid), loan payments and savings."
           action={
             <div className="flex flex-wrap items-center gap-3">
               <AddMenu section="expenses" onAction={onAdd} />

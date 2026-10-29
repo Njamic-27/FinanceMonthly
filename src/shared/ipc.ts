@@ -1,6 +1,6 @@
 import type { Account, AccountInput } from './accounts'
 import type { AdjustmentUpdate, BalanceTarget } from './adjustments'
-import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
+import type { AccountSeriesQuery, BalancePoint, CardBillDue, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
 import type { InstallmentPlan, InstallmentPlanInput } from './installments'
@@ -78,6 +78,8 @@ export interface IpcContract {
   'accounts:delete': (id: number) => void
   /** A credit card's usage, statement cycle and what to pay next. */
   'accounts:card': (id: number) => CardStatus
+  /** Card bills due within a week and not paid in full. */
+  'accounts:billsDue': () => CardBillDue[]
   /** One account's balance at the end of each day. */
   'accounts:series': (query: AccountSeriesQuery) => BalancePoint[]
   /** Sets accounts to the balances typed, adding a balance adjustment for each difference. */
@@ -225,6 +227,7 @@ const channels: Record<IpcChannel, true> = {
   'accounts:archive': true,
   'accounts:delete': true,
   'accounts:card': true,
+  'accounts:billsDue': true,
   'accounts:series': true,
   'accounts:adjustBalances': true,
   'transactions:list': true,
