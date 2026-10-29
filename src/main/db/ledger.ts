@@ -2,8 +2,14 @@
 // for the account in `account_id`. A transfer is also added to `to_account_id`, which callers
 // handle separately.
 
-export const incomingTypes = ['income', 'savings_withdrawal', 'loan_in'] as const
-export const outgoingTypes = ['expense', 'savings_deposit', 'loan_out', 'transfer'] as const
+export const incomingTypes = ['income', 'savings_withdrawal', 'loan_in', 'adjustment_in'] as const
+export const outgoingTypes = [
+  'expense',
+  'savings_deposit',
+  'loan_out',
+  'transfer',
+  'adjustment_out'
+] as const
 
 const list = (types: readonly string[]): string => types.map((t) => `'${t}'`).join(', ')
 

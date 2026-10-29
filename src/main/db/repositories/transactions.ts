@@ -88,7 +88,12 @@ export interface RowValues {
  * An account the transaction may use: not archived (unless the transaction already uses it)
  * and already open on the transaction's date.
  */
-function usableAccount(db: Database, id: number, date: string, current?: Transaction): Account {
+export function usableAccount(
+  db: Database,
+  id: number,
+  date: string,
+  current?: Transaction
+): Account {
   const account = getAccount(db, id)
   const alreadyUsed = account.id === current?.accountId || account.id === current?.toAccountId
   if (account.isArchived && !alreadyUsed) {

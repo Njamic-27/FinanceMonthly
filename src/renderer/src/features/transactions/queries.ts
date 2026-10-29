@@ -9,6 +9,7 @@ import {
   type UseMutationResult,
   type UseQueryResult
 } from '@tanstack/react-query'
+import type { AdjustmentUpdate } from '@shared/adjustments'
 import type {
   Transaction,
   TransactionInput,
@@ -73,6 +74,19 @@ export function useUpdateTransaction(): UseMutationResult<
   const invalidate = useInvalidateAll()
   return useMutation({
     mutationFn: ({ id, input }) => invoke('transactions:update', id, input),
+    onSuccess: invalidate
+  })
+}
+
+/** Changes a balance adjustment: signed amount, date or note. */
+export function useUpdateAdjustment(): UseMutationResult<
+  Transaction,
+  Error,
+  { id: number; input: AdjustmentUpdate }
+> {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ id, input }) => invoke('transactions:updateAdjustment', id, input),
     onSuccess: invalidate
   })
 }

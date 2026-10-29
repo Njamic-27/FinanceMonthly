@@ -1,4 +1,5 @@
 import type { Account, AccountInput } from './accounts'
+import type { AdjustmentUpdate, BalanceTarget } from './adjustments'
 import type { AccountSeriesQuery, BalancePoint, CardStatus } from './cards'
 import type { Category, CategoryCreate, CategoryUpdate } from './categories'
 import type { IsoDate } from './dates'
@@ -78,6 +79,8 @@ export interface IpcContract {
   'accounts:card': (id: number) => CardStatus
   /** One account's balance at the end of each day. */
   'accounts:series': (query: AccountSeriesQuery) => BalancePoint[]
+  /** Sets accounts to the balances typed, adding a balance adjustment for each difference. */
+  'accounts:adjustBalances': (targets: BalanceTarget[]) => Transaction[]
 
   /** Newest first, one page at a time. */
   'transactions:list': (query: TransactionQuery) => TransactionPage
@@ -85,6 +88,7 @@ export interface IpcContract {
   'transactions:create': (input: TransactionInput) => Transaction
   'transactions:update': (id: number, input: TransactionInput) => Transaction
   'transactions:delete': (id: number) => void
+  'transactions:updateAdjustment': (id: number, input: AdjustmentUpdate) => Transaction
 
   /** Installment plans on one card, or on every card; the newest first. */
   'installments:list': (accountId?: number) => InstallmentPlan[]
@@ -217,11 +221,13 @@ const channels: Record<IpcChannel, true> = {
   'accounts:delete': true,
   'accounts:card': true,
   'accounts:series': true,
+  'accounts:adjustBalances': true,
   'transactions:list': true,
   'transactions:get': true,
   'transactions:create': true,
   'transactions:update': true,
   'transactions:delete': true,
+  'transactions:updateAdjustment': true,
   'installments:list': true,
   'installments:create': true,
   'installments:delete': true,

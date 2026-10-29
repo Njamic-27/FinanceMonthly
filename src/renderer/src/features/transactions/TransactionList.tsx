@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
-import { ArrowLeftRight, Copy, HandCoins, PiggyBank, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Copy, HandCoins, PiggyBank, Scale, type LucideIcon } from 'lucide-react'
 import type { Account } from '@shared/accounts'
+import { isAdjustment } from '@shared/adjustments'
 import type { Category } from '@shared/categories'
 import { addDays, formatDate, today, type IsoDate } from '@shared/dates'
 import { neutralPaletteColor } from '@shared/palette'
@@ -12,14 +13,16 @@ import { accountPath, categoryPath, dayPath, ownerPath } from '@renderer/lib/lin
 import { cn } from '@renderer/lib/utils'
 import { duplicateTransaction, openTransactionDialog } from './dialogStore'
 
-const incoming: TransactionType[] = ['income', 'savings_withdrawal', 'loan_in']
+const incoming: TransactionType[] = ['income', 'savings_withdrawal', 'loan_in', 'adjustment_in']
 
 const typeIcons: Partial<Record<TransactionType, LucideIcon>> = {
   transfer: ArrowLeftRight,
   savings_deposit: PiggyBank,
   savings_withdrawal: PiggyBank,
   loan_out: HandCoins,
-  loan_in: HandCoins
+  loan_in: HandCoins,
+  adjustment_in: Scale,
+  adjustment_out: Scale
 }
 
 /**
@@ -66,7 +69,9 @@ function TransactionRow({
   const account = lookup.accounts.get(tx.accountId)
   const toAccount = tx.toAccountId ? lookup.accounts.get(tx.toAccountId) : undefined
   const sign = direction(tx, accountFilter)
-  const editable = tx.type === 'income' || tx.type === 'expense' || tx.type === 'transfer'
+  // Balance adjustments open in the same dialog, with their own form.
+  const editable =
+    tx.type === 'income' || tx.type === 'expense' || tx.type === 'transfer' || isAdjustment(tx.type)
   // Savings and loan payments are changed on their goal or loan.
   const owner = editable ? null : ownerPath(tx)
 
@@ -138,7 +143,7 @@ function TransactionRow({
           {sign === 0 ? money.format(tx.amount) : money.format(sign * tx.amount, 'exceptZero')}
         </span>
       </div>
-      {editable && (
+      {editable && !isAdjustment(tx.type) ? (
         <button
           type="button"
           aria-label={`Duplicate “${tx.title}”`}
@@ -148,6 +153,9 @@ function TransactionRow({
         >
           <Copy className="size-4" />
         </button>
+      ) : (
+        // Keeps amounts in one column with the rows that can be duplicated.
+        <span className="size-9 shrink-0" aria-hidden />
       )}
     </li>
   )

@@ -21,6 +21,7 @@ import {
 import { AmountInput } from '@renderer/components/AmountInput'
 import { DatePicker } from '@renderer/components/DatePicker'
 import { installmentPlanInputSchema, type InstallmentPlan } from '@shared/installments'
+import { isAdjustment } from '@shared/adjustments'
 import { FieldError } from '@renderer/components/FieldError'
 import { FormError } from '@renderer/components/FormError'
 import { Button } from '@renderer/components/ui/button'
@@ -55,6 +56,7 @@ import {
   type TransactionDialogTarget,
   type TransactionPrefill
 } from './dialogStore'
+import { AdjustmentForm } from './AdjustmentForm'
 import {
   useCreateTransaction,
   useDeleteTransaction,
@@ -647,6 +649,15 @@ function DialogBody({ target }: { target: TransactionDialogTarget }): React.JSX.
   if (!accounts.data || !categories.data) return null
   if (target.kind === 'edit' && !transaction.data) return null
   if (target.kind === 'new' && !accounts.data.some((a) => !a.isArchived)) return <NoAccounts />
+  if (transaction.data && isAdjustment(transaction.data.type)) {
+    return (
+      <AdjustmentForm
+        key={transaction.data.id}
+        existing={transaction.data}
+        account={accounts.data.find((a) => a.id === transaction.data.accountId)}
+      />
+    )
+  }
 
   return (
     <TransactionForm

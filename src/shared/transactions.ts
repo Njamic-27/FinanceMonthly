@@ -10,7 +10,10 @@ export const transactionTypes = [
   'savings_deposit',
   'savings_withdrawal',
   'loan_out',
-  'loan_in'
+  'loan_in',
+  /** Balance adjustments: the difference to a balance you typed (src/shared/adjustments.ts). */
+  'adjustment_in',
+  'adjustment_out'
 ] as const
 export type TransactionType = (typeof transactionTypes)[number]
 

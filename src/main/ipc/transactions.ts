@@ -1,4 +1,5 @@
 import { getDb } from '../db'
+import { updateAdjustment } from '../db/repositories/adjustments'
 import {
   createTransaction,
   deleteTransaction,
@@ -14,4 +15,5 @@ export function registerTransactionHandlers(): void {
   handle('transactions:create', (input) => createTransaction(getDb(), input))
   handle('transactions:update', (id, input) => updateTransaction(getDb(), id, input))
   handle('transactions:delete', (id) => deleteTransaction(getDb(), id))
+  handle('transactions:updateAdjustment', (id, input) => updateAdjustment(getDb(), id, input))
 }
