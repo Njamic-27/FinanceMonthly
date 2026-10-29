@@ -268,6 +268,9 @@ describe('rows', () => {
       rows(october).find((r) => r.kind === kind && r.sourceId === id)
     expect(find('recurring', rent)).toMatchObject({ actual: 65000, planned: 0, count: 1 })
     expect(find('category', categoryId('Rent'))).toMatchObject({ actual: 2000, count: 1 })
+    // Rent, a recurring expense, is a bill; its category's own purchases stay everyday spending.
+    expect(section('bills').rows.map((r) => [r.kind, r.title])).toEqual([['recurring', 'Rent']])
+    expect(section('expenses').rows.map((r) => r.kind)).toEqual(['category', 'category'])
     expect(find('installment_plan', plan)).toMatchObject({ actual: 25000, editable: false })
     expect(find('category', categoryId('Shopping'))).toMatchObject({ actual: 4500, count: 1 })
     // The installment due 15 October isn't paid: planned, overdue, and out of the balance.
@@ -329,7 +332,7 @@ describe('rows', () => {
       const totals = getTotals(db, range)
       const calendar = calendarMonth(db, { month: s.range.start }, TODAY).summary
       const spending = s.sections
-        .filter((x) => ['expenses', 'subscriptions', 'cards'].includes(x.key))
+        .filter((x) => ['expenses', 'bills', 'cards'].includes(x.key))
         .flatMap((x) => x.rows)
         .filter((r) => r.kind !== 'card_payment')
       const income = s.sections.find((x) => x.key === 'income')

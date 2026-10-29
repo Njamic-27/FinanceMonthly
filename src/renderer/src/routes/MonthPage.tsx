@@ -21,6 +21,7 @@ import { LoanDialog } from '@renderer/features/loans/LoanDialog'
 import { AddRowDialog } from '@renderer/features/month/AddRowDialog'
 import { canRename, rowKey, type AddChoice } from '@renderer/features/month/cells'
 import { MonthHeader } from '@renderer/features/month/MonthHeader'
+import { WaitingStrip } from '@renderer/features/month/WaitingStrip'
 import { MonthSheetView } from '@renderer/features/month/MonthSheetView'
 import { useCopyFromLastMonth, useMonthSheet } from '@renderer/features/month/queries'
 import { RenameRowDialog } from '@renderer/features/month/RenameRowDialog'
@@ -131,6 +132,7 @@ export function MonthPage(): React.JSX.Element {
       {sheet.data && (
         <div className={cn('transition-opacity', sheet.isPlaceholderData && 'opacity-60')}>
           <MonthHeader month={first} summary={sheet.data.summary} />
+          <WaitingStrip />
           <MonthSheetView
             sheet={sheet.data}
             accounts={accounts}

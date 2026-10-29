@@ -9,6 +9,7 @@ import {
   needsSaving,
   rowNote,
   savingValue,
+  sheetAmount,
   signedAmount
 } from './cells'
 
@@ -119,5 +120,18 @@ describe('monthNet', () => {
 
   it('can come out negative', () => {
     expect(monthNet(summary({ income: 0 })).net).toBe(-120000)
+  })
+})
+
+describe('sheetAmount', () => {
+  it('reads plain, with a "+" only for money coming in under Expenses', () => {
+    expect(sheetAmount('income', 245000)).toEqual({ value: 245000, plus: false })
+    expect(sheetAmount('expenses', 28040)).toEqual({ value: 28040, plus: false })
+    // Loans carry their sign: repaid is out, borrowed is in.
+    expect(sheetAmount('loans', -30000)).toEqual({ value: 30000, plus: false })
+    expect(sheetAmount('loans', 100000)).toEqual({ value: 100000, plus: true })
+    // Savings are deposits less withdrawals: more taken out than put in is money in.
+    expect(sheetAmount('savings', 15000)).toEqual({ value: 15000, plus: false })
+    expect(sheetAmount('savings', -5000)).toEqual({ value: 5000, plus: true })
   })
 })

@@ -162,7 +162,7 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
   const sections: Record<MonthSectionKey, MonthSheetRow[]> = {
     income: [],
     expenses: [],
-    subscriptions: [],
+    bills: [],
     cards: [],
     loans: [],
     savings: []
@@ -212,15 +212,16 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
     })
   }
 
-  // Recurring income, bills and subscriptions due or posted in the month.
+  // Recurring income, bills and subscriptions due or posted in the month. Recurring expenses
+  // sit with the subscriptions, apart from everyday spending.
   for (const item of listRecurringItems(db)) {
     const posted = txs.filter((t) => t.recurringItemId === item.id)
     const due = planned.filter((p) => p.source === 'recurring' && p.sourceId === item.id)
     if (posted.length === 0 && due.length === 0) continue
     const section = {
       income: 'income',
-      expense: 'expenses',
-      subscription: 'subscriptions'
+      expense: 'bills',
+      subscription: 'bills'
     } as const
     sections[section[item.kind]].push({
       ...base,

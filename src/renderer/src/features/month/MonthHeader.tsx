@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CircleAlert, Minus, Pencil, TrendingDown, TrendingUp } from 'lucide-react'
+import { Minus, Pencil, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatDate, type IsoDate } from '@shared/dates'
 import type { CalendarSummary } from '@shared/planned'
 import { Card } from '@renderer/components/ui/card'
@@ -81,10 +81,7 @@ function NetTile({
   )
 }
 
-/**
- * The top of Month: today's total balance (click to correct it) and the month's net, plus a
- * note when planned payments are overdue.
- */
+/** The top of Month: today's total balance (click to correct it) and the month's net. */
 export function MonthHeader({
   month,
   summary
@@ -99,15 +96,6 @@ export function MonthHeader({
         <BalanceTile />
         <NetTile month={month} summary={summary} />
       </div>
-      {summary.overdue > 0 && (
-        <p className="mt-3 flex items-center gap-2 text-sm text-expense">
-          <CircleAlert className="size-4 shrink-0" aria-hidden />
-          {summary.overdue === 1
-            ? '1 planned payment this month is overdue.'
-            : `${summary.overdue} planned payments this month are overdue.`}{' '}
-          Press Enter on its row to confirm it.
-        </p>
-      )}
     </section>
   )
 }

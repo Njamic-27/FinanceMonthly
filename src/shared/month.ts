@@ -29,10 +29,14 @@ export function summaryDate(month: MonthKey, today: IsoDate): IsoDate {
   return monthKeyOf(today) === month ? today : monthRange(month).end
 }
 
+/**
+ * The sheet's sections, top to bottom. `expenses` holds expense categories (everyday
+ * spending); `bills` holds recurring expenses and subscriptions.
+ */
 export const monthSectionKeys = [
   'income',
   'expenses',
-  'subscriptions',
+  'bills',
   'cards',
   'loans',
   'savings'

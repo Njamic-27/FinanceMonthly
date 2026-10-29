@@ -9,8 +9,8 @@ export const rowKey = (row: Pick<MonthSheetRow, 'kind' | 'sourceId'>): string =>
 
 export const sectionTitles: Record<MonthSectionKey, string> = {
   income: 'Income',
-  expenses: 'Expenses',
-  subscriptions: 'Subscriptions',
+  expenses: 'Everyday',
+  bills: 'Bills & subscriptions',
   cards: 'Credit cards',
   loans: 'Loans',
   savings: 'Savings'
@@ -18,8 +18,8 @@ export const sectionTitles: Record<MonthSectionKey, string> = {
 
 export const sectionEmpty: Record<MonthSectionKey, string> = {
   income: 'No income this month yet.',
-  expenses: 'No spending this month yet.',
-  subscriptions: 'No subscriptions this month.',
+  expenses: 'No everyday spending this month yet.',
+  bills: 'No bills or subscriptions this month.',
   cards: 'No credit cards.',
   loans: 'No loan payments this month.',
   savings: 'No savings goals.'
@@ -28,7 +28,8 @@ export const sectionEmpty: Record<MonthSectionKey, string> = {
 /** Sections whose money isn't income or spending, and why. */
 export const sectionNotes: Partial<Record<MonthSectionKey, string>> = {
   cards: 'Paying a card moves money between your accounts, so only installments count as spending.',
-  loans: 'Loans change your balance but aren’t income or spending.'
+  loans: 'Loans change your balance but aren’t income or spending.',
+  savings: 'Money put aside from your accounts, not spending.'
 }
 
 /** What a cell shows: what's recorded, or what's planned while nothing is. */
@@ -85,11 +86,10 @@ export function rowNote(row: MonthSheetRow): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-/** The sheet's two columns: money coming in, and money going out. */
-export const moneyIn: readonly MonthSectionKey[] = ['income']
-export const moneyOut: readonly MonthSectionKey[] = [
+/** The groups under Expenses, top to bottom (Income comes first, above a divider). */
+export const expenseGroups: readonly MonthSectionKey[] = [
   'expenses',
-  'subscriptions',
+  'bills',
   'cards',
   'loans',
   'savings'
@@ -102,6 +102,18 @@ export const moneyOut: readonly MonthSectionKey[] = [
 export function signedAmount(section: MonthSectionKey, amount: Cents): Cents {
   if (section === 'loans') return amount
   return section === 'income' ? amount : -amount
+}
+
+/**
+ * How an amount reads on the sheet. The headings say which way money goes, so amounts are
+ * plain; only money coming in under Expenses (money borrowed, savings taken out) gets a "+".
+ */
+export function sheetAmount(
+  section: MonthSectionKey,
+  amount: Cents
+): { value: Cents; plus: boolean } {
+  const signed = signedAmount(section, amount)
+  return { value: Math.abs(signed), plus: section !== 'income' && signed > 0 }
 }
 
 /** What "+" under a section adds. */
@@ -128,7 +140,7 @@ export const sectionAdds: Record<
     label: 'Add expense',
     choices: [{ choice: 'expense', label: 'Add expense', description: '' }]
   },
-  subscriptions: {
+  bills: {
     label: 'Add subscription',
     choices: [{ choice: 'subscription', label: 'Add subscription', description: '' }]
   },

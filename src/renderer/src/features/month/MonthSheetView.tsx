@@ -47,10 +47,10 @@ import {
   editStart,
   isCategoryRow,
   lockedReason,
-  moneyIn,
-  moneyOut,
+  expenseGroups,
   moveCategory,
   needsSaving,
+  monthNet,
   rowKey,
   rowNote,
   savingValue,
@@ -58,7 +58,7 @@ import {
   sectionEmpty,
   sectionNotes,
   sectionTitles,
-  signedAmount,
+  sheetAmount,
   type AddChoice
 } from './cells'
 import {
@@ -233,8 +233,8 @@ function SheetRow({
   const shown =
     saving === undefined ? cellValue(row) : { amount: savingValue(row, saving), planned: false }
   const extraPlanned = !shown.planned && row.planned !== 0 && saving === undefined
-  const format = (amount: Cents): string =>
-    money.format(signedAmount(section, amount), 'exceptZero')
+  const format = (amount: Cents): string => formatSheet(money, section, amount)
+  const comesIn = section === 'income' || sheetAmount(section, shown.amount).plus
   const label = [
     row.title,
     shown.amount === 0 && !shown.planned ? 'nothing yet' : format(shown.amount),
@@ -346,7 +346,7 @@ function SheetRow({
               <span
                 className={cn(
                   'amount font-semibold',
-                  section === 'income' && 'text-income',
+                  comesIn && 'text-income',
                   saving !== undefined && 'opacity-60'
                 )}
               >
@@ -363,19 +363,29 @@ function SheetRow({
   )
 }
 
+/** An amount as the sheet reads it: plain, or "+" for money coming in under Expenses. */
+function formatSheet(
+  money: ReturnType<typeof useCurrency>,
+  section: MonthSectionKey,
+  amount: Cents
+): string {
+  const { value, plus } = sheetAmount(section, amount)
+  return money.format(value, plus ? 'always' : 'auto')
+}
+
 function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.Element {
   const money = useCurrency()
-  const format = (cents: Cents): string =>
-    money.format(signedAmount(section.key, cents), 'exceptZero')
+  const format = (cents: Cents): string => formatSheet(money, section.key, cents)
+  const total = section.actual + section.planned
   return (
     <p className="shrink-0 text-right">
       <span
         className={cn(
           'amount text-lg font-semibold whitespace-nowrap',
-          section.key === 'income' && 'text-income'
+          (section.key === 'income' || sheetAmount(section.key, total).plus) && 'text-income'
         )}
       >
-        {format(section.actual + section.planned)}
+        {format(total)}
       </span>
       {section.planned !== 0 && (
         <span className="block text-sm text-ink-muted">
@@ -388,15 +398,46 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
   )
 }
 
+/** "Income" or "Expenses" over its rows, with the month's total. */
+function SheetHeading({
+  id,
+  title,
+  total,
+  income = false,
+  note
+}: {
+  id: string
+  title: string
+  total: Cents
+  income?: boolean
+  note?: string
+}): React.JSX.Element {
+  const money = useCurrency()
+  return (
+    <header className="flex items-end justify-between gap-4 px-1">
+      <div className="min-w-0">
+        <h2 id={id} className="text-title font-bold">
+          {title}
+        </h2>
+        {note && <p className="text-sm text-ink-muted">{note}</p>}
+      </div>
+      <span className={cn('amount shrink-0 text-title', income && 'text-income')}>
+        {money.format(total)}
+      </span>
+    </header>
+  )
+}
+
 /** "+" under a section: one button, or a short menu when there's more than one thing to add. */
 function AddButton({
-  section,
+  label,
+  choices,
   onAdd
 }: {
-  section: MonthSectionKey
+  label: string
+  choices: (typeof sectionAdds)[MonthSectionKey]['choices']
   onAdd: (choice: AddChoice) => void
 }): React.JSX.Element {
-  const { label, choices } = sectionAdds[section]
   if (choices.length === 1) {
     return (
       <Button variant="ghost" size="sm" onClick={() => onAdd(choices[0].choice)}>
@@ -430,7 +471,8 @@ function AddButton({
 }
 
 /**
- * The month as a spreadsheet in two columns, money in and money out. Click an amount or press
+ * The month as a spreadsheet in one column: Income, a divider, then Expenses in groups (groups
+ * with nothing this month are left out, their "+" gathered at the end). Click an amount or press
  * Enter to type; Enter or Tab saves and moves to the next row (Shift+Tab back), Esc cancels,
  * arrows move between rows. Category rows can be renamed, hidden and dragged into order.
  */
@@ -458,10 +500,16 @@ export function MonthSheetView({
       isCategoryRow(row) ? order.ids.indexOf(row.sourceId) : Number.MAX_SAFE_INTEGER
     return { ...section, rows: [...section.rows].sort((a, b) => position(a) - position(b)) }
   })
-  const columns = [moneyIn, moneyOut].map((keys) =>
-    keys.flatMap((key) => sections.filter((s) => s.key === key))
+  const income = sections.filter((s) => s.key === 'income')
+  // Everyday spending always shows, so there's somewhere to add to; empty groups don't.
+  const groups = expenseGroups.flatMap((key) =>
+    sections.filter((s) => s.key === key && (s.rows.length > 0 || key === 'expenses'))
   )
-  const keys = columns.flat().flatMap((s) => s.rows.map(rowKey))
+  const otherAdds = expenseGroups
+    .filter((key) => !groups.some((g) => g.key === key))
+    .flatMap((key) => sectionAdds[key].choices)
+  // Arrows and Enter move down the one column.
+  const keys = [...income, ...groups].flatMap((s) => s.rows.map(rowKey))
 
   const [editing, setEditingState] = useState<Editing | null>(null)
   // Mirrors `editing` at once, so a blur after Enter doesn't save the cell a second time.
@@ -649,9 +697,20 @@ export function MonthSheetView({
     const movable = lineTypes[section.key] !== undefined
     const categoryIds = section.rows.filter(isCategoryRow).map((r) => r.sourceId)
 
+    const isIncome = section.key === 'income'
+
     return (
-      <Card key={section.key} className="p-0" aria-labelledby={titleId}>
-        <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-2">
+      <Card
+        key={section.key}
+        className={cn('p-0', isIncome && 'pt-2')}
+        aria-labelledby={isIncome ? 'month-income' : titleId}
+      >
+        <header
+          className={cn(
+            'flex items-start justify-between gap-4 px-5 pt-4 pb-2',
+            isIncome && 'sr-only'
+          )}
+        >
           <div className="min-w-0">
             <h3 id={titleId} className="text-lg font-semibold">
               {sectionTitles[section.key]}
@@ -663,7 +722,9 @@ export function MonthSheetView({
           {section.rows.length > 0 && <SectionTotal section={section} />}
         </header>
         {section.rows.length === 0 ? (
-          <p className="px-5 pb-2 text-sm text-ink-muted">{sectionEmpty[section.key]}</p>
+          <p className={cn('px-5 pb-2 text-sm text-ink-muted', isIncome && 'pt-2')}>
+            {sectionEmpty[section.key]}
+          </p>
         ) : (
           <table className="w-full table-fixed border-collapse">
             <colgroup>
@@ -756,29 +817,38 @@ export function MonthSheetView({
           </table>
         )}
         <div className="border-t border-line px-3 py-2">
-          <AddButton section={section.key} onAdd={onAdd} />
+          <AddButton {...sectionAdds[section.key]} onAdd={onAdd} />
         </div>
       </Card>
     )
   }
 
+  const totals = monthNet(sheet.summary)
+
   return (
-    // Two columns once the sheet has room for them, whatever the window's size.
-    <div className="@container">
-      <div className="grid items-start gap-6 @4xl:grid-cols-2">
-        {columns.map((column, i) => (
-          <section
-            key={i}
-            aria-labelledby={`month-column-${i}`}
-            className="grid min-w-0 content-start gap-4"
-          >
-            <h2 id={`month-column-${i}`} className="text-title font-bold">
-              {i === 0 ? 'Money in' : 'Money out'}
-            </h2>
-            {column.map(renderSection)}
-          </section>
-        ))}
-      </div>
+    <div className="max-w-4xl">
+      <section aria-labelledby="month-income" className="grid gap-3">
+        <SheetHeading id="month-income" title="Income" total={totals.income} income />
+        {income.map(renderSection)}
+      </section>
+
+      {/* A clear line between what comes in and what goes out. */}
+      <hr className="my-10 border-t-2 border-line" />
+
+      <section aria-labelledby="month-expenses" className="grid gap-4">
+        <SheetHeading
+          id="month-expenses"
+          title="Expenses"
+          total={totals.expenses}
+          note="Spending this month. Card payments, loans and savings move money: they’re in your balance, not in this total."
+        />
+        {groups.map(renderSection)}
+        {otherAdds.length > 0 && (
+          <div>
+            <AddButton label="Add something else" choices={otherAdds} onAdd={onAdd} />
+          </div>
+        )}
+      </section>
     </div>
   )
 }

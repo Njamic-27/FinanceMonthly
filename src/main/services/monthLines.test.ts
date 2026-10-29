@@ -97,10 +97,11 @@ describe('adding a row', () => {
       frequency: 'monthly',
       nextDueDate: '2026-10-30'
     })
-    expect(section('expenses')).toEqual([
+    // A recurring expense is a bill, not everyday spending.
+    expect(section('bills')).toEqual([
       expect.objectContaining({ kind: 'recurring', title: 'Gym', planned: 3500 })
     ])
-    expect(section('expenses', '2026-11')[0]).toMatchObject({ planned: 3500 })
+    expect(section('bills', '2026-11')[0]).toMatchObject({ planned: 3500 })
     // Not added as a category row as well.
     expect(listMonthRows(db)).toEqual([])
   })
