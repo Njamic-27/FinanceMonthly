@@ -1,6 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 export const Dialog = DialogPrimitive.Root
 export const DialogTrigger = DialogPrimitive.Trigger
@@ -30,7 +31,7 @@ export function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          aria-label="Close"
+          aria-label={t('common.close')}
           className="absolute top-4 right-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
         >
           <X className="size-4" />

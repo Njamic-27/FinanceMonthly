@@ -1,5 +1,6 @@
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * How much of a card's limit is used: what's owed, then (lighter) what's held for
@@ -29,11 +30,15 @@ export function CreditUsage({
     <div className={className}>
       <div
         role="meter"
-        aria-label="Credit used"
+        aria-label={t('accounts.creditUsed')}
         aria-valuemin={0}
         aria-valuemax={limit}
         aria-valuenow={Math.min(owed + reserved, limit)}
-        aria-valuetext={`${money.format(owed)} owed${reserved > 0 ? ` and ${money.format(reserved)} held for installments` : ''}, of ${money.format(limit)}`}
+        aria-valuetext={t(reserved > 0 ? 'accounts.usageOwedHeld' : 'accounts.usageOwed', {
+          owed: money.format(owed),
+          held: money.format(reserved),
+          limit: money.format(limit)
+        })}
         className="flex h-2 overflow-hidden rounded-full bg-surface-2"
       >
         <div className="h-full bg-loan" style={{ width: `${owedShare * 100}%` }} />
@@ -43,8 +48,11 @@ export function CreditUsage({
       </div>
       <p className={cn('mt-2 text-sm text-ink-muted', over > 0 && 'text-expense')}>
         {over > 0
-          ? `Over the limit by ${money.format(over)}`
-          : `${money.format(available)} available of ${money.format(limit)}`}
+          ? t('accounts.overLimit', { amount: money.format(over) })
+          : t('accounts.availableOf', {
+              available: money.format(available),
+              limit: money.format(limit)
+            })}
       </p>
     </div>
   )

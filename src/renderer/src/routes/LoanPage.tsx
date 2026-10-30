@@ -52,7 +52,7 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
       <dl className="grid grid-cols-3 gap-4 border-t border-line pt-4">
         <div>
           <dt className="text-sm text-ink-muted">
-            {directionLabels[loan.kind === 'lent' ? 'lent' : 'borrowed'].start}
+            {directionLabels(loan.kind === 'lent' ? 'lent' : 'borrowed').start}
           </dt>
           <dd className="amount text-lg">{money.format(loan.principal)}</dd>
         </div>

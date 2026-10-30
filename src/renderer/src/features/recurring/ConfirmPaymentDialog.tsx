@@ -24,6 +24,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { usePostOccurrence } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 export interface ConfirmPaymentTarget {
   item: RecurringItem
@@ -69,12 +70,16 @@ function ConfirmForm({
     event.preventDefault()
     const found: Partial<Record<Field, string>> = {}
     const cents = money.parse(amount)
-    if (amount.trim() === '') found.amount = 'Enter the amount'
-    else if (cents === null) found.amount = `Enter an amount like ${money.toInput(1250)}`
-    else if (cents <= 0) found.amount = 'Enter an amount above zero'
-    if (!account) found.accountId = 'Choose an account'
+    if (amount.trim() === '') found.amount = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.amount = t('line.enterAmountLike', { example: money.toInput(1250) })
+    } else if (cents <= 0) found.amount = t('recurring.enterAnAmountAbove')
+    if (!account) found.accountId = t('recurring.chooseAnAccount')
     else if (date < account.openingDate) {
-      found.date = `${account.name} starts on ${formatDate(account.openingDate, money.locale)}. Choose that day or later.`
+      found.date = t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, money.locale)
+      })
     }
     if (Object.values(found).some(Boolean) || cents === null || !account) {
       setErrors(found)
@@ -101,23 +106,23 @@ function ConfirmForm({
     <form onSubmit={submit} noValidate>
       <DialogHeader>
         <DialogTitle>
-          {isIncome ? 'Confirm' : 'Pay'} “{item.title}”
+          {t(isIncome ? 'recurring.confirmTitle' : 'recurring.payTitle', { title: item.title })}
         </DialogTitle>
         <DialogDescription>
-          Due{' '}
-          {formatDate(plannedDate, money.locale, {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+          {t('recurring.dueOn', {
+            date: formatDate(plannedDate, money.locale, {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            })
           })}
-          . Change anything that was different this time.
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor="confirm-amount">Amount</Label>
+          <Label htmlFor="confirm-amount">{t('common.amount')}</Label>
           <AmountInput
             id="confirm-amount"
             size="lg"
@@ -134,7 +139,9 @@ function ConfirmForm({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="confirm-account">{isIncome ? 'Paid into' : 'Paid with'}</Label>
+            <Label htmlFor="confirm-account">
+              {isIncome ? t('line.paidInto') : t('line.paidWith')}
+            </Label>
             <AccountSelect
               id="confirm-account"
               value={accountId}
@@ -149,7 +156,9 @@ function ConfirmForm({
             <FieldError id="confirm-account-error" message={errors.accountId} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="confirm-date">{isIncome ? 'Received on' : 'Paid on'}</Label>
+            <Label htmlFor="confirm-date">
+              {isIncome ? t('recurring.receivedOn') : t('recurring.paidOn')}
+            </Label>
             <DatePicker
               id="confirm-date"
               value={date}
@@ -169,10 +178,10 @@ function ConfirmForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={postOccurrence.isPending}>
-          {isIncome ? 'Mark as received' : 'Mark as paid'}
+          {isIncome ? t('recurring.markAsReceived') : t('recurring.markAsPaid')}
         </Button>
       </DialogFooter>
     </form>

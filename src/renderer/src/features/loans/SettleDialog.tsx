@@ -102,7 +102,7 @@ function SettleForm({
           <div className="grid grid-cols-2 gap-4">
             <div className="grid content-start gap-1.5">
               <Label htmlFor="settle-account">
-                {directionLabels[lent ? 'lent' : 'borrowed'].repaymentAccount}
+                {directionLabels(lent ? 'lent' : 'borrowed').repaymentAccount}
               </Label>
               <AccountSelect
                 id="settle-account"

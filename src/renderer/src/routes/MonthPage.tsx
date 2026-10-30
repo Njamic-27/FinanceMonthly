@@ -42,6 +42,7 @@ import { openTransactionDialog } from '@renderer/features/transactions/dialogSto
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /** One month like a spreadsheet: type what each row came to instead of every purchase. */
 export function MonthPage(): React.JSX.Element {
@@ -117,7 +118,7 @@ export function MonthPage(): React.JSX.Element {
         }
         const next = nextInstallment(loan)
         if (next) setPaying(next)
-        else toast({ title: `${loan.title} has no installment left to pay` })
+        else toast({ title: t('month.noInstallmentLeft', { title: loan.title }) })
         return
       }
       case 'savings': {
@@ -135,42 +136,39 @@ export function MonthPage(): React.JSX.Element {
         toast(
           filled === 0
             ? {
-                title: 'Nothing to copy',
-                description: `Rows with amounts in ${last} have something in them already.`
+                title: t('month.nothingToCopy'),
+                description: t('month.nothingToCopyHint', { month: last })
               }
             : {
-                title: filled === 1 ? 'Copied 1 row' : `Copied ${filled} rows`,
-                description: `Filled from ${last}. Rows that had something stayed as they were.`,
+                title: t('month.copied', { count: filled }),
+                description: t('month.copiedHint', { month: last }),
                 variant: 'success'
               }
         ),
       onError: (error) =>
-        toast({ title: 'Nothing copied', description: error.message, variant: 'error' })
+        toast({ title: t('month.nothingCopied'), description: error.message, variant: 'error' })
     })
   }
 
   return (
     <>
-      <PageHeader
-        title="Month"
-        description="Type what each row came to; the purchases behind it are optional."
-      />
+      <PageHeader title={t('screen.month')} description={t('month.description')} />
 
       <MonthNav month={first} onChange={go}>
         <Button
           variant="outline"
           onClick={copyLastMonth}
           disabled={copy.isPending || !sheet.data}
-          title="Fill this month’s empty rows with last month’s amounts"
+          title={t('month.copyLastTitle')}
         >
           <CopyPlus />
-          Copy from last month
+          {t('month.copyLast')}
         </Button>
       </MonthNav>
 
       {sheet.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>The month could not be loaded</CardTitle>
+          <CardTitle>{t('month.loadError')}</CardTitle>
           <CardDescription className="mt-1">{sheet.error.message}</CardDescription>
         </Card>
       )}

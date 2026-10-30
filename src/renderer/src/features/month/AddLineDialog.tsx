@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { countedDate } from '@shared/cards'
-import { expenseGroupLabels, type ExpenseGroup } from '@shared/categories'
+import type { ExpenseGroup } from '@shared/categories'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
 import {
@@ -44,6 +44,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { useAddMonthLine } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** What "+" picked: a category of the section's type, existing or new. */
 export interface LineTarget {
@@ -59,18 +60,18 @@ export interface LineTarget {
 type Field = 'title' | 'amount' | 'accountId' | 'date' | 'repeat' | 'installments'
 type Mode = 'once' | 'repeat'
 
-const modeOptions: { value: Mode; label: string }[] = [
-  { value: 'once', label: 'One-time' },
-  { value: 'repeat', label: 'Recurring' }
+const modeOptions = (): { value: Mode; label: string }[] => [
+  { value: 'once', label: t('line.once') },
+  { value: 'repeat', label: t('line.repeat') }
 ]
 
 /** How often a recurring line can repeat; "every few months" takes any number up to 24. */
 type Often = 'weekly' | 'monthly' | 'months' | 'yearly'
-const oftenOptions: { value: Often; label: string }[] = [
-  { value: 'weekly', label: 'Every week' },
-  { value: 'monthly', label: 'Every month' },
-  { value: 'months', label: 'Every few months' },
-  { value: 'yearly', label: 'Every year' }
+const oftenOptions = (): { value: Often; label: string }[] => [
+  { value: 'weekly', label: t('line.everyWeek') },
+  { value: 'monthly', label: t('line.everyMonth') },
+  { value: 'months', label: t('line.everyFewMonths') },
+  { value: 'yearly', label: t('line.everyYear') }
 ]
 
 function repeatOf(often: Often, months: string): LineRepeat {
@@ -79,8 +80,8 @@ function repeatOf(often: Often, months: string): LineRepeat {
 }
 
 function describeRepeat({ frequency, interval }: LineRepeat): string {
-  if (frequency === 'monthly' && interval > 1) return `every ${interval} months`
-  return { weekly: 'every week', monthly: 'every month', yearly: 'every year' }[frequency]
+  if (frequency === 'monthly' && interval > 1) return t('line.everyMonths', { count: interval })
+  return t(`line.${frequency}`)
 }
 
 /** Bills and subscriptions usually come back, so they start as recurring. */
@@ -124,7 +125,7 @@ function AddLineForm({
   }
 
   const recurring = mode === 'repeat'
-  const noun = target.type === 'income' ? 'income' : 'expense'
+  const income = target.type === 'income'
   const account = accounts.find((a) => String(a.id) === accountId)
   const countsIn = account && countsInMonth(date, countedDate(date, account), money.locale)
   // Only a one-time purchase on a card can be split into installments.
@@ -150,8 +151,10 @@ function AddLineForm({
     if (cents === null || !parsed.success) {
       setErrors({
         ...(parsed.success ? {} : fieldErrors(parsed.error)),
-        ...(cents === null && { amount: `Enter an amount like ${money.toInput(4550)}` }),
-        ...(split && cents === 0 && { amount: 'Enter what it cost in all' })
+        ...(cents === null && {
+          amount: t('line.enterAmountLike', { example: money.toInput(4550) })
+        }),
+        ...(split && cents === 0 && { amount: t('line.enterTotal') })
       })
       return
     }
@@ -161,12 +164,12 @@ function AddLineForm({
       onSuccess: () => {
         toast({
           title: line.repeat
-            ? `${name} added, ${describeRepeat(line.repeat)}`
+            ? t('line.addedRepeat', { name, often: describeRepeat(line.repeat) })
             : line.installments
-              ? `${name} added, in ${line.installments} installments`
+              ? t('line.addedInstallments', { name, count: line.installments })
               : cents > 0
-                ? `${money.format(cents)} added to ${target.name}`
-                : `${target.name} added to the sheet`,
+                ? t('line.addedAmount', { amount: money.format(cents), name: target.name })
+                : t('line.addedToSheet', { name: target.name }),
           variant: 'success'
         })
         onClose()
@@ -179,24 +182,27 @@ function AddLineForm({
     <form onSubmit={submit} noValidate>
       <DialogHeader>
         <DialogTitle>
-          {target.title || (target.isNew ? `New ${noun}: ${target.name}` : target.name)}
+          {target.title ||
+            (target.isNew
+              ? t(income ? 'line.newIncome' : 'line.newExpense', { name: target.name })
+              : target.name)}
         </DialogTitle>
         <DialogDescription>
           {target.isNew
             ? target.group
-              ? `Creates “${target.name}” in ${expenseGroupLabels[target.group]}. `
-              : `Creates the ${noun} category “${target.name}”. `
-            : `Adds to your “${target.name}” category. `}
-          One-time adds a single {noun}; recurring plans it ahead and asks you to confirm each one.
+              ? t('line.createsIn', { name: target.name, group: t(`group.${target.group}`) })
+              : t(income ? 'line.createsIncome' : 'line.createsExpense', { name: target.name })
+            : t('line.addsTo', { name: target.name })}{' '}
+          {t(income ? 'line.modeHintIncome' : 'line.modeHintExpense')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="line-mode"
-          aria-label="One-time or recurring"
+          aria-label={t('line.onceOrRepeat')}
           value={mode}
-          options={modeOptions}
+          options={modeOptions()}
           onValueChange={(next) => {
             setMode(next)
             clearError('amount')
@@ -206,7 +212,8 @@ function AddLineForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="line-title">
-            Name <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.name')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Input
             id="line-title"
@@ -226,7 +233,7 @@ function AddLineForm({
           <div className="grid gap-1.5">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="line-repeat">How often</Label>
+                <Label htmlFor="line-repeat">{t('line.howOften')}</Label>
                 <Select
                   value={often}
                   onValueChange={(value) => {
@@ -238,7 +245,7 @@ function AddLineForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {oftenOptions.map((o) => (
+                    {oftenOptions().map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -248,7 +255,7 @@ function AddLineForm({
               </div>
               {often === 'months' && (
                 <div className="grid content-start gap-1.5">
-                  <Label htmlFor="line-months">Every</Label>
+                  <Label htmlFor="line-months">{t('line.every')}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="line-months"
@@ -263,7 +270,7 @@ function AddLineForm({
                         clearError('repeat')
                       }}
                     />
-                    <span className="text-ink-muted">months</span>
+                    <span className="text-ink-muted">{t('line.months')}</span>
                   </div>
                 </div>
               )}
@@ -275,9 +282,9 @@ function AddLineForm({
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
             <Label htmlFor="line-amount">
-              {recurring ? 'Amount each time' : split ? 'Total price' : 'Amount'}{' '}
+              {recurring ? t('line.amountEach') : split ? t('line.totalPrice') : t('common.amount')}{' '}
               {!recurring && !split && (
-                <span className="font-normal text-ink-muted">(optional)</span>
+                <span className="font-normal text-ink-muted">{t('common.optional')}</span>
               )}
             </Label>
             <AmountInput
@@ -294,7 +301,7 @@ function AddLineForm({
             <FieldError id="line-amount-error" message={errors.amount} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="line-date">{recurring ? 'First one on' : 'Date'}</Label>
+            <Label htmlFor="line-date">{recurring ? t('line.firstOn') : t('common.date')}</Label>
             <DatePicker
               id="line-date"
               value={date}
@@ -309,9 +316,7 @@ function AddLineForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="line-account">
-            {target.type === 'income' ? 'Paid into' : 'Paid with'}
-          </Label>
+          <Label htmlFor="line-account">{income ? t('line.paidInto') : t('line.paidWith')}</Label>
           <AccountSelect
             id="line-account"
             value={accountId}
@@ -325,11 +330,13 @@ function AddLineForm({
           <FieldError id="line-account-error" message={errors.accountId} />
           {countsIn && account && !split && (
             <p className="text-sm text-ink-muted">
-              {recurring ? 'The first one counts' : 'Counts'} in {countsIn} — {account.name} bill
-              due{' '}
-              {formatDate(countedDate(date, account), money.locale, {
-                day: 'numeric',
-                month: 'short'
+              {t(recurring ? 'line.countsFirst' : 'line.counts', {
+                month: countsIn,
+                card: account.name,
+                date: formatDate(countedDate(date, account), money.locale, {
+                  day: 'numeric',
+                  month: 'short'
+                })
               })}
             </p>
           )}
@@ -354,9 +361,7 @@ function AddLineForm({
         )}
 
         {!recurring && !split && amount.trim() === '' && (
-          <p className="text-sm text-ink-muted">
-            With no amount, {target.name} just goes on the sheet, to type its total later.
-          </p>
+          <p className="text-sm text-ink-muted">{t('line.noAmountHint', { name: target.name })}</p>
         )}
       </div>
 
@@ -364,10 +369,12 @@ function AddLineForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={addLine.isPending}>
-          {recurring ? `Add recurring ${noun}` : `Add ${noun}`}
+          {recurring
+            ? t(income ? 'line.addRecurringIncome' : 'line.addRecurringExpense')
+            : t(income ? 'month.addIncome' : 'month.addExpense')}
         </Button>
       </DialogFooter>
     </form>

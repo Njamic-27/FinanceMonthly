@@ -22,7 +22,15 @@ import { useSettings, useUpdateSettings } from '@renderer/features/settings/quer
 import { toast } from '@renderer/lib/toast'
 import { formatDate, today } from '@shared/dates'
 import { formatMoney } from '@shared/money'
+import { languageNames, languages, type Language } from '@shared/i18n'
 import type { Settings, SettingsPatch, ThemeMode } from '@shared/settings'
+import { t } from '@renderer/lib/i18n'
+
+// Each language by its own name, whatever language the app is in.
+const languageOptions: SegmentedOption<Language>[] = languages.map((value) => ({
+  value,
+  label: languageNames[value]
+}))
 
 const themeOptions: SegmentedOption<ThemeMode>[] = [
   { value: 'system', label: 'System', icon: Monitor },
@@ -141,6 +149,20 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
 
   return (
     <div className="grid max-w-3xl gap-6">
+      <Card>
+        <CardHeader className="block">
+          <CardTitle id="setting-language-label">{t('settings.language')}</CardTitle>
+          <CardDescription>{t('settings.languageHint')}</CardDescription>
+        </CardHeader>
+        <SegmentedControl
+          name="language"
+          aria-labelledby="setting-language-label"
+          value={settings.language}
+          options={languageOptions}
+          onValueChange={(language) => save({ language })}
+        />
+      </Card>
+
       <Card>
         <CardHeader className="block">
           <CardTitle>Money and dates</CardTitle>

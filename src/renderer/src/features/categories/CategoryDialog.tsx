@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   categoryCreateSchema,
   categoryIcons,
-  expenseGroupLabels,
   expenseGroups,
   fallbackCategoryIcon,
   type Category,
@@ -44,6 +43,7 @@ import {
   useMergeCategory,
   useUpdateCategory
 } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 export type CategoryDialogTarget =
   { kind: 'new'; type: CategoryType } | { kind: 'edit'; category: Category }
@@ -60,9 +60,8 @@ interface CategoryDialogProps {
 const showError = (title: string) => (error: Error) =>
   toast({ title, description: error.message, variant: 'error' })
 
-const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
-
-const groupOptions = expenseGroups.map((value) => ({ value, label: expenseGroupLabels[value] }))
+const groupOptions = (): { value: ExpenseGroup; label: string }[] =>
+  expenseGroups.map((value) => ({ value, label: t(`group.${value}`) }))
 
 function IconPicker({
   value,
@@ -75,7 +74,7 @@ function IconPicker({
 }): React.JSX.Element {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-semibold">Icon</legend>
+      <legend className="mb-2 text-sm font-semibold">{t('categories.icon')}</legend>
       <div className="grid grid-cols-13 gap-1" style={swatchStyle(color)}>
         {categoryIcons.map((icon) => {
           const Icon = categoryIconComponents[icon]
@@ -154,7 +153,7 @@ function CategoryForm({
     event.preventDefault()
     const parsed = categoryCreateSchema.shape.name.safeParse(name)
     if (!parsed.success) {
-      setNameError(parsed.error.issues[0]?.message ?? 'Check the name')
+      setNameError(parsed.error.issues[0]?.message ?? t('categories.checkTheName'))
       return
     }
     if (existing) {
@@ -164,8 +163,8 @@ function CategoryForm({
           patch: { name: parsed.data, color, icon, ...(type === 'expense' && { group }) }
         },
         {
-          onSuccess: () => done('Category saved'),
-          onError: nameErrorOr('Category not saved')
+          onSuccess: () => done(t('categories.categorySaved')),
+          onError: nameErrorOr(t('categories.categoryNotSaved'))
         }
       )
     } else {
@@ -173,7 +172,7 @@ function CategoryForm({
         { name: parsed.data, type, color, icon, ...(type === 'expense' && { group }) },
         {
           onSuccess: (created) => done(`${created.name} added`),
-          onError: nameErrorOr('Category not added')
+          onError: nameErrorOr(t('categories.categoryNotAdded'))
         }
       )
     }
@@ -187,26 +186,36 @@ function CategoryForm({
       mergeCategory.mutate(
         { sourceId: existing.id, targetId: Number(mergeTargetId) },
         {
-          onSuccess: (merged) => done(`${existing.name} merged into ${merged.name}`),
-          onError: showError('Categories not merged')
+          onSuccess: (merged) =>
+            done(t('categories.merged', { source: existing.name, target: merged.name })),
+          onError: showError(t('categories.categoriesNotMerged'))
         }
       )
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Merge “{existing.name}”</DialogTitle>
+          <DialogTitle>{t('categories.mergeTitle', { name: existing.name })}</DialogTitle>
           <DialogDescription>
             {existing.usageCount > 0
-              ? `Its ${plural(existing.transactionCount, 'transaction')} and anything else filed under it move to the category you choose. Then “${existing.name}” is removed.`
-              : `It isn't used yet, so merging simply removes “${existing.name}”.`}{' '}
-            This can’t be undone.
+              ? t('categories.mergeMoves', {
+                  count: existing.transactionCount,
+                  name: existing.name
+                })
+              : t('categories.mergeUnused', { name: existing.name })}{' '}
+            {t('recurring.thisCantBeUndone')}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-1.5">
-          <Label htmlFor="merge-target">Merge into</Label>
+          <Label htmlFor="merge-target">{t('categories.mergeInto')}</Label>
           <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
             <SelectTrigger id="merge-target">
-              <SelectValue placeholder={`Choose an ${existing.type} category`} />
+              <SelectValue
+                placeholder={t(
+                  existing.type === 'income'
+                    ? 'categories.chooseIncome'
+                    : 'categories.chooseExpense'
+                )}
+              />
             </SelectTrigger>
             <SelectContent>
               {targets.map((c) => (
@@ -219,10 +228,10 @@ function CategoryForm({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setMode('form')}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button variant="danger" disabled={!mergeTargetId || pending} onClick={merge}>
-            Merge categories
+            {t('categories.mergeCategories')}
           </Button>
         </DialogFooter>
       </>
@@ -233,22 +242,20 @@ function CategoryForm({
     const remove = (): void =>
       deleteCategory.mutate(existing.id, {
         onSuccess: () => done(`${existing.name} deleted`),
-        onError: showError('Category not deleted')
+        onError: showError(t('categories.categoryNotDeleted'))
       })
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.name}”?</DialogTitle>
-          <DialogDescription>
-            Nothing is filed under it, so no transactions change. This can’t be undone.
-          </DialogDescription>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.name })}</DialogTitle>
+          <DialogDescription>{t('categories.nothingIsFiledUnder')}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setMode('form')}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button variant="danger" disabled={pending} onClick={remove}>
-            Delete category
+            {t('categories.deleteCategory')}
           </Button>
         </DialogFooter>
       </>
@@ -261,7 +268,9 @@ function CategoryForm({
       { id: existing.id, patch: { isArchived } },
       {
         onSuccess: () => done(`${existing.name} ${isArchived ? 'archived' : 'restored'}`),
-        onError: showError(isArchived ? 'Category not archived' : 'Category not restored')
+        onError: showError(
+          isArchived ? t('categories.categoryNotArchived') : t('categories.categoryNotRestored')
+        )
       }
     )
   }
@@ -269,19 +278,23 @@ function CategoryForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit category' : `New ${type} category`}</DialogTitle>
+        <DialogTitle>
+          {existing
+            ? t('categories.editCategory')
+            : t(type === 'income' ? 'categories.newIncome' : 'categories.newExpense')}
+        </DialogTitle>
         <DialogDescription>
           {existing
             ? existing.transactionCount > 0
-              ? `Used by ${plural(existing.transactionCount, 'transaction')}. Changes show everywhere it's used.`
-              : 'Not used by any transactions yet.'
-            : `Sort your ${type === 'income' ? 'income' : 'spending'} into it when you add transactions.`}
+              ? t('categories.usedBy', { count: existing.transactionCount })
+              : t('categories.notUsedByAny')
+            : t(type === 'income' ? 'categories.sortIncome' : 'categories.sortSpending')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor="category-name">Name</Label>
+          <Label htmlFor="category-name">{t('common.name')}</Label>
           <div className="flex items-center gap-3">
             <CategoryChip color={color} icon={icon} />
             <Input
@@ -306,16 +319,16 @@ function CategoryForm({
         </div>
         {type === 'expense' && (
           <div className="grid gap-1.5">
-            <Label id="category-group-label">Group</Label>
+            <Label id="category-group-label">{t('categories.group')}</Label>
             <SegmentedControl
               name="category-group"
               aria-labelledby="category-group-label"
               value={group}
-              options={groupOptions}
+              options={groupOptions()}
               onValueChange={setGroup}
               className="justify-self-start"
             />
-            <p className="text-sm text-ink-muted">Where it sits under Money out on Month.</p>
+            <p className="text-sm text-ink-muted">{t('categories.whereItSitsUnder')}</p>
           </div>
         )}
         <ColorPicker name="category-color" value={color} onChange={setColor} />
@@ -325,11 +338,11 @@ function CategoryForm({
       {existing && (
         <div className="mt-6 divide-y divide-line border-t border-line">
           <ActionRow
-            title={existing.isArchived ? 'Restore' : 'Archive'}
+            title={existing.isArchived ? t('accounts.restore') : t('accounts.archive')}
             description={
               existing.isArchived
-                ? 'Offer it again when adding transactions.'
-                : 'Stop offering it for new transactions. Past ones keep it.'
+                ? t('accounts.offerItAgainWhen')
+                : t('categories.stopOfferingItFor')
             }
           >
             <Button
@@ -338,23 +351,27 @@ function CategoryForm({
               disabled={pending}
               onClick={() => setArchived(!existing.isArchived)}
             >
-              {existing.isArchived ? 'Restore category' : 'Archive category'}
+              {existing.isArchived
+                ? t('categories.restoreCategory')
+                : t('categories.archiveCategory')}
             </Button>
           </ActionRow>
           <ActionRow
-            title="Merge"
-            description={`Move everything in it to another ${existing.type} category.`}
+            title={t('categories.merge')}
+            description={t(
+              existing.type === 'income' ? 'categories.moveIncome' : 'categories.moveExpense'
+            )}
           >
             <Button variant="outline" size="sm" disabled={pending} onClick={() => setMode('merge')}>
-              Merge…
+              {t('categories.merge2')}
             </Button>
           </ActionRow>
           <ActionRow
-            title="Delete"
+            title={t('common.delete')}
             description={
               existing.usageCount > 0
-                ? 'Only unused categories can be deleted. Archive or merge this one instead.'
-                : 'Remove it for good.'
+                ? t('categories.onlyUnusedCategoriesCan')
+                : t('accounts.removeItForGood')
             }
           >
             {existing.usageCount === 0 && (
@@ -365,7 +382,7 @@ function CategoryForm({
                 className="text-expense"
                 onClick={() => setMode('delete')}
               >
-                Delete…
+                {t('recurring.delete')}
               </Button>
             )}
           </ActionRow>
@@ -374,10 +391,10 @@ function CategoryForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save category' : 'Add category'}
+          {existing ? t('categories.saveCategory') : t('categories.addCategory')}
         </Button>
       </DialogFooter>
     </form>

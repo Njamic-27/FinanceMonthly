@@ -8,6 +8,7 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { YourAccountsDialog } from '@renderer/features/accounts/YourAccountsDialog'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * The one bold panel: money in your accounts today (debit cards and cash) as the main number,
@@ -30,18 +31,18 @@ function BalanceTile(): React.JSX.Element {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="See each account and correct its balance"
+        title={t('month.balanceTitle')}
         className="group flex cursor-pointer flex-col rounded-panel bg-banner p-6 text-left text-on-banner transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <span>
-            <span className="block text-on-banner/80">Money in accounts</span>
+            <span className="block text-on-banner/80">{t('month.moneyInAccounts')}</span>
             <span className="amount mt-1 block text-hero">{money.format(inAccounts)}</span>
           </span>
           {cards.length > 0 && (
             <span className="pb-1.5">
               <span className="block text-sm text-on-banner/80">
-                {onCards > 0 ? 'In credit on cards' : 'Owed on cards'}
+                {onCards > 0 ? t('month.inCreditOnCards') : t('month.owedOnCards')}
               </span>
               <span className="amount block text-title">{money.format(Math.abs(onCards))}</span>
             </span>
@@ -49,7 +50,7 @@ function BalanceTile(): React.JSX.Element {
         </span>
         <span className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-on-banner/80 group-hover:text-on-banner">
           <Pencil className="size-3.5" aria-hidden />
-          Today, debit cards and cash · type the real balances
+          {t('month.balanceHint')}
         </span>
       </button>
       <YourAccountsDialog open={open} onClose={() => setOpen(false)} />
@@ -75,8 +76,8 @@ function NetTile({
   return (
     <Card className="flex flex-col p-6">
       <p className="text-ink-muted">
-        Net in {name}
-        {withPlanned && ', with what’s planned'}
+        {t('month.netIn', { month: name })}
+        {withPlanned && t('month.withPlanned')}
       </p>
       <p
         className={cn(
@@ -86,15 +87,20 @@ function NetTile({
         )}
       >
         <span className="amount text-hero">{money.format(net, 'exceptZero')}</span>
-        <Icon className="size-8 shrink-0" aria-label={net > 0 ? 'up' : net < 0 ? 'down' : 'even'} />
+        <Icon
+          className="size-8 shrink-0"
+          aria-label={t(net > 0 ? 'month.netUp' : net < 0 ? 'month.netDown' : 'month.netEven')}
+        />
       </p>
       <p className="mt-2 text-sm text-ink-muted">
-        Income <span className="amount text-ink">{money.format(moneyIn)}</span> · Money out{' '}
-        <span className="amount text-ink">{money.format(moneyOut)}</span>
-        {withPlanned && <> · {money.format(recordedNet, 'exceptZero')} recorded so far</>}
+        {t('group.income')} <span className="amount text-ink">{money.format(moneyIn)}</span> ·{' '}
+        {t('month.moneyOut')} <span className="amount text-ink">{money.format(moneyOut)}</span>
+        {withPlanned && (
+          <> · {t('month.recordedSoFar', { amount: money.format(recordedNet, 'exceptZero') })}</>
+        )}
       </p>
       <p className="mt-auto pt-2 text-sm text-ink-muted">
-        {summary.projected ? 'Expected balance at month end' : 'Balance at month end'}{' '}
+        {summary.projected ? t('month.expectedBalanceEnd') : t('month.balanceEnd')}{' '}
         <span className={cn('amount text-ink', summary.endingBalance < 0 && 'text-expense')}>
           {money.format(summary.endingBalance)}
         </span>
@@ -115,7 +121,7 @@ export function MonthHeader({
   totals: MonthTotals
 }): React.JSX.Element {
   return (
-    <section aria-label="Balance and net" className="mb-6">
+    <section aria-label={t('month.balanceAndNet')} className="mb-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <BalanceTile />
         <NetTile month={month} summary={summary} totals={totals} />

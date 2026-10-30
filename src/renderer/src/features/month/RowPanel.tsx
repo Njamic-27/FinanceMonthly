@@ -61,6 +61,7 @@ import { toast } from '@renderer/lib/toast'
 import { Confirm } from './Confirm'
 import { useOwnedEditor } from './useOwnedEditor'
 import { useClearMonthRow, useHideMonthRow, useMonthRowTransactions } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** Where the thing behind a row has its own page, a secondary way to see more. */
 function rowPage(row: MonthSheetRow, month: MonthKey): string | null {
@@ -138,14 +139,14 @@ function CategoryDetails({
           }
         >
           <Plus />
-          Add transaction
+          {t('shell.addTransaction')}
         </Button>
         <Button variant="outline" size="sm" onClick={onRename}>
           <Pencil />
-          Rename…
+          {t('month.rename')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-          Colour and icon…
+          {t('panel.colourIcon')}
         </Button>
         <Button
           variant="ghost"
@@ -156,8 +157,8 @@ function CategoryDetails({
               {
                 onSuccess: () => {
                   toast({
-                    title: `${category.name} hidden`,
-                    description: 'It still shows in months with its transactions.'
+                    title: t('month.hidden', { title: category.name }),
+                    description: t('panel.hiddenHint')
                   })
                   onClose()
                 }
@@ -166,7 +167,7 @@ function CategoryDetails({
           }
         >
           <EyeOff />
-          Hide from the sheet
+          {t('month.hideRow')}
         </Button>
         {row.count > 0 && (
           <Button
@@ -176,7 +177,7 @@ function CategoryDetails({
             onClick={() => setClearing(true)}
           >
             <Trash2 />
-            Remove this month’s amounts…
+            {t('panel.removeAmounts')}
           </Button>
         )}
       </Actions>
@@ -187,9 +188,12 @@ function CategoryDetails({
       />
       <Confirm
         open={clearing}
-        title={`Remove ${category.name} for this month?`}
-        description={`${row.count === 1 ? 'Its transaction' : `All ${row.count} of its transactions`} counted this month (${money.format(row.actual)}) will be deleted, the amount typed on the sheet included. Payments from recurring items and installments stay. This can’t be undone.`}
-        action="Remove amounts"
+        title={t('panel.removeTitle', { name: category.name })}
+        description={t('panel.removeDescription', {
+          count: row.count,
+          amount: money.format(row.actual)
+        })}
+        action={t('panel.removeAction')}
         pending={clear.isPending}
         onCancel={() => setClearing(false)}
         onConfirm={() =>
@@ -198,14 +202,17 @@ function CategoryDetails({
             {
               onSuccess: (removed) => {
                 toast({
-                  title:
-                    removed === 1 ? '1 transaction removed' : `${removed} transactions removed`,
+                  title: t('panel.removed', { count: removed }),
                   variant: 'success'
                 })
                 setClearing(false)
               },
               onError: (error) =>
-                toast({ title: 'Nothing removed', description: error.message, variant: 'error' })
+                toast({
+                  title: t('panel.nothingRemoved'),
+                  description: error.message,
+                  variant: 'error'
+                })
             }
           )
         }
@@ -239,32 +246,36 @@ function RecurringDetails({
   return (
     <>
       <dl className="divide-y divide-line">
-        <Fact label="How often">{describeSchedule(item, money.locale)}</Fact>
-        <Fact label="Amount">{money.format(item.amount)}</Fact>
-        {account && <Fact label={isIncome ? 'Paid into' : 'Paid with'}>{account.name}</Fact>}
-        <Fact label="Next">
+        <Fact label={t('line.howOften')}>{describeSchedule(item, money.locale)}</Fact>
+        <Fact label={t('common.amount')}>{money.format(item.amount)}</Fact>
+        {account && (
+          <Fact label={t(isIncome ? 'line.paidInto' : 'line.paidWith')}>{account.name}</Fact>
+        )}
+        <Fact label={t('panel.next')}>
           {!item.isActive
-            ? 'Paused'
+            ? t('panel.paused')
             : formatDate(item.nextDueDate, money.locale, {
                 weekday: 'short',
                 day: 'numeric',
                 month: 'short'
               })}
         </Fact>
-        <Fact label="Added">{item.autoPost ? 'By itself on the day' : 'When you confirm it'}</Fact>
+        <Fact label={t('panel.added')}>
+          {item.autoPost ? t('panel.addedAuto') : t('panel.addedConfirm')}
+        </Fact>
       </dl>
       <Actions>
         {due && item.isActive && (
           <Button size="sm" onClick={() => setConfirming({ item, plannedDate: item.nextDueDate })}>
-            {isIncome ? 'Mark received…' : 'Mark paid…'}
+            {t(isIncome ? 'month.markReceived' : 'month.markPaid')}
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Pencil />
-          Edit…
+          {t('panel.edit')}
         </Button>
         <Button variant="outline" size="sm" onClick={onRename}>
-          Rename…
+          {t('month.rename')}
         </Button>
         <Button
           variant="ghost"
@@ -276,17 +287,19 @@ function RecurringDetails({
               {
                 onSuccess: () =>
                   toast({
-                    title: item.isActive ? `${item.title} paused` : `${item.title} resumed`,
+                    title: t(item.isActive ? 'panel.pausedToast' : 'panel.resumedToast', {
+                      title: item.title
+                    }),
                     variant: 'success'
                   })
               }
             )
           }
         >
-          {item.isActive ? 'Pause' : 'Resume'}
+          {item.isActive ? t('panel.pause') : t('panel.resume')}
         </Button>
       </Actions>
-      <p className="text-sm text-ink-muted">Edit… also ends or deletes it.</p>
+      <p className="text-sm text-ink-muted">{t('panel.editEnds')}</p>
       <RecurringDialog
         target={editing ? { kind: 'edit', item } : null}
         onClose={() => setEditing(false)}
@@ -318,7 +331,7 @@ function CardDetails({
       <Actions>
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Pencil />
-          Edit card…
+          {t('panel.editCard')}
         </Button>
       </Actions>
       <InstallmentPlans accountId={card.id} />
@@ -351,13 +364,15 @@ function PlanDetails({
   return (
     <>
       <dl className="divide-y divide-line">
-        <Fact label="Bought for">{money.format(plan.totalAmount)}</Fact>
-        <Fact label="Each month">{money.format(plan.installment)}</Fact>
-        <Fact label="Charged">
-          {plan.postedCount} of {plan.count}
+        <Fact label={t('panel.boughtFor')}>{money.format(plan.totalAmount)}</Fact>
+        <Fact label={t('panel.eachMonth')}>{money.format(plan.installment)}</Fact>
+        <Fact label={t('panel.charged')}>
+          {t('panel.chargedOf', { posted: plan.postedCount, total: plan.count })}
         </Fact>
-        <Fact label="Still to come">{money.format(plan.remaining)}</Fact>
-        <Fact label={plan.nextDate ? 'Next' : 'Last'}>{short(plan.nextDate ?? plan.lastDate)}</Fact>
+        <Fact label={t('month.stillToCome')}>{money.format(plan.remaining)}</Fact>
+        <Fact label={plan.nextDate ? t('panel.next') : t('panel.last')}>
+          {short(plan.nextDate ?? plan.lastDate)}
+        </Fact>
       </dl>
       <Actions>
         <Button
@@ -367,29 +382,32 @@ function PlanDetails({
           onClick={() => setDeleting(true)}
         >
           <Trash2 />
-          Delete purchase…
+          {t('panel.deletePurchase')}
         </Button>
       </Actions>
       <Confirm
         open={deleting}
-        title={`Delete “${plan.title}”?`}
+        title={t('panel.deleteTitle', { title: plan.title })}
         description={
           plan.postedCount > 0
-            ? `Its ${plan.postedCount} charged installment${plan.postedCount === 1 ? '' : 's'} (${money.format(plan.totalAmount - plan.remaining)}) are removed too, as if you never bought it. This can’t be undone.`
-            : 'Nothing has been charged for it yet. This can’t be undone.'
+            ? t('panel.deletePlanCharged', {
+                count: plan.postedCount,
+                amount: money.format(plan.totalAmount - plan.remaining)
+              })
+            : t('panel.deletePlanNone')
         }
-        action="Delete purchase"
+        action={t('panel.deletePurchaseAction')}
         pending={remove.isPending}
         onCancel={() => setDeleting(false)}
         onConfirm={() =>
           remove.mutate(plan.id, {
             onSuccess: () => {
-              toast({ title: `${plan.title} deleted`, variant: 'success' })
+              toast({ title: t('panel.deleted', { title: plan.title }), variant: 'success' })
               setDeleting(false)
               onClose()
             },
             onError: (error) =>
-              toast({ title: 'Not deleted', description: error.message, variant: 'error' })
+              toast({ title: t('common.notDeleted'), description: error.message, variant: 'error' })
           })
         }
       />
@@ -419,33 +437,33 @@ function LoanDetails({
       <dl className="divide-y divide-line">
         <Fact label={status ?? owedLabel(loan)}>{money.format(loan.outstanding)}</Fact>
         {next && (
-          <Fact label="Next installment">
+          <Fact label={t('panel.nextInstallment')}>
             {money.format(next.amount)} ·{' '}
             {formatDate(next.dueDate, money.locale, { day: 'numeric', month: 'short' })}
           </Fact>
         )}
         {!isBank && loan.dueDate && (
-          <Fact label="Expected back">{formatDate(loan.dueDate, money.locale)}</Fact>
+          <Fact label={t('panel.expectedBack')}>{formatDate(loan.dueDate, money.locale)}</Fact>
         )}
       </dl>
       <LoanProgress loan={loan} />
       <Actions>
         {next && (
           <Button size="sm" onClick={() => setPaying(next)}>
-            Pay next installment…
+            {t('panel.payNext')}
           </Button>
         )}
         {!isBank && loan.status === 'active' && (
           <Button size="sm" onClick={() => setRepaying({ kind: 'new', loan })}>
-            Record repayment…
+            {t('panel.recordRepayment')}
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Pencil />
-          Edit loan…
+          {t('panel.editLoan')}
         </Button>
       </Actions>
-      <p className="text-sm text-ink-muted">Edit loan… also deletes it.</p>
+      <p className="text-sm text-ink-muted">{t('panel.editLoanDeletes')}</p>
       {isBank ? (
         <BankLoanDialog
           open={editing}
@@ -489,17 +507,22 @@ function SavingsDetails({
         <ProgressRing
           share={share}
           size={64}
-          label={`${Math.floor(share * 100)}% of ${money.format(goal.targetAmount)} saved`}
+          label={t('panel.savedOf', {
+            percent: Math.floor(share * 100),
+            target: money.format(goal.targetAmount)
+          })}
         />
         <div>
           <p className="amount text-title">{money.format(goal.saved)}</p>
-          <p className="text-sm text-ink-muted">of {money.format(goal.targetAmount)}</p>
+          <p className="text-sm text-ink-muted">
+            {t('panel.of', { amount: money.format(goal.targetAmount) })}
+          </p>
         </div>
       </div>
       <p className="text-sm text-ink-muted">{goalOutlook(goal, today(), money)}</p>
       <Actions>
         <Button size="sm" onClick={() => setMoving({ kind: 'new', goal, type: 'deposit' })}>
-          Put in…
+          {t('panel.putIn')}
         </Button>
         {goal.saved > 0 && (
           <Button
@@ -507,18 +530,18 @@ function SavingsDetails({
             size="sm"
             onClick={() => setMoving({ kind: 'new', goal, type: 'withdrawal' })}
           >
-            Take out…
+            {t('panel.takeOut')}
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Pencil />
-          Edit goal…
+          {t('panel.editGoal')}
         </Button>
         <Button variant="ghost" size="sm" onClick={onRename}>
-          Rename…
+          {t('month.rename')}
         </Button>
       </Actions>
-      <p className="text-sm text-ink-muted">Edit goal… also archives or deletes it.</p>
+      <p className="text-sm text-ink-muted">{t('panel.editGoalArchives')}</p>
       <GoalDialog
         target={editing ? { kind: 'edit', goal } : null}
         goals={goals}
@@ -578,9 +601,10 @@ export function RowPanel({
             <DialogHeader className="mb-0">
               <DialogTitle>{row.title}</DialogTitle>
               <DialogDescription>
-                {monthLabel} · {money.format(Math.abs(row.actual))} recorded
-                {row.planned !== 0 && ` · ${money.format(Math.abs(row.planned))} planned`}
-                {row.summary !== 0 && `, ${money.format(row.summary)} of it typed on the sheet`}
+                {monthLabel} · {t('panel.recorded', { amount: money.format(Math.abs(row.actual)) })}
+                {row.planned !== 0 &&
+                  ` · ${t('month.plannedAmount', { amount: money.format(Math.abs(row.planned)) })}`}
+                {row.summary !== 0 && t('panel.typedPart', { amount: money.format(row.summary) })}
               </DialogDescription>
             </DialogHeader>
 
@@ -599,9 +623,7 @@ export function RowPanel({
 
             <section aria-labelledby="row-panel-transactions" className="grid gap-3">
               <h3 id="row-panel-transactions" className="font-semibold">
-                {transactions.length === 1
-                  ? '1 transaction this month'
-                  : `${transactions.length} transactions this month`}
+                {t('panel.transactionsThisMonth', { count: transactions.length })}
               </h3>
               {list.isError ? (
                 <p className="text-sm text-expense">{list.error.message}</p>
@@ -616,7 +638,7 @@ export function RowPanel({
               ) : (
                 !list.isPending && (
                   <p className="rounded-panel border border-dashed border-line p-5 text-center text-sm text-ink-muted">
-                    Nothing recorded here this month.
+                    {t('panel.nothingRecorded')}
                   </p>
                 )
               )}
@@ -628,7 +650,7 @@ export function RowPanel({
                 onClick={onClose}
                 className="link inline-flex items-center gap-1 justify-self-start pb-6 text-sm font-semibold text-ink-muted"
               >
-                Open full page
+                {t('panel.openFullPage')}
                 <ChevronRight className="size-4" aria-hidden />
               </Link>
             )}

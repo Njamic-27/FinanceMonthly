@@ -26,6 +26,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 interface Waiting {
   key: string
@@ -70,7 +71,7 @@ export function WaitingStrip(): React.JSX.Element | null {
       categoryId: item.categoryId,
       problem,
       confirm: () => setConfirming({ item, plannedDate }),
-      confirmLabel: item.kind === 'income' ? 'Mark received…' : 'Mark paid…',
+      confirmLabel: t(item.kind === 'income' ? 'month.markReceived' : 'month.markPaid'),
       // Only the earliest open payment of an item can be skipped.
       skip:
         plannedDate === item.nextDueDate
@@ -80,12 +81,18 @@ export function WaitingStrip(): React.JSX.Element | null {
                 {
                   onSuccess: () =>
                     toast({
-                      title: `${item.title} skipped`,
-                      description: `Nothing was added for ${formatDate(plannedDate, money.locale)}.`,
+                      title: t('month.skipped', { title: item.title }),
+                      description: t('month.skippedHint', {
+                        date: formatDate(plannedDate, money.locale)
+                      }),
                       variant: 'success'
                     }),
                   onError: (error) =>
-                    toast({ title: 'Not skipped', description: error.message, variant: 'error' })
+                    toast({
+                      title: t('month.notSkipped'),
+                      description: error.message,
+                      variant: 'error'
+                    })
                 }
               )
           : undefined
@@ -109,7 +116,7 @@ export function WaitingStrip(): React.JSX.Element | null {
             dueDate: planned.date,
             accountId: planned.accountId
           }),
-        confirmLabel: 'Pay…'
+        confirmLabel: t('month.pay')
       })),
     // Card bills: paid from the card's Paid from account, which isn't counted again.
     ...bills.map((bill) => {
@@ -117,7 +124,7 @@ export function WaitingStrip(): React.JSX.Element | null {
         bill.payFromAccountId ?? accounts.find((a) => a.type === 'debit' && !a.isArchived)?.id
       return {
         key: `card-${bill.accountId}`,
-        title: `${bill.name} bill`,
+        title: t('month.cardBill', { card: bill.name }),
         date: bill.dueDate,
         amount: bill.amount,
         income: false,
@@ -135,7 +142,7 @@ export function WaitingStrip(): React.JSX.Element | null {
               date: today()
             }
           }),
-        confirmLabel: 'Pay bill…'
+        confirmLabel: t('month.payBill')
       }
     })
   ].sort((a, b) => a.date.localeCompare(b.date))
@@ -145,11 +152,9 @@ export function WaitingStrip(): React.JSX.Element | null {
   return (
     <Card aria-labelledby="month-waiting" className="mb-8 border-primary/40">
       <h2 id="month-waiting" className="text-lg font-semibold">
-        Waiting for you
+        {t('month.waiting')}
       </h2>
-      <p className="text-sm text-ink-muted">
-        Confirm each payment with what you actually paid, or skip it if it didn’t happen.
-      </p>
+      <p className="text-sm text-ink-muted">{t('month.waitingHint')}</p>
       <ul className="mt-2 divide-y divide-line">
         {items.map((w) => {
           const account = accounts.find((a) => a.id === w.accountId)
@@ -164,10 +169,10 @@ export function WaitingStrip(): React.JSX.Element | null {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{w.title}</p>
                 <p className={cn('text-sm text-ink-muted', w.date < now && 'text-expense')}>
-                  Due{' '}
+                  {t('month.due')}{' '}
                   <Link to={dayPath(w.date)} className="link">
                     {w.date === now
-                      ? 'today'
+                      ? t('common.today')
                       : formatDate(w.date, money.locale, {
                           weekday: 'short',
                           day: 'numeric',
@@ -186,7 +191,7 @@ export function WaitingStrip(): React.JSX.Element | null {
                 {w.problem && (
                   <p className="mt-1 flex gap-1.5 text-sm text-expense">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    <span>Couldn’t be added automatically: {w.problem}</span>
+                    <span>{t('month.couldntAdd', { problem: w.problem })}</span>
                   </p>
                 )}
               </div>
@@ -203,7 +208,7 @@ export function WaitingStrip(): React.JSX.Element | null {
                   disabled={skip.isPending || !w.skip}
                   onClick={w.skip}
                 >
-                  Skip
+                  {t('common.skip')}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={w.confirm}>
                   {w.confirmLabel}

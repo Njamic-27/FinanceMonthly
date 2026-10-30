@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { BackButton } from '@renderer/components/BackButton'
 import { canGoBack } from '@renderer/lib/history'
+import { t } from '@renderer/lib/i18n'
 import { useSettings } from '@renderer/features/settings/queries'
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { TransactionDialog } from '@renderer/features/transactions/TransactionDialog'
@@ -14,7 +15,7 @@ function parentScreen(pathname: string): { to: string; label: string } | undefin
   const [, first, rest] = pathname.split('/')
   if (!rest) return undefined
   const screen = allScreens.find((s) => s.path === `/${first}`)
-  return screen && { to: screen.path, label: screen.title }
+  return screen && { to: screen.path, label: t(screen.titleKey) }
 }
 
 export function AppShell(): React.JSX.Element | null {

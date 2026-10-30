@@ -2,11 +2,11 @@ import { lazy, Suspense } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import { AppShell } from './app/AppShell'
+import { I18nGate } from './app/I18nGate'
 import { allScreens } from './app/screens'
 import { Toaster } from './components/ui/toaster'
 import { queryClient } from './lib/queryClient'
 import { OnboardingPage } from './routes/OnboardingPage'
-import { PlaceholderPage } from './routes/PlaceholderPage'
 import { AccountDetailPage } from './routes/AccountDetailPage'
 import { AccountsPage } from './routes/AccountsPage'
 import { CalendarPage } from './routes/CalendarPage'
@@ -29,7 +29,7 @@ const UiPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/UiPreview').then((m) => ({ default: m.UiPreview })))
   : null
 
-/** Screens that are built; the rest show their placeholder. Keyed by screen path. */
+/** Each screen's page, by its path. */
 const pages: Record<string, () => React.JSX.Element> = {
   '/': MonthPage,
   '/transactions': TransactionsPage,
@@ -54,41 +54,37 @@ function Moved({ to }: { to: string }): React.JSX.Element {
 function App(): React.JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
-      <HashRouter>
-        <Routes>
-          <Route path="/welcome" element={<OnboardingPage />} />
-          <Route element={<AppShell />}>
-            {allScreens.map((screen) => {
-              const Page = pages[screen.path]
-              return (
+      <I18nGate>
+        <HashRouter>
+          <Routes>
+            <Route path="/welcome" element={<OnboardingPage />} />
+            <Route element={<AppShell />}>
+              {allScreens.map((screen) => {
+                const Page = pages[screen.path]
+                return <Route key={screen.path} path={screen.path} element={<Page />} />
+              })}
+              <Route path="/month" element={<Moved to="/" />} />
+              {/* The Dashboard was removed in step 38; Month has what it showed. */}
+              <Route path="/dashboard" element={<Moved to="/" />} />
+              <Route path="/accounts/:id" element={<AccountDetailPage />} />
+              <Route path="/savings/:id" element={<SavingsGoalPage />} />
+              <Route path="/loans/:id" element={<LoanPage />} />
+              {UiPreview && (
                 <Route
-                  key={screen.path}
-                  path={screen.path}
-                  element={Page ? <Page /> : <PlaceholderPage screen={screen} />}
+                  path="/dev/ui"
+                  element={
+                    <Suspense>
+                      <UiPreview />
+                    </Suspense>
+                  }
                 />
-              )
-            })}
-            <Route path="/month" element={<Moved to="/" />} />
-            {/* The Dashboard was removed in step 38; Month has what it showed. */}
-            <Route path="/dashboard" element={<Moved to="/" />} />
-            <Route path="/accounts/:id" element={<AccountDetailPage />} />
-            <Route path="/savings/:id" element={<SavingsGoalPage />} />
-            <Route path="/loans/:id" element={<LoanPage />} />
-            {UiPreview && (
-              <Route
-                path="/dev/ui"
-                element={
-                  <Suspense>
-                    <UiPreview />
-                  </Suspense>
-                }
-              />
-            )}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-        <Toaster />
-      </HashRouter>
+              )}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+          <Toaster />
+        </HashRouter>
+      </I18nGate>
     </QueryClientProvider>
   )
 }

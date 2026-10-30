@@ -9,10 +9,9 @@ import { useCurrency, type CurrencyTools } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 import { MoneyOutLineDialog } from './MoneyOutLineDialog'
 import { lineLabel } from './moneyOut'
+import { t } from '@renderer/lib/i18n'
 
 type MethodGroup = 'debit' | 'cash'
-
-const methodTitles: Record<MethodGroup, string> = { debit: 'Debit', cash: 'Cash' }
 
 const groupOrder: MoneyOutGroup[] = [
   'subscriptions',
@@ -85,7 +84,7 @@ export function PaymentMethodView({
     })
 
   if (methods.length === 0) {
-    return <p className="px-1 text-ink-muted">Nothing has left your accounts this month yet.</p>
+    return <p className="px-1 text-ink-muted">{t('month.nothingLeft')}</p>
   }
 
   return (
@@ -109,7 +108,9 @@ export function PaymentMethodView({
                 )}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 text-lg font-semibold">{methodTitles[method]}</span>
+              <span className="min-w-0 flex-1 text-lg font-semibold">
+                {t(`month.method.${method}`)}
+              </span>
               <span className="amount text-lg">{formatOut(money, total)}</span>
             </button>
             {isOpen && (
@@ -149,11 +150,11 @@ export function PaymentMethodView({
                               </span>
                               <span className="block truncate text-sm text-ink-muted">
                                 {[
-                                  line.count === 1
-                                    ? '1 transaction'
-                                    : line.count > 1 && `${line.count} transactions`,
+                                  line.count > 0 && t('month.transactions', { count: line.count }),
                                   line.planned !== 0 &&
-                                    `${money.format(Math.abs(line.planned))} still planned`
+                                    t('month.stillPlanned', {
+                                      amount: money.format(Math.abs(line.planned))
+                                    })
                                 ]
                                   .filter(Boolean)
                                   .join(' · ')}

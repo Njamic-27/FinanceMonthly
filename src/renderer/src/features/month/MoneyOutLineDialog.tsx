@@ -15,6 +15,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { useOwnedEditor } from './useOwnedEditor'
 import { lineLabel } from './moneyOut'
 import { useMoneyOutItems } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 function LineItems({ month, line }: { month: MonthKey; line: MoneyOutLine }): React.JSX.Element {
   const money = useCurrency()
@@ -51,7 +52,7 @@ function LineItems({ month, line }: { month: MonthKey; line: MoneyOutLine }): Re
       {planned.length > 0 && (
         <section aria-labelledby="line-planned">
           <h3 id="line-planned" className="mb-1 px-1 font-semibold">
-            Still to come
+            {t('month.stillToCome')}
           </h3>
           <ul className="divide-y divide-line rounded-panel border border-dashed border-line px-3">
             {planned.map((p, i) => (
@@ -61,7 +62,7 @@ function LineItems({ month, line }: { month: MonthKey; line: MoneyOutLine }): Re
                   <span className="text-sm text-ink-muted">
                     {p.date
                       ? formatDate(p.date, money.locale, { day: 'numeric', month: 'short' })
-                      : 'Planned this month'}
+                      : t('month.plannedThisMonth')}
                   </span>
                 </span>
                 <span className="amount shrink-0 text-ink-muted">{money.format(p.amount)}</span>
@@ -72,20 +73,20 @@ function LineItems({ month, line }: { month: MonthKey; line: MoneyOutLine }): Re
       )}
       {items.isSuccess && transactions.length === 0 && planned.length === 0 && (
         <p className="rounded-panel border border-dashed border-line p-5 text-center text-sm text-ink-muted">
-          Nothing here this month.
+          {t('month.nothingHere')}
         </p>
       )}
       <dl className="grid gap-1 border-t border-line pt-3 pb-1">
         {line.planned !== 0 && line.recorded !== 0 && (
           <div className="flex justify-between gap-4 text-sm text-ink-muted">
-            <dt>Recorded · still planned</dt>
+            <dt>{t('month.recordedStillPlanned')}</dt>
             <dd className="amount">
               {money.format(line.recorded)} · {money.format(line.planned)}
             </dd>
           </div>
         )}
         <div className="flex justify-between gap-4">
-          <dt className="font-semibold">Total</dt>
+          <dt className="font-semibold">{t('common.total')}</dt>
           <dd className="amount text-lg">
             {total < 0 ? money.format(-total, 'always') : money.format(total)}
           </dd>
@@ -126,8 +127,14 @@ export function MoneyOutLineDialog({
               <DialogTitle>{lineLabel(line, accounts)}</DialogTitle>
               <DialogDescription>
                 {line.group === 'card'
-                  ? `The bill paid from ${owner?.name ?? 'your account'} in ${monthName}: each purchase on it, with the day it was bought.`
-                  : `Paid from ${owner?.name ?? 'the account'} in ${monthName}.`}
+                  ? t('month.billPaidFrom', {
+                      account: owner?.name ?? t('month.yourAccount'),
+                      month: monthName
+                    })
+                  : t('month.paidFrom', {
+                      account: owner?.name ?? t('month.yourAccount'),
+                      month: monthName
+                    })}
               </DialogDescription>
             </DialogHeader>
             <LineItems

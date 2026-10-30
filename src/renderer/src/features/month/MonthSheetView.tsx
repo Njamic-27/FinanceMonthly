@@ -46,8 +46,8 @@ import {
   rowNote,
   savingValue,
   sectionEmpty,
-  sectionNotes,
-  sectionTitles,
+  sectionNote,
+  sectionTitle,
   sheetAmount
 } from './cells'
 import { AddMenu } from './AddMenu'
@@ -59,6 +59,7 @@ import {
   useSetMonthCell,
   useSetMonthRowAccount
 } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** A cell being typed into. */
 interface Editing {
@@ -111,11 +112,11 @@ function AccountCell({
   return (
     <Select value={value === null ? '' : String(value)} onValueChange={(v) => onChange(Number(v))}>
       <SelectTrigger
-        aria-label={`Account for ${row.title}`}
+        aria-label={t('month.accountFor', { title: row.title })}
         className="h-9 border-transparent bg-transparent px-2 text-sm hover:border-line"
       >
         {/* Just the name: the column is narrow. */}
-        <SelectValue placeholder="Choose…">{current?.name}</SelectValue>
+        <SelectValue placeholder={t('common.choose')}>{current?.name}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((a) => (
@@ -141,17 +142,17 @@ interface RowActions {
 
 function RowMenu({ title, actions }: { title: string; actions: RowActions }): React.JSX.Element {
   const items = [
-    { key: 'rename', label: 'Rename…', icon: Pencil, run: actions.rename },
-    { key: 'up', label: 'Move up', icon: ArrowUp, run: actions.moveUp },
-    { key: 'down', label: 'Move down', icon: ArrowDown, run: actions.moveDown },
-    { key: 'hide', label: 'Hide from the sheet', icon: EyeOff, run: actions.hide }
+    { key: 'rename', label: t('month.rename'), icon: Pencil, run: actions.rename },
+    { key: 'up', label: t('month.moveUp'), icon: ArrowUp, run: actions.moveUp },
+    { key: 'down', label: t('month.moveDown'), icon: ArrowDown, run: actions.moveDown },
+    { key: 'hide', label: t('month.hideRow'), icon: EyeOff, run: actions.hide }
   ].filter((item) => item.run)
   if (items.length === 0) return <span className="size-8 shrink-0" />
   return (
     <Popover>
       <PopoverTrigger
-        aria-label={`More for ${title}`}
-        title="More"
+        aria-label={t('month.moreFor', { title })}
+        title={t('common.more')}
         className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-control text-ink-muted opacity-0 transition group-hover/row:opacity-100 group-focus-within/row:opacity-100 hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:opacity-100"
       >
         <MoreHorizontal className="size-4" />
@@ -226,13 +227,15 @@ function SheetRow({
   const onBill = !row.onBill
     ? null
     : row.onBill > 0
-      ? `${money.format(row.onBill)} on this month’s bill`
-      : `${money.format(-row.onBill)} in refunds on this month’s bill`
+      ? t('month.onBill', { amount: money.format(row.onBill) })
+      : t('month.refundsOnBill', { amount: money.format(-row.onBill) })
   // Card purchases in the row count on their bill; say which card.
   const onCards = row.byCard
-    ?.map(
-      (c) =>
-        `${money.format(c.amount)} on ${accounts.find((a) => a.id === c.accountId)?.name ?? 'a card'}`
+    ?.map((c) =>
+      t('month.onCard', {
+        amount: money.format(c.amount),
+        card: accounts.find((a) => a.id === c.accountId)?.name ?? t('common.card')
+      })
     )
     .join(', ')
   const note = [rowNote(row), onBill, onCards].filter(Boolean).join(' · ') || null
@@ -244,9 +247,9 @@ function SheetRow({
   const comesIn = section === 'income' || sheetAmount(section, shown.amount).plus
   const label = [
     row.title,
-    shown.amount === 0 && !shown.planned ? 'nothing yet' : format(shown.amount),
-    shown.planned && (row.overdue ? 'planned, overdue' : 'planned'),
-    locked ?? 'press Enter to change'
+    shown.amount === 0 && !shown.planned ? t('month.cellNothing') : format(shown.amount),
+    shown.planned && t(row.overdue ? 'month.cellPlannedOverdue' : 'month.cellPlanned'),
+    locked ?? t('month.cellPressEnter')
   ]
     .filter(Boolean)
     .join(', ')
@@ -312,7 +315,7 @@ function SheetRow({
             type="text"
             inputMode="decimal"
             autoComplete="off"
-            aria-label={`Amount for ${row.title}`}
+            aria-label={t('month.amountFor', { title: row.title })}
             aria-invalid={editing.error ? true : undefined}
             title={editing.error}
             value={editing.text}
@@ -361,7 +364,9 @@ function SheetRow({
               </span>
             )}
             {extraPlanned && (
-              <span className="text-xs text-ink-muted">{format(row.planned)} planned</span>
+              <span className="text-xs text-ink-muted">
+                {t('month.plannedAmount', { amount: format(row.planned) })}
+              </span>
             )}
           </button>
         )}
@@ -397,8 +402,11 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
       {section.planned !== 0 && (
         <span className="block text-sm text-ink-muted">
           {section.actual !== 0
-            ? `${format(section.actual)} recorded · ${format(section.planned)} planned`
-            : 'Planned'}
+            ? t('month.recordedPlanned', {
+                recorded: format(section.actual),
+                planned: format(section.planned)
+              })
+            : t('common.planned')}
         </span>
       )}
     </p>
@@ -407,9 +415,9 @@ function SectionTotal({ section }: { section: MonthSheetSection }): React.JSX.El
 
 type ExpensesView = 'category' | 'method'
 
-const viewOptions: { value: ExpensesView; label: string }[] = [
-  { value: 'method', label: 'By payment method' },
-  { value: 'category', label: 'By category' }
+const viewOptions = (): { value: ExpensesView; label: string }[] => [
+  { value: 'method', label: t('month.byMethod') },
+  { value: 'category', label: t('month.byCategory') }
 ]
 
 // By payment method is the main view (PLAN.md step 50); the key is new so it starts there.
@@ -547,7 +555,7 @@ export function MonthSheetView({
       next.delete(key)
       return next
     })
-    if (error) toast({ title: 'Not saved', description: error.message, variant: 'error' })
+    if (error) toast({ title: t('common.notSaved'), description: error.message, variant: 'error' })
   })
   const setAccount = useSetMonthRowAccount()
   const hideRow = useHideMonthRow()
@@ -575,7 +583,7 @@ export function MonthSheetView({
     if (amount === null || amount < 0) {
       setEditing({
         ...current,
-        error: amount === null ? 'Enter an amount, like 120 or 45.50' : 'Enter 0 or more'
+        error: amount === null ? t('month.enterAmount') : t('month.enterZeroOrMore')
       })
       return false
     }
@@ -635,7 +643,7 @@ export function MonthSheetView({
   const onInputBlur = (row: MonthSheetRow): void => {
     // Clicking away saves, as in a spreadsheet; something that isn't an amount is dropped.
     if (!commit(row)) {
-      toast({ title: 'Not saved', description: 'That isn’t an amount.', variant: 'error' })
+      toast({ title: t('common.notSaved'), description: t('month.notAnAmount'), variant: 'error' })
       setEditing(null)
     }
   }
@@ -648,7 +656,11 @@ export function MonthSheetView({
       { month, kind: row.kind, sourceId: row.sourceId, accountId },
       {
         onError: (error) =>
-          toast({ title: 'Account not changed', description: error.message, variant: 'error' })
+          toast({
+            title: t('month.accountNotChanged'),
+            description: error.message,
+            variant: 'error'
+          })
       }
     )
   }
@@ -662,7 +674,7 @@ export function MonthSheetView({
       { type, categoryIds: ids },
       {
         onError: (error) =>
-          toast({ title: 'Order not saved', description: error.message, variant: 'error' }),
+          toast({ title: t('month.orderNotSaved'), description: error.message, variant: 'error' }),
         onSettled: () => setOrder(null)
       }
     )
@@ -674,14 +686,11 @@ export function MonthSheetView({
       {
         onSuccess: () =>
           toast({
-            title: `${row.title} hidden`,
-            description:
-              row.count > 0
-                ? 'It still shows in months with its transactions, like this one.'
-                : 'It still shows in months with its transactions. Add it again with “+”.'
+            title: t('month.hidden', { title: row.title }),
+            description: row.count > 0 ? t('month.hiddenHintHas') : t('month.hiddenHint')
           }),
         onError: (error) =>
-          toast({ title: 'Not hidden', description: error.message, variant: 'error' })
+          toast({ title: t('month.notHidden'), description: error.message, variant: 'error' })
       }
     )
 
@@ -714,17 +723,17 @@ export function MonthSheetView({
         >
           <div className="min-w-0">
             <h3 id={titleId} className="text-lg font-semibold">
-              {sectionTitles[section.key]}
+              {sectionTitle(section.key)}
             </h3>
-            {sectionNotes[section.key] && (
-              <p className="text-sm text-ink-muted">{sectionNotes[section.key]}</p>
+            {sectionNote(section.key) && (
+              <p className="text-sm text-ink-muted">{sectionNote(section.key)}</p>
             )}
           </div>
           {section.rows.length > 0 && <SectionTotal section={section} />}
         </header>
         {section.rows.length === 0 ? (
           <p className={cn('px-5 pb-2 text-sm text-ink-muted', isIncome && 'pt-2')}>
-            {sectionEmpty[section.key]}
+            {sectionEmpty(section.key)}
           </p>
         ) : (
           <table className="w-full table-fixed border-collapse">
@@ -735,9 +744,9 @@ export function MonthSheetView({
             </colgroup>
             <thead className="sr-only">
               <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Account</th>
-                <th scope="col">Amount</th>
+                <th scope="col">{t('common.name')}</th>
+                <th scope="col">{t('common.account')}</th>
+                <th scope="col">{t('common.amount')}</th>
               </tr>
             </thead>
             <tbody className="[&>tr>td:first-child]:pl-1.5 [&>tr>td:last-child]:pr-3">
@@ -828,7 +837,7 @@ export function MonthSheetView({
       <section aria-labelledby="month-income" className="grid gap-3">
         <SheetHeading
           id="month-income"
-          title="Income"
+          title={t('group.income')}
           total={totals.moneyIn}
           income
           action={<AddMenu section="income" onAction={onAdd} />}
@@ -842,17 +851,17 @@ export function MonthSheetView({
       <section aria-labelledby="month-expenses" className="grid gap-4">
         <SheetHeading
           id="month-expenses"
-          title="Money out"
+          title={t('month.moneyOut')}
           total={totals.moneyOut}
-          note="Everything leaving your accounts this month: spending (card purchases in the month their bill is paid), loan payments and savings."
+          note={t('month.moneyOutNote')}
           action={
             <div className="flex flex-wrap items-center gap-3">
               <AddMenu section="expenses" onAction={onAdd} />
               <SegmentedControl
                 name="expenses-view"
-                aria-label="Show expenses"
+                aria-label={t('month.showExpenses')}
                 value={view}
-                options={viewOptions}
+                options={viewOptions()}
                 onValueChange={setView}
               />
             </div>
@@ -864,9 +873,7 @@ export function MonthSheetView({
           <>
             {groups.map(renderSection)}
             {groups.length === 0 && (
-              <p className="px-1 text-ink-muted">
-                Nothing spent this month yet. Add it with “Add expense”.
-              </p>
+              <p className="px-1 text-ink-muted">{t('month.nothingSpent')}</p>
             )}
           </>
         )}

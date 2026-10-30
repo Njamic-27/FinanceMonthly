@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/select'
 import { errorProps } from '@renderer/lib/forms'
 import { categoryIconComponents } from './appearance'
+import { t } from '@renderer/lib/i18n'
 
 interface CategorySelectProps {
   id: string
@@ -29,7 +30,7 @@ export function CategorySelect({
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger id={id} {...errorProps(id, error)}>
-        <SelectValue placeholder="Choose a category" />
+        <SelectValue placeholder={t('categories.chooseACategory')} />
       </SelectTrigger>
       <SelectContent>
         {categories.map((c) => (

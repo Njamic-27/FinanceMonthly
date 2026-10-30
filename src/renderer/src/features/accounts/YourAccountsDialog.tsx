@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { accountTypeLabels, type Account } from '@shared/accounts'
+import type { Account } from '@shared/accounts'
 import type { BalanceTarget } from '@shared/adjustments'
 import { formatDate, today } from '@shared/dates'
 import { AmountInput } from '@renderer/components/AmountInput'
@@ -22,6 +22,7 @@ import { cn } from '@renderer/lib/utils'
 import { AccountDialog, type AccountDialogTarget } from './AccountDialog'
 import { accountTypeIcons } from './appearance'
 import { useAccounts, useAdjustBalances } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** What the field shows: the balance, or for a credit card what's owed on it. */
 const shown = (account: Account): number =>
@@ -72,11 +73,8 @@ function AccountsForm({
     adjust.mutate(targets, {
       onSuccess: (added) => {
         toast({
-          title: 'Balances updated',
-          description:
-            added.length === 1
-              ? '1 balance adjustment added. It isn’t counted as income or spending.'
-              : `${added.length} balance adjustments added. They aren’t counted as income or spending.`,
+          title: t('accounts.balancesUpdated'),
+          description: t('accounts.adjustmentsAdded', { count: added.length }),
           variant: 'success'
         })
         onSaved()
@@ -88,16 +86,13 @@ function AccountsForm({
   return (
     <form onSubmit={save} noValidate>
       <DialogHeader>
-        <DialogTitle>Your accounts</DialogTitle>
-        <DialogDescription>
-          Type what each account really has today. A difference is added as a balance adjustment,
-          not counted as income or spending.
-        </DialogDescription>
+        <DialogTitle>{t('accounts.yourAccounts')}</DialogTitle>
+        <DialogDescription>{t('accounts.yourAccountsHint')}</DialogDescription>
       </DialogHeader>
 
       {accounts.length === 0 ? (
         <p className="rounded-panel border border-dashed border-line p-6 text-ink-muted">
-          No accounts yet. Add the cards and cash you pay with.
+          {t('accounts.noAccountsYetAdd')}
         </p>
       ) : (
         <ul className="divide-y divide-line">
@@ -118,16 +113,20 @@ function AccountsForm({
                     )}
                   >
                     {opensLater
-                      ? `Starts on ${formatDate(account.openingDate, money.locale)}`
+                      ? t('accounts.startsOn', {
+                          date: formatDate(account.openingDate, money.locale)
+                        })
                       : balance === null
-                        ? 'Enter an amount, like 1250 or 1250.50'
+                        ? t('accounts.enterAnAmountLike')
                         : difference !== 0
-                          ? `${money.format(difference, 'exceptZero')} adjustment`
+                          ? t('accounts.adjustment', {
+                              amount: money.format(difference, 'exceptZero')
+                            })
                           : account.type !== 'credit'
-                            ? accountTypeLabels[account.type]
+                            ? t(`accountType.${account.type}`)
                             : account.balance > 0
-                              ? 'Credit card · in credit, so it shows as minus'
-                              : 'Credit card · what you owe'}
+                              ? t('accounts.creditCardInCredit')
+                              : t('accounts.creditCardWhatYou')}
                   </p>
                 </div>
                 <AmountInput
@@ -149,7 +148,7 @@ function AccountsForm({
       )}
 
       <div className="mt-2 flex items-baseline justify-between border-t border-line pt-3">
-        <span className="font-semibold">Total balance</span>
+        <span className="font-semibold">{t('accounts.totalBalance')}</span>
         <span className={cn('amount text-lg', total < 0 && 'text-expense')}>
           {money.format(total)}
         </span>
@@ -160,14 +159,16 @@ function AccountsForm({
       <DialogFooter className="justify-between">
         <Button variant="ghost" onClick={onAdd} disabled={adjust.isPending}>
           <Plus />
-          Add account or card
+          {t('accounts.addAccountOrCard')}
         </Button>
         <div className="flex gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Close</Button>
+            <Button variant="outline">{t('common.close')}</Button>
           </DialogClose>
           <Button type="submit" disabled={adjust.isPending || invalid || changed.length === 0}>
-            {changed.length > 1 ? `Save ${changed.length} balances` : 'Save balance'}
+            {changed.length > 1
+              ? t('accounts.saveBalances', { count: changed.length })
+              : t('accounts.saveBalance')}
           </Button>
         </div>
       </DialogFooter>

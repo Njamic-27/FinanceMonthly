@@ -1,11 +1,5 @@
 import { useState } from 'react'
-import {
-  accountInputSchema,
-  accountTypeLabels,
-  accountTypes,
-  type Account,
-  type AccountType
-} from '@shared/accounts'
+import { accountInputSchema, accountTypes, type Account, type AccountType } from '@shared/accounts'
 import { today } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
 import { nextPaletteColor, type PaletteColor } from '@shared/palette'
@@ -35,6 +29,8 @@ import { toast } from '@renderer/lib/toast'
 import { AccountSelect } from './AccountSelect'
 import { accountTypeIcons } from './appearance'
 import { useArchiveAccount, useCreateAccount, useDeleteAccount, useUpdateAccount } from './queries'
+import type { LucideIcon } from 'lucide-react'
+import { t } from '@renderer/lib/i18n'
 
 export type AccountDialogTarget =
   { kind: 'new'; type?: AccountType } | { kind: 'edit'; account: Account }
@@ -50,26 +46,28 @@ interface AccountDialogProps {
 
 type Field = 'name' | 'balance' | 'openingDate' | 'creditLimit' | 'statementDay' | 'paymentDueDay'
 
-const balanceLabels: Record<AccountType, { label: string; hint: string }> = {
-  debit: {
-    label: 'Balance',
-    hint: 'What the account held on this date. Transactions from then on are added to it.'
-  },
-  credit: {
-    label: 'Amount owed',
-    hint: 'What you owed on the card on this date, or 0. Spending from then on adds to it.'
-  },
-  cash: {
-    label: 'Cash on hand',
-    hint: 'What you had on this date. Cash you take out or spend from then on changes it.'
-  }
-}
+const balanceLabels = (type: AccountType): { label: string; hint: string } =>
+  ({
+    debit: {
+      label: t('accounts.balance'),
+      hint: t('accounts.whatTheAccountHeld')
+    },
+    credit: {
+      label: t('accounts.amountOwed'),
+      hint: t('accounts.whatYouOwedOn')
+    },
+    cash: {
+      label: t('accounts.cashOnHand'),
+      hint: t('accounts.whatYouHadOn')
+    }
+  })[type]
 
-const typeOptions = accountTypes.map((type) => ({
-  value: type,
-  label: accountTypeLabels[type],
-  icon: accountTypeIcons[type]
-}))
+const typeOptions = (): { value: AccountType; label: string; icon: LucideIcon }[] =>
+  accountTypes.map((type) => ({
+    value: type,
+    label: t(`accountType.${type}`),
+    icon: accountTypeIcons[type]
+  }))
 
 const showError = (title: string) => (error: Error) =>
   toast({ title, description: error.message, variant: 'error' })
@@ -152,22 +150,23 @@ function AccountForm({
     let found: Partial<Record<Field, string>> = {}
 
     const balanceCents = balance.trim() === '' ? 0 : money.parse(balance)
-    if (balanceCents === null) found.balance = `Enter an amount like ${amountExample}`
-    else if (isCredit && balanceCents < 0) {
-      found.balance = 'Enter what you owe as a positive amount, or 0'
+    if (balanceCents === null) {
+      found.balance = t('line.enterAmountLike', { example: amountExample })
+    } else if (isCredit && balanceCents < 0) {
+      found.balance = t('accounts.enterWhatYouOwe')
     }
     const limitCents = isCredit ? money.parse(creditLimit) : null
     if (isCredit && limitCents === null) {
       found.creditLimit = creditLimit.trim()
-        ? `Enter an amount like ${amountExample}`
-        : 'Enter the card’s credit limit'
+        ? t('line.enterAmountLike', { example: amountExample })
+        : t('accounts.enterTheCardsCredit')
     }
     const day = (value: string): number | null => (value.trim() === '' ? null : Number(value))
     if (daysRequired && day(statementDay) === null) {
-      found.statementDay = 'Enter the day of the month the statement closes, 1 to 31'
+      found.statementDay = t('accounts.enterTheDayOf')
     }
     if (daysRequired && day(paymentDueDay) === null) {
-      found.paymentDueDay = 'Enter the day of the month the payment is due, 1 to 31'
+      found.paymentDueDay = t('accounts.enterTheDayOf2')
     }
 
     const common = { name, color, openingDate }
@@ -199,14 +198,14 @@ function AccountForm({
       updateAccount.mutate(
         { id: existing.id, input: parsed.data },
         {
-          onSuccess: () => done('Account saved'),
-          onError: nameErrorOr('Account not saved')
+          onSuccess: () => done(t('accounts.accountSaved')),
+          onError: nameErrorOr(t('accounts.accountNotSaved'))
         }
       )
     } else {
       createAccount.mutate(parsed.data, {
         onSuccess: (created) => done(`${created.name} added`),
-        onError: nameErrorOr('Account not added')
+        onError: nameErrorOr(t('accounts.accountNotAdded'))
       })
     }
   }
@@ -215,22 +214,20 @@ function AccountForm({
     const remove = (): void =>
       deleteAccount.mutate(existing.id, {
         onSuccess: () => done(`${existing.name} deleted`),
-        onError: showError('Account not deleted')
+        onError: showError(t('accounts.accountNotDeleted'))
       })
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.name}”?</DialogTitle>
-          <DialogDescription>
-            It has no transactions, so nothing else changes. This can’t be undone.
-          </DialogDescription>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.name })}</DialogTitle>
+          <DialogDescription>{t('accounts.itHasNoTransactions')}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button variant="danger" disabled={pending} onClick={remove}>
-            Delete account
+            {t('accounts.deleteAccount')}
           </Button>
         </DialogFooter>
       </>
@@ -243,41 +240,41 @@ function AccountForm({
       { id: existing.id, archived },
       {
         onSuccess: () => done(`${existing.name} ${archived ? 'archived' : 'restored'}`),
-        onError: showError(archived ? 'Account not archived' : 'Account not restored')
+        onError: showError(
+          archived ? t('accounts.accountNotArchived') : t('accounts.accountNotRestored')
+        )
       }
     )
   }
 
-  const { label: balanceLabel, hint: balanceHint } = balanceLabels[type]
+  const { label: balanceLabel, hint: balanceHint } = balanceLabels(type)
 
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit account' : 'New account'}</DialogTitle>
+        <DialogTitle>{existing ? t('accounts.editAccount') : t('accounts.newAccount')}</DialogTitle>
         <DialogDescription>
-          {existing
-            ? 'Changes to the starting balance or date update the balance straight away.'
-            : 'A card, bank account or wallet you pay from or get paid into.'}
+          {existing ? t('accounts.changesToTheStarting') : t('accounts.aCardBankAccount')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-2">
           <span id="account-type-label" className="text-sm font-semibold">
-            Type
+            {t('accounts.type')}
           </span>
           <SegmentedControl
             name="account-type"
             aria-labelledby="account-type-label"
             value={type}
-            options={typeOptions}
+            options={typeOptions()}
             onValueChange={setType}
             className="justify-self-start"
           />
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="account-name">Name</Label>
+          <Label htmlFor="account-name">{t('common.name')}</Label>
           <div className="flex items-center gap-3">
             <ColorChip color={color} icon={accountTypeIcons[type]} />
             <Input
@@ -285,13 +282,9 @@ function AccountForm({
               value={name}
               autoFocus
               maxLength={40}
-              placeholder={
-                isCredit
-                  ? 'e.g. Mastercard Gold'
-                  : type === 'cash'
-                    ? 'e.g. Wallet'
-                    : 'e.g. Visa Debit'
-              }
+              placeholder={t('common.eg', {
+                example: isCredit ? 'Mastercard Gold' : type === 'cash' ? 'Wallet' : 'Visa Debit'
+              })}
               {...errorProps('account-name', errors.name)}
               onChange={(event) => {
                 setName(event.target.value)
@@ -320,7 +313,7 @@ function AccountForm({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="account-date">On</Label>
+              <Label htmlFor="account-date">{t('accounts.on')}</Label>
               <DatePicker
                 id="account-date"
                 value={openingDate}
@@ -341,7 +334,7 @@ function AccountForm({
           <div className="grid gap-1.5">
             <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="account-limit">Credit limit</Label>
+                <Label htmlFor="account-limit">{t('accounts.creditLimit')}</Label>
                 <AmountInput
                   id="account-limit"
                   value={creditLimit}
@@ -354,13 +347,15 @@ function AccountForm({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="account-statement-day">Statement day</Label>
+                <Label htmlFor="account-statement-day">{t('accounts.statementDay')}</Label>
                 <Input
                   id="account-statement-day"
                   type="number"
                   min={1}
                   max={31}
-                  placeholder={daysRequired ? 'e.g. 25' : 'Optional'}
+                  placeholder={
+                    daysRequired ? t('common.eg', { example: 25 }) : t('accounts.optional')
+                  }
                   value={statementDay}
                   {...errorProps('account-statement-day', errors.statementDay)}
                   onChange={(event) => {
@@ -370,13 +365,15 @@ function AccountForm({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="account-due-day">Payment due day</Label>
+                <Label htmlFor="account-due-day">{t('accounts.paymentDueDay')}</Label>
                 <Input
                   id="account-due-day"
                   type="number"
                   min={1}
                   max={31}
-                  placeholder={daysRequired ? 'e.g. 15' : 'Optional'}
+                  placeholder={
+                    daysRequired ? t('common.eg', { example: 15 }) : t('accounts.optional')
+                  }
                   value={paymentDueDay}
                   {...errorProps('account-due-day', errors.paymentDueDay)}
                   onChange={(event) => {
@@ -389,27 +386,20 @@ function AccountForm({
             <FieldError id="account-limit-error" message={errors.creditLimit} />
             <FieldError id="account-statement-day-error" message={errors.statementDay} />
             <FieldError id="account-due-day-error" message={errors.paymentDueDay} />
-            <p className="text-sm text-ink-muted">
-              Days of the month the statement closes and the payment is due. Spending on the card
-              counts in the month you pay it: with 25 and 15, a purchase on 20 October counts in
-              November.
-            </p>
+            <p className="text-sm text-ink-muted">{t('accounts.daysOfTheMonth')}</p>
           </div>
         )}
 
         {isCredit && payFromOptions.length > 0 && (
           <div className="grid gap-1.5">
-            <Label htmlFor="account-pay-from">Paid from</Label>
+            <Label htmlFor="account-pay-from">{t('accounts.paidFrom')}</Label>
             <AccountSelect
               id="account-pay-from"
               value={payFrom}
               accounts={payFromOptions}
               onChange={setPayFrom}
             />
-            <p className="text-sm text-ink-muted">
-              The account the bill is paid from. Each month the card’s spending shows under it as
-              one line.
-            </p>
+            <p className="text-sm text-ink-muted">{t('accounts.theAccountTheBill')}</p>
           </div>
         )}
       </div>
@@ -417,11 +407,9 @@ function AccountForm({
       {existing && (
         <div className="mt-6 divide-y divide-line border-t border-line">
           <ActionRow
-            title={existing.isArchived ? 'Restore' : 'Archive'}
+            title={existing.isArchived ? t('accounts.restore') : t('accounts.archive')}
             description={
-              existing.isArchived
-                ? 'Offer it again when adding transactions.'
-                : 'Hide it from new transactions and totals. Its history stays.'
+              existing.isArchived ? t('accounts.offerItAgainWhen') : t('accounts.hideItFromNew')
             }
           >
             <Button
@@ -430,15 +418,15 @@ function AccountForm({
               disabled={pending}
               onClick={() => setArchived(!existing.isArchived)}
             >
-              {existing.isArchived ? 'Restore account' : 'Archive account'}
+              {existing.isArchived ? t('accounts.restoreAccount') : t('accounts.archiveAccount')}
             </Button>
           </ActionRow>
           <ActionRow
-            title="Delete"
+            title={t('common.delete')}
             description={
               existing.usageCount > 0
-                ? 'Only accounts without transactions can be deleted. Archive this one instead.'
-                : 'Remove it for good.'
+                ? t('accounts.onlyAccountsWithoutTransactions')
+                : t('accounts.removeItForGood')
             }
           >
             {existing.usageCount === 0 && (
@@ -449,7 +437,7 @@ function AccountForm({
                 className="text-expense"
                 onClick={() => setConfirmDelete(true)}
               >
-                Delete…
+                {t('recurring.delete')}
               </Button>
             )}
           </ActionRow>
@@ -458,10 +446,10 @@ function AccountForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save account' : 'Add account'}
+          {existing ? t('accounts.saveAccount') : t('accounts.addAccount')}
         </Button>
       </DialogFooter>
     </form>

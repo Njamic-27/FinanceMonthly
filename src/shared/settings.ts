@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { languages } from './i18n/types'
 
 export const themeModes = ['system', 'light', 'dark'] as const
 export type ThemeMode = (typeof themeModes)[number]
@@ -11,6 +12,8 @@ export const settingsSchema = z.object({
   /** First day of the week: 0 = Sunday, 1 = Monday, … 6 = Saturday. */
   weekStart: z.number().int().min(0).max(6),
   theme: z.enum(themeModes),
+  /** The app's language (PLAN.md step 53); number and date format is `locale`. */
+  language: z.enum(languages),
   onboardingDone: z.boolean(),
   /** Windows notifications for payment reminders. */
   notificationsEnabled: z.boolean(),
@@ -33,6 +36,7 @@ export const defaultSettings: Settings = {
   locale: 'en-GB',
   weekStart: 1,
   theme: 'system',
+  language: 'en',
   onboardingDone: false,
   notificationsEnabled: true,
   closeToTray: true,

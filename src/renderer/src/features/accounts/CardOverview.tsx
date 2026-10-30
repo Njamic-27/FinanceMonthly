@@ -12,6 +12,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { CreditUsage } from './CreditUsage'
+import { t, tNode } from '@renderer/lib/i18n'
 
 const percent = (share: number, locale: string): string =>
   new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(share)
@@ -76,14 +77,16 @@ export function CardOverview({
     <Card className={cn('grid content-start gap-5', className)}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-ink-muted">{account.balance > 0 ? 'In credit' : 'Owed'}</p>
+          <p className="text-sm text-ink-muted">
+            {account.balance > 0 ? t('accounts.inCredit') : t('accounts.owed')}
+          </p>
           <p className="amount text-amount">
             {money.format(account.balance > 0 ? account.balance : status.owed)}
           </p>
         </div>
         {status.owed > 0 && (
           <Button variant="secondary" onClick={() => pay(status.owed)}>
-            Pay card
+            {t('accounts.payCard')}
           </Button>
         )}
       </div>
@@ -97,22 +100,22 @@ export function CardOverview({
         />
         {status.reserved > 0 && (
           <p className="mt-1 text-sm text-ink-muted">
-            {money.format(status.reserved)} is held for installments still to come.
+            {t('accounts.heldForInstallments', { amount: money.format(status.reserved) })}
           </p>
         )}
       </div>
 
       <dl className="grid grid-cols-3 gap-4 border-y border-line py-4">
         <div>
-          <dt className="text-sm text-ink-muted">Credit limit</dt>
+          <dt className="text-sm text-ink-muted">{t('accounts.creditLimit')}</dt>
           <dd className="amount text-lg">{money.format(status.limit)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">Available</dt>
+          <dt className="text-sm text-ink-muted">{t('accounts.available')}</dt>
           <dd className="amount text-lg">{money.format(Math.max(0, status.available))}</dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">Used</dt>
+          <dt className="text-sm text-ink-muted">{t('accounts.used')}</dt>
           <dd className={cn('amount text-lg', status.utilization > 1 && 'text-expense')}>
             {percent(status.utilization, money.locale)}
           </dd>
@@ -123,28 +126,32 @@ export function CardOverview({
         <section aria-labelledby="card-cycle">
           <h2 id="card-cycle" className="flex items-center gap-2 font-semibold">
             <CalendarClock className="size-4 text-ink-muted" aria-hidden />
-            Statement and payment
+            {t('accounts.statementAndPayment')}
           </h2>
           <dl className="divide-y divide-line">
             {cycle.lastStatement && statementClosed && status.statementBalance !== null && (
               <Row
-                label="Last statement"
-                hint={<>Closed {longDate(cycle.dueStatement ?? cycle.lastStatement)}</>}
+                label={t('accounts.lastStatement')}
+                hint={tNode('accounts.closedOn', {
+                  date: longDate(cycle.dueStatement ?? cycle.lastStatement)
+                })}
               >
                 <span className="amount">{money.format(status.statementBalance)}</span>
                 {(status.paidSinceStatement ?? 0) > 0 && (
                   <span className="block text-sm text-ink-muted">
-                    {money.format(status.paidSinceStatement ?? 0)} paid since
+                    {t('accounts.paidSince', {
+                      amount: money.format(status.paidSinceStatement ?? 0)
+                    })}
                   </span>
                 )}
               </Row>
             )}
             {cycle.dueDate && (
               <Row
-                label="Payment due"
+                label={t('accounts.paymentDue')}
                 hint={
                   account.paymentDueDay
-                    ? `On the ${ordinal(account.paymentDueDay)} of each month`
+                    ? t('accounts.dueEachMonth', { day: ordinal(account.paymentDueDay) })
                     : undefined
                 }
               >
@@ -152,27 +159,31 @@ export function CardOverview({
                 {status.leftToPay !== null ? (
                   status.leftToPay > 0 ? (
                     <span className="flex items-center justify-end gap-2">
-                      <span className="amount">{money.format(status.leftToPay)} to pay</span>
+                      <span className="amount">
+                        {t('accounts.toPay', { amount: money.format(status.leftToPay) })}
+                      </span>
                       <Button size="sm" variant="ghost" onClick={() => pay(status.leftToPay ?? 0)}>
-                        Pay
+                        {t('recurring.pay')}
                       </Button>
                     </span>
                   ) : (
-                    <span className="block text-sm text-income">Paid</span>
+                    <span className="block text-sm text-income">{t('accounts.paid')}</span>
                   )
                 ) : (
                   <span className="block text-sm text-ink-muted">
-                    For the statement closing {longDate(cycle.dueStatement ?? cycle.dueDate)}
+                    {tNode('accounts.forStatement', {
+                      date: longDate(cycle.dueStatement ?? cycle.dueDate)
+                    })}
                   </span>
                 )}
               </Row>
             )}
             {cycle.nextStatement && (
               <Row
-                label="Next statement"
+                label={t('accounts.nextStatement')}
                 hint={
                   account.statementDay
-                    ? `Closes on the ${ordinal(account.statementDay)} of each month`
+                    ? t('accounts.closesEachMonth', { day: ordinal(account.statementDay) })
                     : undefined
                 }
               >
@@ -183,18 +194,15 @@ export function CardOverview({
           <p className="mt-2 flex gap-2 text-sm text-ink-muted">
             <BellRing className="mt-0.5 size-4 shrink-0" aria-hidden />
             {remindersOn
-              ? `Financije reminds you when a statement closes and ${CARD_DUE_REMINDER_DAYS} days before the payment is due.`
-              : 'Payment reminders are off. Turn them on in Settings to be reminded.'}
+              ? t('accounts.remindersOn', { days: CARD_DUE_REMINDER_DAYS })
+              : t('accounts.paymentRemindersAreOff')}
           </p>
         </section>
       ) : (
         <section className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-sm text-sm text-ink-muted">
-            Add the days the statement closes and the payment is due to see what to pay and when,
-            with reminders.
-          </p>
+          <p className="max-w-sm text-sm text-ink-muted">{t('accounts.addDaysHint')}</p>
           <Button variant="outline" size="sm" onClick={onEdit}>
-            Add statement days
+            {t('accounts.addStatementDays')}
           </Button>
         </section>
       )}

@@ -65,27 +65,31 @@ import {
   useTransaction,
   useUpdateTransaction
 } from './queries'
+import type { MessageKey } from '@shared/i18n'
+import { t, tNode } from '@renderer/lib/i18n'
 
 type Kind = EditableType
 type Field =
   'amount' | 'title' | 'categoryId' | 'accountId' | 'toAccountId' | 'date' | 'note' | 'count'
 
-const kindOptions: { value: Kind; label: string; icon: LucideIcon }[] = [
-  { value: 'expense', label: 'Expense', icon: ArrowUpRight },
-  { value: 'income', label: 'Income', icon: ArrowDownLeft },
-  { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight }
+const kindOptions = (): { value: Kind; label: string; icon: LucideIcon }[] => [
+  { value: 'expense', label: t('transactions.expense'), icon: ArrowUpRight },
+  { value: 'income', label: t('group.income'), icon: ArrowDownLeft },
+  { value: 'transfer', label: t('transactions.transfer'), icon: ArrowLeftRight }
 ]
 
-const kindNames: Record<Kind, string> = {
-  expense: 'Expense',
-  income: 'Income',
-  transfer: 'Transfer'
-}
-const kindDescriptions: Record<Kind, string> = {
-  expense: 'Money you spent.',
-  income: 'Money you received.',
-  transfer: 'Money moved between your accounts, like cash from an ATM or a card payment.'
-}
+const kindNames = (kind: Kind): string =>
+  ({
+    expense: t('transactions.expense'),
+    income: t('group.income'),
+    transfer: t('transactions.transfer')
+  })[kind]
+const kindDescriptions = (kind: Kind): string =>
+  ({
+    expense: t('transactions.moneyYouSpent'),
+    income: t('transactions.moneyYouReceived'),
+    transfer: t('transactions.moneyMovedBetweenYour')
+  })[kind]
 
 /** The account used last, so a run of entries doesn't need it picked each time. */
 let lastAccountId: number | null = null
@@ -210,12 +214,16 @@ function TransactionForm({
     let found: Partial<Record<Field, string>> = {}
 
     const cents = money.parse(amount)
-    if (amount.trim() === '') found.amount = 'Enter the amount'
-    else if (cents === null) found.amount = `Enter an amount like ${money.toInput(1250)}`
-    else if (cents < 0) found.amount = 'Enter the amount without a minus sign'
+    if (amount.trim() === '') found.amount = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.amount = t('line.enterAmountLike', { example: money.toInput(1250) })
+    } else if (cents < 0) found.amount = t('transactions.enterTheAmountWithout')
 
     if (opening && date < opening.openingDate) {
-      found.date = `${opening.name} starts on ${formatDate(opening.openingDate, money.locale)}. Choose that day or later.`
+      found.date = t('recurring.accountStarts', {
+        account: opening.name,
+        date: formatDate(opening.openingDate, money.locale)
+      })
     }
 
     // The main process re-checks everything; its message belongs in the form, not a toast.
@@ -250,8 +258,17 @@ function TransactionForm({
           onSuccess: (created: InstallmentPlan) => {
             lastAccountId = created.accountId
             toast({
-              title: `${created.title} in ${created.count} installments`,
-              description: `${money.format(created.installment)} a month from ${formatDate(created.firstDate, money.locale, { day: 'numeric', month: 'short' })}`,
+              title: t('transactions.inInstallments', {
+                title: created.title,
+                count: created.count
+              }),
+              description: t('transactions.aMonthFrom', {
+                amount: money.format(created.installment),
+                date: formatDate(created.firstDate, money.locale, {
+                  day: 'numeric',
+                  month: 'short'
+                })
+              }),
               variant: 'success'
             })
             closeTransactionDialog()
@@ -282,10 +299,10 @@ function TransactionForm({
     }
 
     const input = { ...parsed.data, note: parsed.data.note ?? null }
-    const saved = (verb: string) => (tx: Transaction) => {
+    const saved = (key: MessageKey) => (tx: Transaction) => {
       lastAccountId = tx.accountId
       toast({
-        title: `${kindNames[kind]} ${verb}`,
+        title: t(key, { kind: kindNames(kind) }),
         description: `${tx.title} · ${money.format(tx.amount)}`,
         variant: 'success'
       })
@@ -293,9 +310,12 @@ function TransactionForm({
     }
 
     if (existing) {
-      updateTransaction.mutate({ id: existing.id, input }, { onSuccess: saved('saved'), onError })
+      updateTransaction.mutate(
+        { id: existing.id, input },
+        { onSuccess: saved('transactions.savedToast'), onError }
+      )
     } else {
-      createTransaction.mutate(input, { onSuccess: saved('added'), onError })
+      createTransaction.mutate(input, { onSuccess: saved('transactions.addedToast'), onError })
     }
   }
 
@@ -304,16 +324,16 @@ function TransactionForm({
       ? account && toAccount && defaultTransferTitle(account, toAccount)
       : category?.name
   const titlePlaceholder = defaultTitle
-    ? `Leave empty to use “${defaultTitle}”`
+    ? t('loans.leaveEmpty', { title: defaultTitle })
     : kind === 'transfer'
-      ? 'e.g. ATM Ilica'
-      : 'e.g. Lidl weekly shop'
+      ? t('transactions.transferPlaceholder')
+      : t('transactions.expensePlaceholder')
 
   if (existing && confirmDelete) {
     const remove = (): void =>
       deleteTransaction.mutate(existing.id, {
         onSuccess: () => {
-          toast({ title: 'Transaction deleted', variant: 'success' })
+          toast({ title: t('transactions.transactionDeleted'), variant: 'success' })
           closeTransactionDialog()
         },
         onError: (error) => setFormError(error.message)
@@ -321,19 +341,21 @@ function TransactionForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.title}”?</DialogTitle>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.title })}</DialogTitle>
           <DialogDescription>
-            {money.format(existing.amount)} on {formatDate(existing.date, money.locale)}. The
-            account balance changes back. This can’t be undone.
+            {t('transactions.deleteDescription', {
+              amount: money.format(existing.amount),
+              date: formatDate(existing.date, money.locale)
+            })}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button variant="danger" disabled={pending} onClick={remove}>
-            Delete transaction
+            {t('transactions.deleteTransaction')}
           </Button>
         </DialogFooter>
       </>
@@ -343,22 +365,24 @@ function TransactionForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit transaction' : 'Add transaction'}</DialogTitle>
-        <DialogDescription>{kindDescriptions[kind]}</DialogDescription>
+        <DialogTitle>
+          {existing ? t('transactions.editTransaction') : t('shell.addTransaction')}
+        </DialogTitle>
+        <DialogDescription>{kindDescriptions(kind)}</DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="transaction-kind"
-          aria-label="Type"
+          aria-label={t('accounts.type')}
           value={kind}
-          options={kindOptions}
+          options={kindOptions()}
           onValueChange={changeKind}
           className="justify-self-start"
         />
 
         <div className="grid gap-1.5">
-          <Label htmlFor="tx-amount">Amount</Label>
+          <Label htmlFor="tx-amount">{t('common.amount')}</Label>
           <AmountInput
             id="tx-amount"
             size="lg"
@@ -378,7 +402,7 @@ function TransactionForm({
           <>
             <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
               <div className="grid gap-1.5">
-                <Label htmlFor="tx-account">From</Label>
+                <Label htmlFor="tx-account">{t('loans.from')}</Label>
                 <AccountSelect
                   id="tx-account"
                   value={accountId}
@@ -392,14 +416,14 @@ function TransactionForm({
                 variant="ghost"
                 size="icon"
                 className="mt-6"
-                aria-label="Swap accounts"
-                title="Swap accounts"
+                aria-label={t('transactions.swapAccounts')}
+                title={t('transactions.swapAccounts')}
                 onClick={swapAccounts}
               >
                 <ArrowLeftRight />
               </Button>
               <div className="grid gap-1.5">
-                <Label htmlFor="tx-to-account">To</Label>
+                <Label htmlFor="tx-to-account">{t('loans.to')}</Label>
                 <AccountSelect
                   id="tx-to-account"
                   value={toAccountId}
@@ -417,8 +441,10 @@ function TransactionForm({
             {toAccount && owedOnCard > 0 && (
               <p className="-mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
                 <span>
-                  {toAccount.name} owes{' '}
-                  <span className="amount text-ink">{money.format(owedOnCard)}</span>.
+                  {tNode('transactions.cardOwes', {
+                    card: toAccount.name,
+                    amount: <span className="amount text-ink">{money.format(owedOnCard)}</span>
+                  })}
                 </span>
                 <Button
                   variant="secondary"
@@ -428,13 +454,13 @@ function TransactionForm({
                     clearError('amount')
                   }}
                 >
-                  Pay it all
+                  {t('transactions.payItAll')}
                 </Button>
               </p>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="tx-date">Date</Label>
+                <Label htmlFor="tx-date">{t('common.date')}</Label>
                 <DatePicker
                   id="tx-date"
                   value={date}
@@ -453,7 +479,7 @@ function TransactionForm({
           <>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="tx-category">Category</Label>
+                <Label htmlFor="tx-category">{t('common.category')}</Label>
                 <CategorySelect
                   id="tx-category"
                   value={categoryId}
@@ -468,7 +494,7 @@ function TransactionForm({
               </div>
 
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="tx-date">Date</Label>
+                <Label htmlFor="tx-date">{t('common.date')}</Label>
                 <DatePicker
                   id="tx-date"
                   value={date}
@@ -484,7 +510,9 @@ function TransactionForm({
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="tx-account">{kind === 'expense' ? 'Paid with' : 'Paid into'}</Label>
+              <Label htmlFor="tx-account">
+                {kind === 'expense' ? t('line.paidWith') : t('line.paidInto')}
+              </Label>
               <AccountSelect
                 id="tx-account"
                 value={accountId}
@@ -495,9 +523,15 @@ function TransactionForm({
               <FieldError id="tx-account-error" message={errors.accountId} />
               {countsIn && account && (
                 <p className="text-sm text-ink-muted">
-                  {inInstallments && canSplit ? 'The first installment counts' : 'Counts'} in{' '}
-                  {countsIn} — {account.name} bill due{' '}
-                  {formatDate(countsOn, money.locale, { day: 'numeric', month: 'short' })}
+                  {t('transactions.countsIn', {
+                    counts:
+                      inInstallments && canSplit
+                        ? t('transactions.theFirstInstallmentCounts')
+                        : t('transactions.counts'),
+                    month: countsIn,
+                    card: account.name,
+                    date: formatDate(countsOn, money.locale, { day: 'numeric', month: 'short' })
+                  })}
                 </p>
               )}
             </div>
@@ -524,7 +558,8 @@ function TransactionForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="tx-title">
-            Title <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.titleOptional')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Input
             id="tx-title"
@@ -542,7 +577,8 @@ function TransactionForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="tx-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="tx-note"
@@ -563,15 +599,17 @@ function TransactionForm({
 
       {isInstallment && existing && (
         <p className="mt-5 text-sm text-ink-muted">
-          One installment of a purchase on the card. To remove it, delete the whole purchase from{' '}
-          <Link
-            to={accountPath(existing.accountId)}
-            onClick={closeTransactionDialog}
-            className="link font-semibold text-primary"
-          >
-            the card’s page
-          </Link>
-          .
+          {tNode('transactions.installmentNote', {
+            link: (
+              <Link
+                to={accountPath(existing.accountId)}
+                onClick={closeTransactionDialog}
+                className="link font-semibold text-primary"
+              >
+                {t('transactions.cardsPage')}
+              </Link>
+            )
+          })}
         </p>
       )}
 
@@ -584,7 +622,7 @@ function TransactionForm({
               disabled={pending}
               onClick={() => setConfirmDelete(true)}
             >
-              Delete…
+              {t('recurring.delete')}
             </Button>
             <Button
               variant="ghost"
@@ -592,16 +630,20 @@ function TransactionForm({
               onClick={() => duplicateTransaction(existing)}
             >
               <Copy />
-              Duplicate
+              {t('transactions.duplicate')}
             </Button>
           </div>
         )}
         <div className="flex gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">{t('common.cancel')}</Button>
           </DialogClose>
           <Button type="submit" disabled={pending}>
-            {existing ? 'Save transaction' : splitting ? 'Add in installments' : 'Add transaction'}
+            {existing
+              ? t('transactions.saveTransaction')
+              : splitting
+                ? t('transactions.addInInstallments')
+                : t('shell.addTransaction')}
           </Button>
         </div>
       </DialogFooter>
@@ -614,15 +656,12 @@ function NoAccounts(): React.JSX.Element {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Add an account first</DialogTitle>
-        <DialogDescription>
-          Every transaction is paid with or into one of your accounts: a debit card, credit card or
-          cash.
-        </DialogDescription>
+        <DialogTitle>{t('transactions.addAnAccountFirst')}</DialogTitle>
+        <DialogDescription>{t('transactions.everyTransactionIsPaid')}</DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button
           onClick={() => {
@@ -631,7 +670,7 @@ function NoAccounts(): React.JSX.Element {
           }}
         >
           <Wallet />
-          Go to accounts
+          {t('transactions.goToAccounts')}
         </Button>
       </DialogFooter>
     </>
@@ -647,12 +686,12 @@ function DialogBody({ target }: { target: TransactionDialogTarget }): React.JSX.
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Transaction not found</DialogTitle>
+          <DialogTitle>{t('transactions.transactionNotFound')}</DialogTitle>
           <DialogDescription>{transaction.error.message}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline">Close</Button>
+            <Button variant="outline">{t('common.close')}</Button>
           </DialogClose>
         </DialogFooter>
       </>

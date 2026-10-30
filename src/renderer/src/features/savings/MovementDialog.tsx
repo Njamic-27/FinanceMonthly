@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpFromLine, type LucideIcon } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import { formatDate, today, type IsoDate } from '@shared/dates'
 import { decimalSeparator } from '@shared/money'
@@ -32,6 +32,7 @@ import {
   useDeleteSavingsMovement,
   useUpdateSavingsMovement
 } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 export type MovementDialogTarget =
   | { kind: 'new'; goal: SavingsGoal; type: MovementType }
@@ -39,9 +40,13 @@ export type MovementDialogTarget =
 
 type Field = 'amount' | 'accountId' | 'date' | 'note'
 
-const typeOptions = [
-  { value: 'deposit' as const, label: 'Put in', icon: ArrowDownToLine },
-  { value: 'withdrawal' as const, label: 'Take out', icon: ArrowUpFromLine }
+const typeOptions = (): {
+  value: 'deposit' | 'withdrawal'
+  label: string
+  icon: LucideIcon
+}[] => [
+  { value: 'deposit' as const, label: t('savings.putIn'), icon: ArrowDownToLine },
+  { value: 'withdrawal' as const, label: t('savings.takeOut'), icon: ArrowUpFromLine }
 ]
 
 /** The account used last, so monthly deposits don't need it picked each time. */
@@ -106,10 +111,15 @@ function MovementForm({
     event.preventDefault()
     let found: Partial<Record<Field, string>> = {}
     const cents = money.parse(amount)
-    if (amount.trim() === '') found.amount = 'Enter the amount'
-    else if (cents === null) found.amount = `Enter an amount like ${money.toInput(15000)}`
+    if (amount.trim() === '') found.amount = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.amount = t('line.enterAmountLike', { example: money.toInput(15000) })
+    }
     if (account && date < account.openingDate) {
-      found.date = `${account.name} starts on ${formatDate(account.openingDate, money.locale)}. Choose that day or later.`
+      found.date = t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, money.locale)
+      })
     }
     const parsed = savingsMovementInputSchema.safeParse({
       goalId: goal.id,
@@ -129,10 +139,10 @@ function MovementForm({
       lastAccountId = tx.accountId
       toast({
         title: existing
-          ? 'Saved'
+          ? t('loans.saved')
           : type === 'deposit'
-            ? `Put into ${goal.name}`
-            : `Taken out of ${goal.name}`,
+            ? t('savings.putInto', { goal: goal.name })
+            : t('savings.takenOut', { goal: goal.name }),
         description: money.format(tx.amount),
         variant: 'success'
       })
@@ -147,17 +157,23 @@ function MovementForm({
       <>
         <DialogHeader>
           <DialogTitle>
-            Delete this {existing.type === 'savings_deposit' ? 'deposit' : 'withdrawal'}?
+            {t(
+              existing.type === 'savings_deposit'
+                ? 'savings.deleteDeposit'
+                : 'savings.deleteWithdrawal'
+            )}
           </DialogTitle>
           <DialogDescription>
-            {money.format(existing.amount)} on {formatDate(existing.date, money.locale)}. The money
-            goes back to where it was. This can’t be undone.
+            {t('savings.deleteMovementDescription', {
+              amount: money.format(existing.amount),
+              date: formatDate(existing.date, money.locale)
+            })}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -165,14 +181,14 @@ function MovementForm({
             onClick={() =>
               remove.mutate(existing.id, {
                 onSuccess: () => {
-                  toast({ title: 'Deleted', variant: 'success' })
+                  toast({ title: t('savings.deleted'), variant: 'success' })
                   onClose()
                 },
                 onError
               })
             }
           >
-            Delete
+            {t('common.delete')}
           </Button>
         </DialogFooter>
       </>
@@ -184,16 +200,19 @@ function MovementForm({
       <DialogHeader>
         <DialogTitle>{goal.name}</DialogTitle>
         <DialogDescription>
-          {money.format(goal.saved)} saved of {money.format(goal.targetAmount)}.
+          {t('savings.savedOf', {
+            saved: money.format(goal.saved),
+            target: money.format(goal.targetAmount)
+          })}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="movement-type"
-          aria-label="Put in or take out"
+          aria-label={t('savings.putInOrTake')}
           value={type}
-          options={typeOptions}
+          options={typeOptions()}
           onValueChange={(value) => {
             setType(value)
             setFormError(null)
@@ -202,7 +221,7 @@ function MovementForm({
         />
 
         <div className="grid gap-1.5">
-          <Label htmlFor="movement-amount">Amount</Label>
+          <Label htmlFor="movement-amount">{t('common.amount')}</Label>
           <AmountInput
             id="movement-amount"
             size="lg"
@@ -220,7 +239,9 @@ function MovementForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="movement-account">{type === 'deposit' ? 'From' : 'Into'}</Label>
+            <Label htmlFor="movement-account">
+              {type === 'deposit' ? t('loans.from') : t('loans.into')}
+            </Label>
             <AccountSelect
               id="movement-account"
               value={accountId}
@@ -235,7 +256,7 @@ function MovementForm({
             <FieldError id="movement-account-error" message={errors.accountId} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="movement-date">Date</Label>
+            <Label htmlFor="movement-date">{t('common.date')}</Label>
             <DatePicker
               id="movement-date"
               value={date}
@@ -252,7 +273,8 @@ function MovementForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="movement-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="movement-note"
@@ -279,15 +301,19 @@ function MovementForm({
             disabled={pending}
             onClick={() => setConfirmDelete(true)}
           >
-            Delete…
+            {t('recurring.delete')}
           </Button>
         )}
         <div className="flex gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">{t('common.cancel')}</Button>
           </DialogClose>
           <Button type="submit" disabled={pending}>
-            {existing ? 'Save' : type === 'deposit' ? 'Put in' : 'Take out'}
+            {existing
+              ? t('common.save')
+              : type === 'deposit'
+                ? t('savings.putIn')
+                : t('savings.takeOut')}
           </Button>
         </div>
       </DialogFooter>

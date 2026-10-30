@@ -23,12 +23,13 @@ import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { closeTransactionDialog } from './dialogStore'
 import { useDeleteTransaction, useUpdateAdjustment } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 type Direction = 'in' | 'out'
 
-const directionOptions: { value: Direction; label: string }[] = [
-  { value: 'in', label: 'Added to the account' },
-  { value: 'out', label: 'Taken off the account' }
+const directionOptions = (): { value: Direction; label: string }[] => [
+  { value: 'in', label: t('transactions.addedToTheAccount') },
+  { value: 'out', label: t('transactions.takenOffTheAccount') }
 ]
 
 /**
@@ -63,7 +64,7 @@ export function AdjustmentForm({
     event.preventDefault()
     const cents = money.parse(amount)
     if (cents === null || cents <= 0) {
-      setErrors({ amount: 'Enter an amount above zero, like 25 or 12.50' })
+      setErrors({ amount: t('transactions.enterAnAmountAbove') })
       return
     }
     const parsed = adjustmentUpdateSchema.safeParse({
@@ -80,7 +81,7 @@ export function AdjustmentForm({
       {
         onSuccess: (tx) => {
           toast({
-            title: 'Adjustment saved',
+            title: t('transactions.adjustmentSaved'),
             description: `${account?.name ?? tx.title} · ${money.format(adjustmentAmount(tx), 'exceptZero')}`,
             variant: 'success'
           })
@@ -95,17 +96,19 @@ export function AdjustmentForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete this adjustment?</DialogTitle>
+          <DialogTitle>{t('transactions.deleteThisAdjustment')}</DialogTitle>
           <DialogDescription>
-            {money.format(signed, 'exceptZero')} on {account?.name ?? 'the account'},{' '}
-            {formatDate(existing.date, money.locale)}. The balance goes back to what it was before.
-            This can’t be undone.
+            {t('transactions.deleteAdjustmentDescription', {
+              amount: money.format(signed, 'exceptZero'),
+              account: account?.name ?? t('transactions.theAccount'),
+              date: formatDate(existing.date, money.locale)
+            })}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -113,14 +116,14 @@ export function AdjustmentForm({
             onClick={() =>
               remove.mutate(existing.id, {
                 onSuccess: () => {
-                  toast({ title: 'Adjustment deleted', variant: 'success' })
+                  toast({ title: t('transactions.adjustmentDeleted'), variant: 'success' })
                   closeTransactionDialog()
                 },
                 onError: (error) => setFormError(error.message)
               })
             }
           >
-            Delete adjustment
+            {t('transactions.deleteAdjustment')}
           </Button>
         </DialogFooter>
       </>
@@ -130,25 +133,26 @@ export function AdjustmentForm({
   return (
     <form onSubmit={save} noValidate>
       <DialogHeader>
-        <DialogTitle>Edit balance adjustment</DialogTitle>
+        <DialogTitle>{t('transactions.editBalanceAdjustment')}</DialogTitle>
         <DialogDescription>
-          A correction to {account?.name ?? 'the account'}’s balance. It isn’t counted as income or
-          spending.
+          {t('transactions.adjustmentDescription', {
+            account: account?.name ?? t('transactions.theAccount')
+          })}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="adjustment-direction"
-          aria-label="Which way"
+          aria-label={t('transactions.whichWay')}
           value={direction}
-          options={directionOptions}
+          options={directionOptions()}
           onValueChange={setDirection}
           className="justify-self-start"
         />
 
         <div className="grid gap-1.5">
-          <Label htmlFor="adj-amount">Amount</Label>
+          <Label htmlFor="adj-amount">{t('common.amount')}</Label>
           <AmountInput
             id="adj-amount"
             size="lg"
@@ -165,7 +169,7 @@ export function AdjustmentForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="adj-date">Date</Label>
+            <Label htmlFor="adj-date">{t('common.date')}</Label>
             <DatePicker
               id="adj-date"
               value={date}
@@ -181,13 +185,13 @@ export function AdjustmentForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="adj-note">Note</Label>
+          <Label htmlFor="adj-note">{t('common.note')}</Label>
           <Textarea
             id="adj-note"
             rows={2}
             maxLength={500}
             value={note}
-            placeholder="Optional, e.g. what the difference was"
+            placeholder={t('transactions.optionalEGWhat')}
             {...errorProps('adj-note', errors.note)}
             onChange={(event) => {
               setNote(event.target.value)
@@ -207,14 +211,14 @@ export function AdjustmentForm({
           disabled={pending}
           onClick={() => setConfirmDelete(true)}
         >
-          Delete…
+          {t('recurring.delete')}
         </Button>
         <div className="flex gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">{t('common.cancel')}</Button>
           </DialogClose>
           <Button type="submit" disabled={pending}>
-            Save adjustment
+            {t('transactions.saveAdjustment')}
           </Button>
         </div>
       </DialogFooter>

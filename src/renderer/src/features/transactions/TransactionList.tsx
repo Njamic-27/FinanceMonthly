@@ -13,6 +13,7 @@ import { accountPath, categoryPath, dayPath, ownerPath } from '@renderer/lib/lin
 import { cn } from '@renderer/lib/utils'
 import { countsInMonth } from './countsIn'
 import { duplicateTransaction, openTransactionDialog } from './dialogStore'
+import { t, tNode } from '@renderer/lib/i18n'
 
 const incoming: TransactionType[] = ['income', 'savings_withdrawal', 'loan_in', 'adjustment_in']
 
@@ -41,8 +42,8 @@ function direction(tx: Transaction, accountFilter?: number): 1 | -1 | 0 {
 
 function dayLabel(date: IsoDate, locale: string): string {
   const now = today()
-  if (date === now) return 'Today'
-  if (date === addDays(now, -1)) return 'Yesterday'
+  if (date === now) return t('transactions.today')
+  if (date === addDays(now, -1)) return t('transactions.yesterday')
   return formatDate(date, locale, {
     weekday: 'long',
     day: 'numeric',
@@ -143,7 +144,7 @@ function TransactionRow({
           )}
           <span className="block truncate text-sm text-ink-muted">
             {details}
-            {countsIn && ` · counts in ${countsIn}`}
+            {countsIn && t('transactions.countsInShort', { month: countsIn })}
             {tx.note && <span className="italic"> · {tx.note}</span>}
           </span>
         </span>
@@ -156,8 +157,8 @@ function TransactionRow({
       {editable && !isAdjustment(tx.type) ? (
         <button
           type="button"
-          aria-label={`Duplicate “${tx.title}”`}
-          title="Duplicate"
+          aria-label={t('transactions.duplicateTitle', { title: tx.title })}
+          title={t('transactions.duplicate')}
           onClick={() => duplicateTransaction(tx)}
           className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-control text-ink-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary"
         >
@@ -230,12 +231,20 @@ export function TransactionList({
               <p className="flex gap-4 text-sm text-ink-muted">
                 {totals && totals.income > 0 && (
                   <span>
-                    In <span className="amount text-income">{money.format(totals.income)}</span>
+                    {tNode('transactions.dayIn', {
+                      amount: (
+                        <span className="amount text-income">{money.format(totals.income)}</span>
+                      )
+                    })}
                   </span>
                 )}
                 {totals && totals.expenses > 0 && (
                   <span>
-                    Out <span className="amount text-ink">{money.format(totals.expenses)}</span>
+                    {tNode('transactions.dayOut', {
+                      amount: (
+                        <span className="amount text-ink">{money.format(totals.expenses)}</span>
+                      )
+                    })}
                   </span>
                 )}
               </p>

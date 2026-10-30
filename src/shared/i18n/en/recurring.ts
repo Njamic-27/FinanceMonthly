@@ -1,0 +1,117 @@
+import type { Message } from '../types'
+
+export const recurring = {
+  'recurring.weekly': 'Weekly',
+  'recurring.monthly': 'Monthly',
+  'recurring.yearly': 'Yearly',
+  'recurring.addItAutomatically': 'Add it automatically',
+  'recurring.askMeFirst': 'Ask me first',
+  'recurring.never': 'Never',
+  'recurring.onADate': 'On a date',
+  'recurring.enterAnAmountAbove': 'Enter an amount above zero',
+  'recurring.nothingIsAddedUntil': 'Nothing is added until you resume it.',
+  'recurring.itHasNoPayments': 'It has no payments left before its end date.',
+  'recurring.nothingAfterTodayWill': 'Nothing after today will be added.',
+  'recurring.nothingMoreWillBe': 'Nothing more will be added for it.',
+  'recurring.thisCantBeUndone': 'This can’t be undone.',
+  'recurring.moneyYouReceiveOn': 'Money you receive on a schedule, like your salary.',
+  'recurring.aPaymentThatRepeats': 'A payment that repeats on a schedule.',
+  'recurring.repeats': 'Repeats',
+  'recurring.nextDate': 'Next date',
+  'recurring.firstDate': 'First date',
+  'recurring.ends': 'Ends',
+  'recurring.whenItsDue': 'When it’s due',
+  'recurring.addedToYourTransactions':
+    'Added to your transactions on the day, even if Financije was closed.',
+  'recurring.waitsUnderDueNow':
+    'Waits under Due now until you confirm it, with the amount you actually paid.',
+  'recurring.remindMe': 'Remind me',
+  'recurring.noReminder': 'No reminder',
+  'recurring.whereYouManageIt': 'Where you manage it',
+  'recurring.nothingIsAddedOr': 'Nothing is added or asked for until you resume it.',
+  'recurring.itContinuesFromIts':
+    'It continues from its next date. Payments missed while paused are left out.',
+  'recurring.end': 'End',
+  'recurring.itEndsTodaySo':
+    'It ends today, so nothing after today is added. To restart it, set a new next date and end.',
+  'recurring.cancelSubscription': 'Cancel subscription',
+  'recurring.endToday': 'End today',
+  'recurring.itHasEndedRemove': 'It has ended. Remove it from the list; what it added stays.',
+  'recurring.removeItForGood': 'Remove it for good. What it already added stays.',
+  'recurring.delete': 'Delete…',
+  'recurring.chooseAnAccount': 'Choose an account',
+  'recurring.confirm': 'Confirm',
+  'recurring.pay': 'Pay',
+  'recurring.receivedOn': 'Received on',
+  'recurring.paidOn': 'Paid on',
+  'recurring.markAsReceived': 'Mark as received',
+  'recurring.markAsPaid': 'Mark as paid',
+  'recurring.newSubscription': 'New subscription',
+  'recurring.pickTheServiceTo':
+    'Pick the service to fill in its name. You enter the price and billing date next.',
+  'recurring.custom': 'Custom',
+  'recurring.orTheLastDay': ' (or the last day of shorter months)',
+  'recurring.enterTheAmount': 'Enter the amount',
+
+  'recurring.unit.weekly': { one: 'week', other: 'weeks' },
+  'recurring.unit.monthly': { one: 'month', other: 'months' },
+  'recurring.unit.yearly': { one: 'year', other: 'years' },
+  'recurring.paymentsAdded': {
+    one: '{count} payment added to your transactions.',
+    other: '{count} payments added to your transactions.'
+  },
+  'recurring.paymentsAddedShort': {
+    one: '{count} payment added.',
+    other: '{count} payments added.'
+  },
+  'recurring.nextOn': 'Next on {date}.',
+  'recurring.deleteKeeps': {
+    one: 'Nothing more will be added for it. The {count} transaction it already added stays in your history.',
+    other:
+      'Nothing more will be added for it. The {count} transactions it already added stay in your history.'
+  },
+  'recurring.alreadyDueSave': {
+    one: '{count} payment is already due and will be added when you save.',
+    other: '{count} payments are already due and will be added when you save.'
+  },
+  'recurring.alreadyDue': {
+    one: '{count} payment is already due.',
+    other: '{count} payments are already due.'
+  },
+  'recurring.savedToast': '{title} saved',
+  'recurring.addedToast': '{title} added',
+  'recurring.cancelledToast': '{title} cancelled',
+  'recurring.endedToast': '{title} ended',
+  'recurring.accountStarts': '{account} starts on {date}. Choose that day or later.',
+  'recurring.add.income': 'Add recurring income',
+  'recurring.add.expense': 'Add recurring expense',
+  'recurring.add.subscription': 'Add subscription',
+  'recurring.new.income': 'New recurring income',
+  'recurring.new.expense': 'New recurring expense',
+  'recurring.new.subscription': 'New subscription',
+  'recurring.edit.income': 'Edit recurring income',
+  'recurring.edit.expense': 'Edit recurring expense',
+  'recurring.edit.subscription': 'Edit subscription',
+  'recurring.delete.income': 'Delete recurring income',
+  'recurring.delete.expense': 'Delete recurring expense',
+  'recurring.delete.subscription': 'Delete subscription',
+  'recurring.placeholder.income': 'e.g. Salary',
+  'recurring.placeholder.expense': 'e.g. Rent',
+  'recurring.placeholder.subscription': 'e.g. Netflix',
+  'recurring.reminder.onDay': 'On the day',
+  'recurring.reminder.weekBefore': 'A week before',
+  'recurring.reminder.daysBefore': { one: '{count} day before', other: '{count} days before' },
+  'schedule.weekly': 'Every week',
+  'schedule.monthly': 'Monthly',
+  'schedule.yearly': 'Yearly',
+  'schedule.every.weekly': { one: 'Every {count} week', other: 'Every {count} weeks' },
+  'schedule.every.monthly': { one: 'Every {count} month', other: 'Every {count} months' },
+  'schedule.every.yearly': { one: 'Every {count} year', other: 'Every {count} years' },
+  'schedule.onWeekday': '{repeat} on {weekday}',
+  'schedule.onDay': '{repeat} on the {day}{shortMonths}',
+  'schedule.onDate': '{repeat} on {date}',
+  'recurring.confirmTitle': 'Confirm “{title}”',
+  'recurring.payTitle': 'Pay “{title}”',
+  'recurring.dueOn': 'Due {date}. Change anything that was different this time.',
+  'recurring.website': 'Website'
+} satisfies Record<string, Message>

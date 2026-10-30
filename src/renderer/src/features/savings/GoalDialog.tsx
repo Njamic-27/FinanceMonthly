@@ -33,6 +33,7 @@ import {
   useDeleteSavingsGoal,
   useUpdateSavingsGoal
 } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 export type GoalDialogTarget = { kind: 'new' } | { kind: 'edit'; goal: SavingsGoal }
 
@@ -90,11 +91,13 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
     /** An optional amount: '' is none; anything else must be an amount. */
     const amount = (value: string, field: Field, required = false): number | null => {
       if (value.trim() === '') {
-        if (required) found[field] = 'Enter the amount'
+        if (required) found[field] = t('recurring.enterTheAmount')
         return null
       }
       const cents = money.parse(value)
-      if (cents === null) found[field] = `Enter an amount like ${money.toInput(150000)}`
+      if (cents === null) {
+        found[field] = t('line.enterAmountLike', { example: money.toInput(150000) })
+      }
       return cents
     }
     const target = amount(targetAmount, 'targetAmount', true)
@@ -117,7 +120,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
     if (existing) {
       updateGoal.mutate(
         { id: existing.id, input: parsed.data },
-        { onSuccess: () => done('Goal saved'), onError }
+        { onSuccess: () => done(t('savings.goalSaved')), onError }
       )
     } else {
       createGoal.mutate(parsed.data, {
@@ -131,15 +134,13 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.name}”?</DialogTitle>
-          <DialogDescription>
-            Nothing has been saved into it. This can’t be undone.
-          </DialogDescription>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.name })}</DialogTitle>
+          <DialogDescription>{t('savings.nothingHasBeenSaved')}</DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -154,7 +155,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
               })
             }
           >
-            Delete goal
+            {t('savings.deleteGoal')}
           </Button>
         </DialogFooter>
       </>
@@ -164,15 +165,13 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit goal' : 'New savings goal'}</DialogTitle>
-        <DialogDescription>
-          Something you’re saving towards. Money you put in comes out of one of your accounts.
-        </DialogDescription>
+        <DialogTitle>{existing ? t('savings.editGoal') : t('add.newGoal')}</DialogTitle>
+        <DialogDescription>{t('savings.somethingYoureSavingTowards')}</DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor="goal-name">Name</Label>
+          <Label htmlFor="goal-name">{t('common.name')}</Label>
           <div className="flex items-center gap-3">
             <ColorChip color={color} icon={PiggyBank} />
             <Input
@@ -180,7 +179,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
               value={name}
               autoFocus
               maxLength={40}
-              placeholder="e.g. Summer holiday"
+              placeholder={t('savings.namePlaceholder')}
               {...errorProps('goal-name', errors.name)}
               onChange={(event) => {
                 setName(event.target.value)
@@ -195,7 +194,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="goal-target">Target</Label>
+            <Label htmlFor="goal-target">{t('savings.target')}</Label>
             <AmountInput
               id="goal-target"
               value={targetAmount}
@@ -210,14 +209,14 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
           </div>
           <div className="grid content-start gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="goal-date">By</Label>
+              <Label htmlFor="goal-date">{t('savings.by')}</Label>
               <Switch
                 checked={hasDate}
                 onCheckedChange={(on) => {
                   setHasDate(on)
                   clearError('targetDate')
                 }}
-                aria-label="Reach it by a date"
+                aria-label={t('savings.reachItByA')}
                 className="scale-75"
               />
             </div>
@@ -233,7 +232,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
               />
             ) : (
               <p id="goal-date" className="flex h-10 items-center text-sm text-ink-muted">
-                No date
+                {t('loans.noDate')}
               </p>
             )}
             <FieldError id="goal-date-error" message={errors.targetDate} />
@@ -243,7 +242,8 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
             <Label htmlFor="goal-starting">
-              Already saved <span className="font-normal text-ink-muted">(optional)</span>
+              {t('savings.alreadySaved')}{' '}
+              <span className="font-normal text-ink-muted">{t('common.optional')}</span>
             </Label>
             <AmountInput
               id="goal-starting"
@@ -259,7 +259,8 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
           </div>
           <div className="grid content-start gap-1.5">
             <Label htmlFor="goal-monthly">
-              Each month <span className="font-normal text-ink-muted">(optional)</span>
+              {t('savings.eachMonth')}{' '}
+              <span className="font-normal text-ink-muted">{t('common.optional')}</span>
             </Label>
             <AmountInput
               id="goal-monthly"
@@ -274,10 +275,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
             <FieldError id="goal-monthly-error" message={errors.plannedMonthly} />
           </div>
         </div>
-        <p className="-mt-2 text-sm text-ink-muted">
-          “Already saved” is money set aside before you started using Financije. “Each month” is
-          what you plan to put in, for the date you’ll reach the goal.
-        </p>
+        <p className="-mt-2 text-sm text-ink-muted">{t('savings.amountsHint')}</p>
       </div>
 
       {formError && <FormError message={formError} className="mt-5" />}
@@ -285,11 +283,9 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
       {existing && (
         <div className="mt-6 divide-y divide-line border-t border-line">
           <ActionRow
-            title={existing.isArchived ? 'Restore' : 'Archive'}
+            title={existing.isArchived ? t('accounts.restore') : t('accounts.archive')}
             description={
-              existing.isArchived
-                ? 'Show it with your other goals again.'
-                : 'Reached it or gave up on it? Its history stays.'
+              existing.isArchived ? t('savings.showItWithYour') : t('savings.reachedItOrGave')
             }
           >
             <Button
@@ -307,15 +303,15 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
                 )
               }
             >
-              {existing.isArchived ? 'Restore goal' : 'Archive goal'}
+              {existing.isArchived ? t('savings.restoreGoal') : t('savings.archiveGoal')}
             </Button>
           </ActionRow>
           <ActionRow
-            title="Delete"
+            title={t('common.delete')}
             description={
               existing.movementCount > 0
-                ? 'Only goals without deposits or withdrawals can be deleted. Archive this one instead.'
-                : 'Remove it for good.'
+                ? t('savings.onlyGoalsWithoutDeposits')
+                : t('accounts.removeItForGood')
             }
           >
             {existing.movementCount === 0 && (
@@ -326,7 +322,7 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
                 className="text-expense"
                 onClick={() => setConfirmDelete(true)}
               >
-                Delete…
+                {t('recurring.delete')}
               </Button>
             )}
           </ActionRow>
@@ -335,10 +331,10 @@ function GoalForm({ target, goals, onClose, onDeleted }: FormProps): React.JSX.E
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save goal' : 'Add goal'}
+          {existing ? t('savings.saveGoal') : t('savings.addGoal')}
         </Button>
       </DialogFooter>
     </form>

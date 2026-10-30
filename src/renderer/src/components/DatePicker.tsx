@@ -7,6 +7,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@renderer/components/ui/popover'
 import { useSettings } from '@renderer/features/settings/queries'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 const calendarClasses: Partial<ClassNames> = {
   root: 'relative',
@@ -70,8 +71,8 @@ export function DatePicker({
     setOpen(false)
   }
   const shortcuts = [
-    { label: 'Today', date: now },
-    { label: 'Yesterday', date: addDays(now, -1) }
+    { label: t('transactions.today'), date: now },
+    { label: t('transactions.yesterday'), date: addDays(now, -1) }
   ].filter((s) => !min || s.date >= min)
 
   return (
@@ -98,7 +99,7 @@ export function DatePicker({
           <CalendarDays className="size-4 shrink-0 text-ink-muted" aria-hidden />
         </button>
       </PopoverTrigger>
-      <PopoverContent aria-label="Choose a date">
+      <PopoverContent aria-label={t('ui.chooseADate')}>
         <DayPicker
           mode="single"
           required

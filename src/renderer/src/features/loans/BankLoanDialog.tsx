@@ -29,6 +29,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { useCreateBankLoan, useDeleteLoan, useUpdateBankLoan } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 type Field =
   | 'counterparty'
@@ -118,9 +119,11 @@ function BankLoanForm({
   const submit = (event: React.FormEvent): void => {
     event.preventDefault()
     let found: Partial<Record<Field, string>> = {}
-    if (principal.trim() === '') found.principal = 'Enter the amount'
-    else if (cents === null) found.principal = `Enter an amount like ${money.toInput(1200000)}`
-    if (rateValue === null) found.interestRate = 'Enter the yearly rate, like 5.9, or 0'
+    if (principal.trim() === '') found.principal = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.principal = t('line.enterAmountLike', { example: money.toInput(1200000) })
+    }
+    if (rateValue === null) found.interestRate = t('loans.enterTheYearlyRate')
     const parsed = bankLoanInputSchema.safeParse({
       counterparty,
       title,
@@ -141,7 +144,7 @@ function BankLoanForm({
     }
     const input = { ...parsed.data, note: parsed.data.note ?? null }
     const saved = (loan: Loan): void => {
-      toast({ title: existing ? 'Loan saved' : `${loan.title} added`, variant: 'success' })
+      toast({ title: existing ? t('loans.loanSaved') : `${loan.title} added`, variant: 'success' })
       onClose()
     }
     if (existing) update.mutate({ id: existing.id, input }, { onSuccess: saved, onError })
@@ -152,16 +155,15 @@ function BankLoanForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.title}”?</DialogTitle>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.title })}</DialogTitle>
           <DialogDescription>
-            Its schedule and every payment recorded for it are removed too, and the money they moved
-            goes back. This can’t be undone.
+            {t('loans.itsScheduleAndEvery')} {t('recurring.thisCantBeUndone')}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -177,7 +179,7 @@ function BankLoanForm({
               })
             }
           >
-            Delete loan
+            {t('loans.deleteLoan')}
           </Button>
         </DialogFooter>
       </>
@@ -189,16 +191,14 @@ function BankLoanForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit bank loan' : 'New bank loan'}</DialogTitle>
-        <DialogDescription>
-          A loan paid back in equal monthly installments. Financije works out the schedule.
-        </DialogDescription>
+        <DialogTitle>{existing ? t('loans.editBankLoan') : t('add.newBankLoan')}</DialogTitle>
+        <DialogDescription>{t('loans.aLoanPaidBack')}</DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-name">Bank</Label>
+            <Label htmlFor="bank-name">{t('loans.bank')}</Label>
             <Input
               id="bank-name"
               value={counterparty}
@@ -215,13 +215,14 @@ function BankLoanForm({
           </div>
           <div className="grid content-start gap-1.5">
             <Label htmlFor="bank-title">
-              Title <span className="font-normal text-ink-muted">(optional)</span>
+              {t('common.titleOptional')}{' '}
+              <span className="font-normal text-ink-muted">{t('common.optional')}</span>
             </Label>
             <Input
               id="bank-title"
               value={title}
               maxLength={80}
-              placeholder="e.g. Car loan"
+              placeholder={t('loans.titlePlaceholder')}
               {...errorProps('bank-title', errors.title)}
               onChange={(event) => {
                 setTitle(event.target.value)
@@ -234,13 +235,13 @@ function BankLoanForm({
 
         {locked && (
           <p className="rounded-control bg-surface-2 px-3 py-2.5 text-sm text-ink-muted">
-            Installments are paid already, so the amount, rate and dates stay as they are.
+            {t('loans.installmentsArePaidAlready')}
           </p>
         )}
 
         <div className="grid grid-cols-3 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-principal">Amount</Label>
+            <Label htmlFor="bank-principal">{t('common.amount')}</Label>
             <AmountInput
               id="bank-principal"
               value={principal}
@@ -255,7 +256,7 @@ function BankLoanForm({
             <FieldError id="bank-principal-error" message={errors.principal} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-rate">Yearly interest</Label>
+            <Label htmlFor="bank-rate">{t('loans.yearlyInterest')}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="bank-rate"
@@ -274,7 +275,7 @@ function BankLoanForm({
             <FieldError id="bank-rate-error" message={errors.interestRate} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-count">Installments</Label>
+            <Label htmlFor="bank-count">{t('accounts.installments')}</Label>
             <Input
               id="bank-count"
               type="number"
@@ -294,7 +295,7 @@ function BankLoanForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-start">Paid out on</Label>
+            <Label htmlFor="bank-start">{t('loans.paidOutOn')}</Label>
             <DatePicker
               id="bank-start"
               value={startDate}
@@ -310,7 +311,7 @@ function BankLoanForm({
             <FieldError id="bank-start-error" message={errors.startDate} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="bank-first">First installment</Label>
+            <Label htmlFor="bank-first">{t('loans.firstInstallment')}</Label>
             <DatePicker
               id="bank-first"
               value={firstPaymentDate}
@@ -331,15 +332,15 @@ function BankLoanForm({
             aria-live="polite"
           >
             <div>
-              <dt className="text-sm text-ink-muted">Each month</dt>
+              <dt className="text-sm text-ink-muted">{t('panel.eachMonth')}</dt>
               <dd className="amount text-lg">{money.format(preview[0].amount)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Interest in total</dt>
+              <dt className="text-sm text-ink-muted">{t('loans.interestInTotal')}</dt>
               <dd className="amount text-lg">{money.format(totalInterest(preview))}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Paid off</dt>
+              <dt className="text-sm text-ink-muted">{t('accounts.paidOff')}</dt>
               <dd className="text-lg font-semibold">
                 {formatDate(preview[preview.length - 1].dueDate, money.locale, {
                   month: 'short',
@@ -351,7 +352,7 @@ function BankLoanForm({
         )}
 
         <div className="grid gap-1.5">
-          <Label htmlFor="bank-account">Installments paid from</Label>
+          <Label htmlFor="bank-account">{t('loans.installmentsPaidFrom')}</Label>
           <AccountSelect
             id="bank-account"
             value={accountId}
@@ -367,11 +368,9 @@ function BankLoanForm({
 
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Label htmlFor="bank-autopay">Pay automatically</Label>
+            <Label htmlFor="bank-autopay">{t('loans.payAutomatically')}</Label>
             <p id="bank-autopay-description" className="text-sm text-ink-muted">
-              {autoPay
-                ? 'Each installment is marked paid from this account on its due date, as the bank takes it.'
-                : 'You mark each installment paid yourself, with a reminder 3 days before.'}
+              {autoPay ? t('loans.eachInstallmentIsMarked') : t('loans.youMarkEachInstallment')}
             </p>
           </div>
           <Switch
@@ -384,10 +383,9 @@ function BankLoanForm({
 
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Label htmlFor="bank-record">The money came into this account</Label>
+            <Label htmlFor="bank-record">{t('loans.theMoneyCameInto')}</Label>
             <p id="bank-record-description" className="text-sm text-ink-muted">
-              Turn on for a cash loan paid into your account. Leave off when it went straight to a
-              seller, like a car dealer.
+              {t('loans.turnOnForA')}
             </p>
           </div>
           <Switch
@@ -401,7 +399,8 @@ function BankLoanForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="bank-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="bank-note"
@@ -422,7 +421,7 @@ function BankLoanForm({
 
       {existing && (
         <div className="mt-6 border-t border-line">
-          <ActionRow title="Delete" description="Remove the loan, its schedule and its payments.">
+          <ActionRow title={t('common.delete')} description={t('loans.removeTheLoanIts')}>
             <Button
               variant="outline"
               size="sm"
@@ -430,7 +429,7 @@ function BankLoanForm({
               className="text-expense"
               onClick={() => setConfirmDelete(true)}
             >
-              Delete…
+              {t('recurring.delete')}
             </Button>
           </ActionRow>
         </div>
@@ -438,10 +437,10 @@ function BankLoanForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save loan' : 'Add bank loan'}
+          {existing ? t('loans.saveLoan') : t('loans.addBankLoan')}
         </Button>
       </DialogFooter>
     </form>

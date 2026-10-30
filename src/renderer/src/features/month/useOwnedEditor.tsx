@@ -12,6 +12,7 @@ import {
 import { useSavingsGoals } from '@renderer/features/savings/queries'
 import { toast } from '@renderer/lib/toast'
 import { Confirm } from './Confirm'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * Savings and loan movements open in their own dialogs where the list is, on Month: a deposit or
@@ -47,20 +48,20 @@ export function useOwnedEditor(): {
       <RepaymentDialog target={repayment} onClose={() => setRepayment(null)} />
       <Confirm
         open={undoing !== null}
-        title="Undo this installment payment?"
-        description="The payment is deleted and the installment is due again."
-        action="Undo payment"
+        title={t('owned.undoTitle')}
+        description={t('owned.undoDescription')}
+        action={t('owned.undoAction')}
         pending={unpay.isPending}
         onCancel={() => setUndoing(null)}
         onConfirm={() => {
           if (undoing?.loanInstallmentId == null) return
           unpay.mutate(undoing.loanInstallmentId, {
             onSuccess: () => {
-              toast({ title: 'Payment undone', variant: 'success' })
+              toast({ title: t('owned.undone'), variant: 'success' })
               setUndoing(null)
             },
             onError: (error) =>
-              toast({ title: 'Not undone', description: error.message, variant: 'error' })
+              toast({ title: t('owned.notUndone'), description: error.message, variant: 'error' })
           })
         }}
       />

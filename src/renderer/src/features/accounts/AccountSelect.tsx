@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/select'
 import { errorProps } from '@renderer/lib/forms'
 import { accountTypeIcons } from './appearance'
+import { t } from '@renderer/lib/i18n'
 
 interface AccountSelectProps {
   id: string
@@ -29,7 +30,7 @@ export function AccountSelect({
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger id={id} {...errorProps(id, error)}>
-        <SelectValue placeholder="Choose an account" />
+        <SelectValue placeholder={t('recurring.chooseAnAccount')} />
       </SelectTrigger>
       <SelectContent>
         {accounts.map((a) => (

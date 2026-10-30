@@ -10,6 +10,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { t } from '@renderer/lib/i18n'
 import { cn } from '@renderer/lib/utils'
 import { BrandMark } from '@renderer/components/BrandMark'
 import { useDueOccurrences } from '@renderer/features/recurring/queries'
@@ -99,7 +100,8 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
   const [moreOpen, setMoreOpen] = useState(() => readFlag(MORE_OPEN_KEY))
   const { pathname } = useLocation()
   const dueCount = useDueOccurrences().data?.length ?? 0
-  const due: Badge | undefined = dueCount > 0 ? { count: dueCount, label: 'due now' } : undefined
+  const due: Badge | undefined =
+    dueCount > 0 ? { count: dueCount, label: t('shell.dueNow') } : undefined
   // Payments waiting to be confirmed are confirmed on Month.
   const badges: Record<string, Badge | undefined> = { '/': due }
   // While More is closed, it shows that you're on one of its screens.
@@ -122,7 +124,7 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
     <NavItem
       key={screen.path}
       to={screen.path}
-      title={screen.title}
+      title={t(screen.titleKey)}
       icon={screen.icon}
       collapsed={collapsed}
       badge={badges[screen.path]}
@@ -147,16 +149,16 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
         onClick={onAddTransaction}
         size={collapsed ? 'icon' : 'md'}
         className={cn('mb-4', collapsed ? 'self-center' : 'w-full')}
-        title={collapsed ? 'Add transaction (Ctrl+N)' : undefined}
-        aria-label={collapsed ? 'Add transaction' : undefined}
+        title={collapsed ? t('shell.addTransactionShortcut') : undefined}
+        aria-label={collapsed ? t('shell.addTransaction') : undefined}
       >
         <Plus />
-        {!collapsed && 'Add transaction'}
+        {!collapsed && t('shell.addTransaction')}
       </Button>
 
       <nav
         className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1"
-        aria-label="Main"
+        aria-label={t('shell.mainNav')}
       >
         <div className="grid gap-0.5">{mainScreens.map(item)}</div>
         {/* Out of the way at the bottom, just above Settings; it opens upwards. */}
@@ -171,7 +173,9 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
             onClick={toggleMore}
             aria-expanded={moreOpen}
             aria-controls="sidebar-more"
-            title={collapsed ? (moreOpen ? 'Fewer screens' : 'More screens') : undefined}
+            title={
+              collapsed ? (moreOpen ? t('shell.fewerScreens') : t('shell.moreScreens')) : undefined
+            }
             className={cn(
               itemClass,
               'cursor-pointer text-ink-muted hover:bg-surface-2 hover:text-ink',
@@ -182,7 +186,7 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
             <span className="relative shrink-0">
               <Ellipsis className="size-[1.125rem]" />
             </span>
-            <span className={cn('truncate', collapsed && 'sr-only')}>More</span>
+            <span className={cn('truncate', collapsed && 'sr-only')}>{t('shell.more')}</span>
             {!collapsed && (
               <ChevronDown
                 className={cn(
@@ -201,19 +205,19 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
           <NavItem
             key={screen.path}
             to={screen.path}
-            title={screen.title}
+            title={t(screen.titleKey)}
             icon={screen.icon}
             collapsed={collapsed}
           />
         ))}
         {import.meta.env.DEV && (
-          <NavItem to="/dev/ui" title="UI kit" icon={Blocks} collapsed={collapsed} />
+          <NavItem to="/dev/ui" title={t('shell.uiKit')} icon={Blocks} collapsed={collapsed} />
         )}
         <button
           type="button"
           onClick={toggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : undefined}
+          aria-label={collapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
+          title={collapsed ? t('shell.expandSidebar') : undefined}
           className={cn(
             'flex h-9 cursor-pointer items-center gap-3 rounded-control px-3 font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
             collapsed && 'justify-center px-0'
@@ -224,7 +228,7 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
           ) : (
             <>
               <PanelLeftClose className="size-[1.125rem]" />
-              <span>Collapse</span>
+              <span>{t('shell.collapse')}</span>
             </>
           )}
         </button>

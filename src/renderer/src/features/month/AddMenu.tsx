@@ -6,14 +6,16 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCategories } from '@renderer/features/categories/queries'
 import { useLoans } from '@renderer/features/loans/queries'
 import { useSavingsGoals } from '@renderer/features/savings/queries'
-import { addGroupLabels, addMenu, type AddAction, type AddGroupKey } from './addMenuEntries'
+import type { MessageKey } from '@shared/i18n'
+import { addGroupLabel, addMenu, type AddAction, type AddGroupKey } from './addMenuEntries'
+import { t } from '@renderer/lib/i18n'
 
-const placeholders: Record<AddGroupKey, string> = {
-  subscriptions: 'A subscription, or a new name',
-  bills: 'A bill, or a new name',
-  everyday: 'A category, or a new name',
-  loans: 'A loan',
-  savings: 'A goal'
+const placeholders: Record<AddGroupKey, MessageKey> = {
+  subscriptions: 'add.placeholderSubscription',
+  bills: 'add.placeholderBill',
+  everyday: 'add.placeholderCategory',
+  loans: 'add.placeholderLoan',
+  savings: 'add.placeholderGoal'
 }
 
 /**
@@ -104,7 +106,7 @@ export function AddMenu({
       <PopoverTrigger asChild>
         <Button variant="secondary" size="sm">
           <Plus />
-          {section === 'income' ? 'Add income' : 'Add expense'}
+          {section === 'income' ? t('month.addIncome') : t('month.addExpense')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="flex max-h-[min(32rem,70vh)] w-80 flex-col p-0">
@@ -115,8 +117,8 @@ export function AddMenu({
             className="flex cursor-pointer items-center gap-1 border-b border-line px-2 py-2 text-left text-sm font-semibold hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
           >
             <ChevronLeft className="size-4 text-ink-muted" aria-hidden />
-            <span className="sr-only">Back to all groups: </span>
-            {addGroupLabels[group]}
+            <span className="sr-only">{t('add.backToGroups')} </span>
+            {addGroupLabel(group)}
           </button>
         )}
         <div className="flex items-center gap-2 border-b border-line px-3">
@@ -127,17 +129,17 @@ export function AddMenu({
             value={query}
             aria-label={
               section === 'income'
-                ? 'Search income categories'
+                ? t('add.searchIncome')
                 : group
-                  ? `Search ${addGroupLabels[group]}`
-                  : 'Search'
+                  ? t('add.searchIn', { group: addGroupLabel(group) })
+                  : t('add.search')
             }
             placeholder={
               section === 'income'
-                ? 'A category, or a new name'
+                ? t('add.placeholderCategory')
                 : group
-                  ? placeholders[group]
-                  : 'A group, category, loan…'
+                  ? t(placeholders[group])
+                  : t('add.placeholderTop')
             }
             className="h-11 min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink-muted/70"
             onChange={(event) => setQuery(event.target.value)}
@@ -154,7 +156,7 @@ export function AddMenu({
         </div>
         <div ref={list} className="min-h-0 overflow-y-auto p-1">
           {groups.length === 0 && (
-            <p className="px-3 py-2 text-sm text-ink-muted">Nothing matches “{query}”.</p>
+            <p className="px-3 py-2 text-sm text-ink-muted">{t('add.nothingMatches', { query })}</p>
           )}
           {groups.map((group, g) => (
             <div key={group.heading} role="group" aria-label={group.heading} className="py-1">

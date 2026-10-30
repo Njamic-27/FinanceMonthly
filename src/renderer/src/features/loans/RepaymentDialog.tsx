@@ -27,6 +27,7 @@ import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { useAddRepayment, useDeleteRepayment, useUpdateRepayment } from './queries'
 import { directionLabels, owedLabel } from './wording'
+import { t } from '@renderer/lib/i18n'
 
 export type RepaymentDialogTarget =
   { kind: 'new'; loan: Loan } | { kind: 'edit'; loan: Loan; repayment: Transaction }
@@ -46,7 +47,7 @@ function RepaymentForm({
   const { loan } = target
   const existing = target.kind === 'edit' ? target.repayment : null
   const usable = accounts.filter((a) => !a.isArchived || a.id === existing?.accountId)
-  const labels = directionLabels[loan.kind === 'lent' ? 'lent' : 'borrowed']
+  const labels = directionLabels(loan.kind === 'lent' ? 'lent' : 'borrowed')
 
   const [amount, setAmount] = useState(money.toInput(existing?.amount ?? loan.outstanding))
   const [accountId, setAccountId] = useState(() =>
@@ -80,10 +81,15 @@ function RepaymentForm({
     event.preventDefault()
     let found: Partial<Record<Field, string>> = {}
     const cents = money.parse(amount)
-    if (amount.trim() === '') found.amount = 'Enter the amount'
-    else if (cents === null) found.amount = `Enter an amount like ${money.toInput(10000)}`
+    if (amount.trim() === '') found.amount = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.amount = t('line.enterAmountLike', { example: money.toInput(10000) })
+    }
     if (account && date < account.openingDate) {
-      found.date = `${account.name} starts on ${formatDate(account.openingDate, money.locale)}. Choose that day or later.`
+      found.date = t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, money.locale)
+      })
     }
     const parsed = repaymentInputSchema.safeParse({
       loanId: loan.id,
@@ -100,7 +106,7 @@ function RepaymentForm({
     const input = { ...parsed.data, note: parsed.data.note ?? null }
     const saved = (tx: Transaction): void => {
       toast({
-        title: existing ? 'Saved' : 'Repayment recorded',
+        title: existing ? t('loans.saved') : t('loans.repaymentRecorded'),
         description: money.format(tx.amount),
         variant: 'success'
       })
@@ -114,16 +120,18 @@ function RepaymentForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete this repayment?</DialogTitle>
+          <DialogTitle>{t('loans.deleteThisRepayment')}</DialogTitle>
           <DialogDescription>
-            {money.format(existing.amount)} on {formatDate(existing.date, money.locale)}. It counts
-            as owed again. This can’t be undone.
+            {t('loans.deleteRepaymentDescription', {
+              amount: money.format(existing.amount),
+              date: formatDate(existing.date, money.locale)
+            })}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -131,14 +139,14 @@ function RepaymentForm({
             onClick={() =>
               remove.mutate(existing.id, {
                 onSuccess: () => {
-                  toast({ title: 'Repayment deleted', variant: 'success' })
+                  toast({ title: t('loans.repaymentDeleted'), variant: 'success' })
                   onClose()
                 },
                 onError
               })
             }
           >
-            Delete repayment
+            {t('loans.deleteRepayment')}
           </Button>
         </DialogFooter>
       </>
@@ -148,15 +156,19 @@ function RepaymentForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit repayment' : labels.repayment}</DialogTitle>
+        <DialogTitle>{existing ? t('loans.editRepayment') : labels.repayment}</DialogTitle>
         <DialogDescription>
-          {owedLabel(loan)} {money.format(loan.outstanding)} on “{loan.title}”.
+          {t('loans.owedOn', {
+            owed: owedLabel(loan),
+            amount: money.format(loan.outstanding),
+            title: loan.title
+          })}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor="repayment-amount">Amount</Label>
+          <Label htmlFor="repayment-amount">{t('common.amount')}</Label>
           <AmountInput
             id="repayment-amount"
             size="lg"
@@ -188,7 +200,7 @@ function RepaymentForm({
             <FieldError id="repayment-account-error" message={errors.accountId} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="repayment-date">Date</Label>
+            <Label htmlFor="repayment-date">{t('common.date')}</Label>
             <DatePicker
               id="repayment-date"
               value={date}
@@ -204,7 +216,8 @@ function RepaymentForm({
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="repayment-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="repayment-note"
@@ -231,15 +244,15 @@ function RepaymentForm({
             disabled={pending}
             onClick={() => setConfirmDelete(true)}
           >
-            Delete…
+            {t('recurring.delete')}
           </Button>
         )}
         <div className="flex gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">{t('common.cancel')}</Button>
           </DialogClose>
           <Button type="submit" disabled={pending}>
-            {existing ? 'Save' : 'Record repayment'}
+            {existing ? t('common.save') : t('loans.recordRepayment')}
           </Button>
         </div>
       </DialogFooter>

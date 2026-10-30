@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { canGoBack } from '@renderer/lib/history'
+import { t } from '@renderer/lib/i18n'
 import { cn } from '@renderer/lib/utils'
 
 const backClass =
@@ -24,11 +25,11 @@ export function BackButton({
       <button
         type="button"
         onClick={() => navigate(-1)}
-        title="Back (Alt+Left)"
+        title={t('shell.backShortcut')}
         className={cn(backClass, 'cursor-pointer')}
       >
         <ArrowLeft className="size-4" aria-hidden />
-        Back
+        {t('shell.back')}
       </button>
     )
   }
@@ -43,7 +44,7 @@ export function BackButton({
   // Holds the line, so the title doesn't move once there is somewhere to go back to.
   return (
     <span aria-hidden className={cn(backClass, 'invisible')}>
-      Back
+      {t('shell.back')}
     </span>
   )
 }

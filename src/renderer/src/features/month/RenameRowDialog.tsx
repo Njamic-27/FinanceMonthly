@@ -16,13 +16,10 @@ import { Label } from '@renderer/components/ui/label'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { useRenameMonthRow } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** What renaming a row renames, for the dialog's description. */
-const renames: Record<MonthRowRename['kind'], string> = {
-  category: 'This renames the category everywhere, its past transactions included.',
-  recurring: 'This renames the recurring payment; transactions already recorded keep their title.',
-  savings: 'This renames the savings goal.'
-}
+const renames = (kind: MonthRowRename['kind']): string => t(`rename.${kind}`)
 
 function RenameForm({
   row,
@@ -48,7 +45,7 @@ function RenameForm({
     }
     rename.mutate(parsed.data, {
       onSuccess: () => {
-        toast({ title: `Renamed to ${parsed.data.name}`, variant: 'success' })
+        toast({ title: t('rename.done', { name: parsed.data.name }), variant: 'success' })
         onClose()
       },
       onError: (failure) => setError(failure.message)
@@ -58,11 +55,11 @@ function RenameForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>Rename “{row.title}”</DialogTitle>
-        <DialogDescription>{renames[row.kind]}</DialogDescription>
+        <DialogTitle>{t('rename.title', { title: row.title })}</DialogTitle>
+        <DialogDescription>{renames(row.kind)}</DialogDescription>
       </DialogHeader>
       <div className="grid gap-1.5">
-        <Label htmlFor="rename-row">Name</Label>
+        <Label htmlFor="rename-row">{t('common.name')}</Label>
         <Input
           id="rename-row"
           value={name}
@@ -79,10 +76,10 @@ function RenameForm({
       </div>
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={rename.isPending}>
-          Rename
+          {t('rename.action')}
         </Button>
       </DialogFooter>
     </form>

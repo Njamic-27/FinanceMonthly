@@ -19,7 +19,7 @@ import { useCategories } from '@renderer/features/categories/queries'
 import { ComingUp } from '@renderer/features/recurring/ComingUp'
 import { DueNow } from '@renderer/features/recurring/DueNow'
 import { useDueOccurrences, useRecurringItems } from '@renderer/features/recurring/queries'
-import { kindLabels, reminderLabel } from '@renderer/features/recurring/appearance'
+import { kindText, reminderLabel } from '@renderer/features/recurring/appearance'
 import {
   RecurringDialog,
   type RecurringDialogTarget
@@ -208,7 +208,7 @@ export function RecurringPage(): React.JSX.Element {
         actions={
           <Button onClick={add}>
             <Plus />
-            Add {kindLabels[tab].noun}
+            {kindText(tab, 'add')}
           </Button>
         }
       />
@@ -276,7 +276,7 @@ export function RecurringPage(): React.JSX.Element {
                           <p className="text-ink-muted">{empty}</p>
                           <Button onClick={add}>
                             <Plus />
-                            Add {kindLabels[kind].noun}
+                            {kindText(kind, 'add')}
                           </Button>
                         </section>
                       )

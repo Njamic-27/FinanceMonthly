@@ -13,56 +13,30 @@ import {
   Wallet,
   type LucideIcon
 } from 'lucide-react'
+import type { MessageKey } from '@shared/i18n'
 
 export interface Screen {
   path: string
-  title: string
+  titleKey: MessageKey
   icon: LucideIcon
-  description: string
-  /** What the finished screen will contain — shown on the placeholder until it is built. */
-  features: string[]
-  /** Build-plan step (docs/PLAN.md) that delivers the screen. */
-  step: number
 }
 
 /** The sidebar: Month, the home screen where everyday use happens, and the two views beside it. */
 export const mainScreens: Screen[] = [
   {
     path: '/',
-    title: 'Month',
-    icon: CalendarRange,
-    description: 'One month like a spreadsheet.',
-    features: [
-      'Type what each row came to instead of every purchase',
-      'Income, expenses, subscriptions, cards, loans and savings',
-      'Copy last month’s amounts'
-    ],
-    step: 34
+    titleKey: 'screen.month',
+    icon: CalendarRange
   },
   {
     path: '/projections',
-    title: 'Projections',
-    icon: ChartLine,
-    description: 'Where your balance is heading over the next 2 years.',
-    features: [
-      'Weekly or monthly forecast, 3 to 24 months ahead',
-      'Based on income, recurring expenses, subscriptions and loan installments',
-      'Milestones like loans paid off and goals reached'
-    ],
-    step: 30
+    titleKey: 'screen.projections',
+    icon: ChartLine
   },
   {
     path: '/calendar',
-    title: 'Calendar',
-    icon: CalendarDays,
-    description: 'What happened and what’s coming, day by day.',
-    features: [
-      'Month grid with income and expense totals per day',
-      'Planned bills, income and installments up to 24 months ahead',
-      'Month summary with ending balance',
-      'Open a day to add a transaction or confirm a planned payment'
-    ],
-    step: 22
+    titleKey: 'screen.calendar',
+    icon: CalendarDays
   }
 ]
 
@@ -73,110 +47,51 @@ export const mainScreens: Screen[] = [
 export const moreScreens: Screen[] = [
   {
     path: '/transactions',
-    title: 'Transactions',
-    icon: ArrowLeftRight,
-    description: 'Every payment, income and transfer in one list.',
-    features: [
-      'Search and filter by date, account, category and type',
-      'Grouped by day with daily totals',
-      'Add, edit, duplicate and delete transactions'
-    ],
-    step: 11
+    titleKey: 'screen.transactions',
+    icon: ArrowLeftRight
   },
   {
     path: '/overview',
-    title: 'Overview',
-    icon: ChartPie,
-    description: 'One week or one month in detail.',
-    features: [
-      'Switch between week and month, step back to any past period',
-      'Totals compared with the previous period',
-      'Daily spending, category breakdown and top expenses'
-    ],
-    step: 16
+    titleKey: 'screen.overview',
+    icon: ChartPie
   },
   {
     path: '/history',
-    title: 'History',
-    icon: History,
-    description: 'Past months and weeks side by side.',
-    features: [
-      'Year grid of months or weeks with income, expenses and net',
-      'Yearly chart',
-      'Open any period in Overview'
-    ],
-    step: 17
+    titleKey: 'screen.history',
+    icon: History
   },
   {
     path: '/accounts',
-    title: 'Accounts',
-    icon: Wallet,
-    description: 'Debit cards, credit cards and cash.',
-    features: [
-      'Balance of every account',
-      'Credit card limit, used and available amount',
-      'Installment purchases and card payments'
-    ],
-    step: 9
+    titleKey: 'screen.accounts',
+    icon: Wallet
   },
   {
     path: '/recurring',
-    title: 'Recurring',
-    icon: Repeat,
-    description: 'Subscriptions, regular bills and regular income.',
-    features: [
-      'Next billing date and reminder for each subscription',
-      'Monthly and yearly cost',
-      'Recurring income like your salary'
-    ],
-    step: 20
+    titleKey: 'screen.recurring',
+    icon: Repeat
   },
   {
     path: '/savings',
-    title: 'Savings',
-    icon: PiggyBank,
-    description: 'Goals and how close you are.',
-    features: [
-      'Saved vs target for each goal',
-      'Deposits and withdrawals',
-      'Estimated date you reach each goal'
-    ],
-    step: 26
+    titleKey: 'screen.savings',
+    icon: PiggyBank
   },
   {
     path: '/loans',
-    title: 'Loans',
-    icon: Landmark,
-    description: 'Money you lent, money you borrowed and bank loans.',
-    features: [
-      'What’s still owed, to you and by you',
-      'Bank loan installment schedule',
-      'Record repayments and see the payoff date'
-    ],
-    step: 27
+    titleKey: 'screen.loans',
+    icon: Landmark
   },
   {
     path: '/categories',
-    title: 'Categories',
-    icon: Tags,
-    description: 'The categories you sort income and expenses into.',
-    features: ['Create, rename and recolour categories', 'Archive categories you no longer use'],
-    step: 8
+    titleKey: 'screen.categories',
+    icon: Tags
   }
 ]
 
 export const footerScreens: Screen[] = [
   {
     path: '/settings',
-    title: 'Settings',
-    icon: Settings,
-    description: 'Currency, theme, reminders and backups.',
-    features: [
-      'Currency, number format and first day of the week',
-      'Light, dark or system theme',
-      'Reminders, backups and data export'
-    ],
-    step: 7
+    titleKey: 'screen.settings',
+    icon: Settings
   }
 ]
 

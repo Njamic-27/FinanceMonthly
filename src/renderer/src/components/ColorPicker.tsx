@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import { paletteColors, type PaletteColor } from '@shared/palette'
 import { colorLabel, swatchStyle } from '@renderer/lib/palette'
+import { t } from '@renderer/lib/i18n'
 
 interface ColorPickerProps {
   /** Groups the radio buttons; must be unique on the page. */
@@ -13,7 +14,7 @@ interface ColorPickerProps {
 export function ColorPicker({ name, value, onChange }: ColorPickerProps): React.JSX.Element {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-semibold">Colour</legend>
+      <legend className="mb-2 text-sm font-semibold">{t('ui.colour')}</legend>
       <div className="flex flex-wrap gap-2.5">
         {paletteColors.map((color) => (
           <label

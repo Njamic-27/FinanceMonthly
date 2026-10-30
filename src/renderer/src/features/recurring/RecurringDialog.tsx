@@ -48,7 +48,7 @@ import { useCategories } from '@renderer/features/categories/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
-import { kindLabels, reminderLabel } from './appearance'
+import { kindText, reminderLabel } from './appearance'
 import { PresetPicker } from './PresetPicker'
 import {
   useCancelRecurringItem,
@@ -58,6 +58,8 @@ import {
   useUpdateRecurringItem
 } from './queries'
 import { anchorFor, describeSchedule } from './schedule'
+import type { MessageKey } from '@shared/i18n'
+import { t } from '@renderer/lib/i18n'
 
 export type RecurringDialogTarget =
   { kind: 'new'; itemKind: RecurringKind } | { kind: 'edit'; item: RecurringItem }
@@ -73,32 +75,23 @@ type Field =
   | 'url'
   | 'note'
 
-const frequencyOptions = frequencies.map((value) => ({
-  value,
-  label: { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }[value]
-}))
-const units: Record<Frequency, [one: string, many: string]> = {
-  weekly: ['week', 'weeks'],
-  monthly: ['month', 'months'],
-  yearly: ['year', 'years']
-}
+const frequencyOptions = (): { value: Frequency; label: string }[] =>
+  frequencies.map((value) => ({ value, label: t(`recurring.${value}`) }))
 
 type Posting = 'auto' | 'ask'
-const postingOptions: { value: Posting; label: string }[] = [
-  { value: 'auto', label: 'Add it automatically' },
-  { value: 'ask', label: 'Ask me first' }
+const postingOptions = (): { value: Posting; label: string }[] => [
+  { value: 'auto', label: t('recurring.addItAutomatically') },
+  { value: 'ask', label: t('recurring.askMeFirst') }
 ]
 
 type Ending = 'never' | 'on'
-const endingOptions: { value: Ending; label: string }[] = [
-  { value: 'never', label: 'Never' },
-  { value: 'on', label: 'On a date' }
+const endingOptions = (): { value: Ending; label: string }[] => [
+  { value: 'never', label: t('recurring.never') },
+  { value: 'on', label: t('recurring.onADate') }
 ]
 
 /** The reminder select's value for no reminder. */
 const OFF = 'off'
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
 interface FormProps {
   target: RecurringDialogTarget
@@ -210,9 +203,10 @@ function RecurringForm({
     let found: Partial<Record<Field, string>> = {}
 
     const cents = money.parse(amount)
-    if (amount.trim() === '') found.amount = 'Enter the amount'
-    else if (cents === null) found.amount = `Enter an amount like ${money.toInput(1250)}`
-    else if (cents <= 0) found.amount = 'Enter an amount above zero'
+    if (amount.trim() === '') found.amount = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.amount = t('line.enterAmountLike', { example: money.toInput(1250) })
+    } else if (cents <= 0) found.amount = t('recurring.enterAnAmountAbove')
 
     const parsed = recurringItemInputSchema.safeParse({
       kind: itemKind,
@@ -240,14 +234,11 @@ function RecurringForm({
       return
     }
 
-    const saved = (verb: string) => (item: RecurringItem) => {
+    const saved = (key: MessageKey) => (item: RecurringItem) => {
       const posted = item.postedCount - (existing?.postedCount ?? 0)
       toast({
-        title: `${item.title} ${verb}`,
-        description:
-          posted > 0
-            ? `${plural(posted, 'payment', 'payments')} added to your transactions.`
-            : undefined,
+        title: t(key, { title: item.title }),
+        description: posted > 0 ? t('recurring.paymentsAdded', { count: posted }) : undefined,
         variant: 'success'
       })
       onClose()
@@ -256,30 +247,35 @@ function RecurringForm({
     if (existing) {
       updateItem.mutate(
         { id: existing.id, input: parsed.data },
-        { onSuccess: saved('saved'), onError }
+        { onSuccess: saved('recurring.savedToast'), onError }
       )
     } else {
-      createItem.mutate(parsed.data, { onSuccess: saved('added'), onError })
+      createItem.mutate(parsed.data, { onSuccess: saved('recurring.addedToast'), onError })
     }
   }
 
   const changeState = (action: 'pause' | 'resume' | 'cancel', item: RecurringItem): void => {
     const done = (updated: RecurringItem): void => {
       const posted = updated.postedCount - item.postedCount
-      const verbs = {
-        pause: 'paused',
-        resume: 'resumed',
-        cancel: itemKind === 'subscription' ? 'cancelled' : 'ended'
+      const titles: Record<typeof action, MessageKey> = {
+        pause: 'panel.pausedToast',
+        resume: 'panel.resumedToast',
+        cancel: itemKind === 'subscription' ? 'recurring.cancelledToast' : 'recurring.endedToast'
       }
       const description = {
-        pause: 'Nothing is added until you resume it.',
+        pause: t('recurring.nothingIsAddedUntil'),
         resume: hasEnded(updated)
-          ? 'It has no payments left before its end date.'
-          : `Next on ${formatDate(updated.nextDueDate, money.locale)}.${posted > 0 ? ` ${plural(posted, 'payment', 'payments')} added.` : ''}`,
-        cancel: 'Nothing after today will be added.'
+          ? t('recurring.itHasNoPayments')
+          : [
+              t('recurring.nextOn', { date: formatDate(updated.nextDueDate, money.locale) }),
+              posted > 0 && t('recurring.paymentsAddedShort', { count: posted })
+            ]
+              .filter(Boolean)
+              .join(' '),
+        cancel: t('recurring.nothingAfterTodayWill')
       }
       toast({
-        title: `${item.title} ${verbs[action]}`,
+        title: t(titles[action], { title: item.title }),
         description: description[action],
         variant: 'success'
       })
@@ -295,7 +291,7 @@ function RecurringForm({
     const remove = (): void =>
       deleteItem.mutate(existing.id, {
         onSuccess: () => {
-          toast({ title: `${existing.title} deleted`, variant: 'success' })
+          toast({ title: t('panel.deleted', { title: existing.title }), variant: 'success' })
           onClose()
         },
         onError: (error) => setFormError(error.message)
@@ -303,51 +299,47 @@ function RecurringForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.title}”?</DialogTitle>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.title })}</DialogTitle>
           <DialogDescription>
             {existing.postedCount > 0
-              ? `Nothing more will be added for it. The ${plural(existing.postedCount, 'transaction', 'transactions')} it already added stay in your history.`
-              : 'Nothing more will be added for it.'}{' '}
-            This can’t be undone.
+              ? t('recurring.deleteKeeps', { count: existing.postedCount })
+              : t('recurring.nothingMoreWillBe')}{' '}
+            {t('recurring.thisCantBeUndone')}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button variant="danger" disabled={pending} onClick={remove}>
-            Delete {kindLabels[itemKind].noun}
+            {kindText(itemKind, 'delete')}
           </Button>
         </DialogFooter>
       </>
     )
   }
 
-  const unit = units[frequency]
-
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>
-          {existing ? `Edit ${kindLabels[itemKind].noun}` : `New ${kindLabels[itemKind].noun}`}
-        </DialogTitle>
+        <DialogTitle>{kindText(itemKind, existing ? 'edit' : 'new')}</DialogTitle>
         <DialogDescription>
           {itemKind === 'income'
-            ? 'Money you receive on a schedule, like your salary.'
-            : 'A payment that repeats on a schedule.'}
+            ? t('recurring.moneyYouReceiveOn')
+            : t('recurring.aPaymentThatRepeats')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor="recurring-title">Name</Label>
+          <Label htmlFor="recurring-title">{t('common.name')}</Label>
           <Input
             id="recurring-title"
             value={title}
             autoFocus={!presetTitle}
             maxLength={80}
-            placeholder={kindLabels[itemKind].placeholder}
+            placeholder={kindText(itemKind, 'placeholder')}
             {...errorProps('recurring-title', errors.title)}
             onChange={(event) => {
               setTitle(event.target.value)
@@ -359,7 +351,7 @@ function RecurringForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="recurring-amount">Amount</Label>
+            <Label htmlFor="recurring-amount">{t('common.amount')}</Label>
             <AmountInput
               id="recurring-amount"
               autoFocus={!!presetTitle}
@@ -374,7 +366,7 @@ function RecurringForm({
             <FieldError id="recurring-amount-error" message={errors.amount} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="recurring-category">Category</Label>
+            <Label htmlFor="recurring-category">{t('common.category')}</Label>
             <CategorySelect
               id="recurring-category"
               value={categoryId}
@@ -391,7 +383,7 @@ function RecurringForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="recurring-account">
-            {itemKind === 'income' ? 'Paid into' : 'Paid with'}
+            {itemKind === 'income' ? t('line.paidInto') : t('line.paidWith')}
           </Label>
           <AccountSelect
             id="recurring-account"
@@ -410,13 +402,13 @@ function RecurringForm({
           <div className="flex flex-wrap items-end gap-4">
             <div className="grid gap-1.5">
               <span id="recurring-frequency-label" className="text-sm font-semibold">
-                Repeats
+                {t('recurring.repeats')}
               </span>
               <SegmentedControl
                 name="recurring-frequency"
                 aria-labelledby="recurring-frequency-label"
                 value={frequency}
-                options={frequencyOptions}
+                options={frequencyOptions()}
                 onValueChange={(value) => {
                   setFrequency(value)
                   clearError('nextDueDate')
@@ -424,7 +416,7 @@ function RecurringForm({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="recurring-interval">Every</Label>
+              <Label htmlFor="recurring-interval">{t('line.every')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="recurring-interval"
@@ -439,7 +431,9 @@ function RecurringForm({
                     clearError('interval')
                   }}
                 />
-                <span className="text-ink-muted">{intervalNumber === 1 ? unit[0] : unit[1]}</span>
+                <span className="text-ink-muted">
+                  {t(`recurring.unit.${frequency}`, { count: intervalNumber })}
+                </span>
               </div>
             </div>
           </div>
@@ -449,7 +443,9 @@ function RecurringForm({
         <div className="grid gap-1.5">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid content-start gap-1.5">
-              <Label htmlFor="recurring-next">{existing ? 'Next date' : 'First date'}</Label>
+              <Label htmlFor="recurring-next">
+                {existing ? t('recurring.nextDate') : t('recurring.firstDate')}
+              </Label>
               <DatePicker
                 id="recurring-next"
                 value={nextDueDate}
@@ -464,14 +460,14 @@ function RecurringForm({
             </div>
             <div className="grid content-start gap-1.5">
               <span id="recurring-ending-label" className="text-sm font-semibold">
-                Ends
+                {t('recurring.ends')}
               </span>
               {ending === 'never' ? (
                 <SegmentedControl
                   name="recurring-ending"
                   aria-labelledby="recurring-ending-label"
                   value={ending}
-                  options={endingOptions}
+                  options={endingOptions()}
                   onValueChange={setEnding}
                   className="justify-self-start"
                 />
@@ -495,7 +491,7 @@ function RecurringForm({
                       clearError('endDate')
                     }}
                   >
-                    Never
+                    {t('recurring.never')}
                   </Button>
                 </div>
               )}
@@ -511,24 +507,24 @@ function RecurringForm({
 
         <div className="grid gap-1.5">
           <span id="recurring-posting-label" className="text-sm font-semibold">
-            When it’s due
+            {t('recurring.whenItsDue')}
           </span>
           <SegmentedControl
             name="recurring-posting"
             aria-labelledby="recurring-posting-label"
             value={posting}
-            options={postingOptions}
+            options={postingOptions()}
             onValueChange={setPosting}
             className="justify-self-start"
           />
           <p className="text-sm text-ink-muted">
             {posting === 'auto'
-              ? 'Added to your transactions on the day, even if Financije was closed.'
-              : 'Waits under Due now until you confirm it, with the amount you actually paid.'}
+              ? t('recurring.addedToYourTransactions')
+              : t('recurring.waitsUnderDueNow')}
             {dueByToday > 0 &&
               (posting === 'auto'
-                ? ` ${plural(dueByToday, 'payment is', 'payments are')} already due and will be added when you save.`
-                : ` ${plural(dueByToday, 'payment is', 'payments are')} already due.`)}
+                ? ` ${t('recurring.alreadyDueSave', { count: dueByToday })}`
+                : ` ${t('recurring.alreadyDue', { count: dueByToday })}`)}
           </p>
         </div>
 
@@ -536,7 +532,7 @@ function RecurringForm({
           <div className="grid grid-cols-2 gap-4">
             {hasReminder && (
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="recurring-reminder">Remind me</Label>
+                <Label htmlFor="recurring-reminder">{t('recurring.remindMe')}</Label>
                 <Select value={reminder} onValueChange={setReminder}>
                   <SelectTrigger id="recurring-reminder">
                     <SelectValue />
@@ -544,7 +540,7 @@ function RecurringForm({
                   <SelectContent>
                     {reminderOptions.map((days) => (
                       <SelectItem key={days ?? OFF} value={days?.toString() ?? OFF}>
-                        {days === null ? 'No reminder' : reminderLabel(days)}
+                        {days === null ? t('recurring.noReminder') : reminderLabel(days)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -554,13 +550,14 @@ function RecurringForm({
             {hasWebsite && (
               <div className="grid content-start gap-1.5">
                 <Label htmlFor="recurring-url">
-                  Website <span className="font-normal text-ink-muted">(optional)</span>
+                  {t('recurring.website')}{' '}
+                  <span className="font-normal text-ink-muted">{t('common.optional')}</span>
                 </Label>
                 <Input
                   id="recurring-url"
                   value={url}
                   maxLength={300}
-                  placeholder="Where you manage it"
+                  placeholder={t('recurring.whereYouManageIt')}
                   {...errorProps('recurring-url', errors.url)}
                   onChange={(event) => {
                     setUrl(event.target.value)
@@ -575,7 +572,8 @@ function RecurringForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="recurring-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="recurring-note"
@@ -598,38 +596,32 @@ function RecurringForm({
         <div className="mt-6 divide-y divide-line border-t border-line">
           {!hasEnded(existing) &&
             (existing.isActive ? (
-              <ActionRow
-                title="Pause"
-                description="Nothing is added or asked for until you resume it."
-              >
+              <ActionRow title={t('panel.pause')} description={t('recurring.nothingIsAddedOr')}>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={pending}
                   onClick={() => changeState('pause', existing)}
                 >
-                  Pause
+                  {t('panel.pause')}
                 </Button>
               </ActionRow>
             ) : (
-              <ActionRow
-                title="Resume"
-                description="It continues from its next date. Payments missed while paused are left out."
-              >
+              <ActionRow title={t('panel.resume')} description={t('recurring.itContinuesFromIts')}>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={pending}
                   onClick={() => changeState('resume', existing)}
                 >
-                  Resume
+                  {t('panel.resume')}
                 </Button>
               </ActionRow>
             ))}
           {!hasEnded(existing) && (
             <ActionRow
-              title={itemKind === 'subscription' ? 'Cancel' : 'End'}
-              description="It ends today, so nothing after today is added. To restart it, set a new next date and end."
+              title={itemKind === 'subscription' ? t('common.cancel') : t('recurring.end')}
+              description={t('recurring.itEndsTodaySo')}
             >
               <Button
                 variant="outline"
@@ -637,16 +629,16 @@ function RecurringForm({
                 disabled={pending}
                 onClick={() => changeState('cancel', existing)}
               >
-                {itemKind === 'subscription' ? 'Cancel subscription' : 'End today'}
+                {itemKind === 'subscription'
+                  ? t('recurring.cancelSubscription')
+                  : t('recurring.endToday')}
               </Button>
             </ActionRow>
           )}
           <ActionRow
-            title="Delete"
+            title={t('common.delete')}
             description={
-              hasEnded(existing)
-                ? 'It has ended. Remove it from the list; what it added stays.'
-                : 'Remove it for good. What it already added stays.'
+              hasEnded(existing) ? t('recurring.itHasEndedRemove') : t('recurring.removeItForGood')
             }
           >
             <Button
@@ -656,7 +648,7 @@ function RecurringForm({
               className="text-expense"
               onClick={() => setConfirmDelete(true)}
             >
-              Delete…
+              {t('recurring.delete')}
             </Button>
           </ActionRow>
         </div>
@@ -664,10 +656,10 @@ function RecurringForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save changes' : `Add ${kindLabels[itemKind].noun}`}
+          {existing ? t('common.saveChanges') : kindText(itemKind, 'add')}
         </Button>
       </DialogFooter>
     </form>

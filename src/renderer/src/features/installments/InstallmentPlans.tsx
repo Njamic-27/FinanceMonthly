@@ -21,6 +21,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { categoryPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { useDeleteInstallmentPlan, useInstallmentPlans } from './queries'
+import { t, tNode } from '@renderer/lib/i18n'
 
 function PlanRow({
   plan,
@@ -53,22 +54,29 @@ function PlanRow({
                 {' · '}
               </>
             )}
-            {money.format(plan.totalAmount)} in {plan.count} · {money.format(plan.installment)}
-            /month
+            {t('accounts.planInfo', {
+              total: money.format(plan.totalAmount),
+              count: plan.count,
+              each: money.format(plan.installment)
+            })}
             {plan.lastInstallment !== plan.installment &&
-              `, last ${money.format(plan.lastInstallment)}`}
+              t('accounts.planLast', { amount: money.format(plan.lastInstallment) })}
           </p>
         </div>
         <div className="text-right">
-          <p className="amount">{done ? 'Paid off' : `${money.format(plan.remaining)} to go`}</p>
+          <p className="amount">
+            {done
+              ? t('accounts.paidOff')
+              : t('accounts.toGo', { amount: money.format(plan.remaining) })}
+          </p>
           <p className="text-sm text-ink-muted">
-            {plan.postedCount} of {plan.count} charged
+            {t('accounts.chargedOf', { posted: plan.postedCount, total: plan.count })}
           </p>
         </div>
       </div>
       <div
         role="progressbar"
-        aria-label={`${plan.title}: installments charged`}
+        aria-label={t('accounts.installmentsCharged', { title: plan.title })}
         aria-valuemin={0}
         aria-valuemax={plan.count}
         aria-valuenow={plan.postedCount}
@@ -81,16 +89,15 @@ function PlanRow({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-muted">
         <span>
-          {done ? (
-            <>Last installment on {short(plan.lastDate)}</>
-          ) : (
-            <>
-              Next on {short(plan.nextDate ?? plan.lastDate)} · last on {short(plan.lastDate)}
-            </>
-          )}
+          {done
+            ? tNode('accounts.lastInstallmentOn', { date: short(plan.lastDate) })
+            : tNode('accounts.nextAndLast', {
+                next: short(plan.nextDate ?? plan.lastDate),
+                last: short(plan.lastDate)
+              })}
         </span>
         <Button variant="ghost" size="sm" className="text-expense" onClick={onDelete}>
-          Delete purchase…
+          {t('panel.deletePurchase')}
         </Button>
       </div>
     </li>
@@ -121,7 +128,11 @@ export function InstallmentPlans({
         setDeleting(null)
       },
       onError: (error) =>
-        toast({ title: 'Purchase not deleted', description: error.message, variant: 'error' })
+        toast({
+          title: t('accounts.purchaseNotDeleted'),
+          description: error.message,
+          variant: 'error'
+        })
     })
 
   if (!plans.isSuccess) return null
@@ -130,11 +141,11 @@ export function InstallmentPlans({
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Installments</CardTitle>
+          <CardTitle>{t('accounts.installments')}</CardTitle>
           <CardDescription>
             {running.length > 0
-              ? `${money.format(remaining)} still to come, held from the limit.`
-              : 'Purchases you pay off in monthly installments.'}
+              ? t('accounts.stillToComeHeld', { amount: money.format(remaining) })
+              : t('accounts.purchasesYouPayOff')}
           </CardDescription>
         </div>
         <Button
@@ -145,14 +156,12 @@ export function InstallmentPlans({
           }
         >
           <Plus />
-          Buy in installments
+          {t('accounts.buyInInstallments')}
         </Button>
       </CardHeader>
 
       {all.length === 0 ? (
-        <p className="text-sm text-ink-muted">
-          None yet. Add an expense on this card and turn on “Pay in installments”.
-        </p>
+        <p className="text-sm text-ink-muted">{t('accounts.noneYetAddAn')}</p>
       ) : (
         <ul className="divide-y divide-line">
           {[...running, ...paidOff].map((plan) => (
@@ -166,24 +175,27 @@ export function InstallmentPlans({
           {deleting && (
             <>
               <DialogHeader>
-                <DialogTitle>Delete “{deleting.title}”?</DialogTitle>
+                <DialogTitle>{t('panel.deleteTitle', { title: deleting.title })}</DialogTitle>
                 <DialogDescription>
                   {deleting.postedCount > 0
-                    ? `Its ${deleting.postedCount} charged installment${deleting.postedCount === 1 ? '' : 's'} (${money.format(deleting.totalAmount - deleting.remaining)}) are removed too, as if you never bought it.`
-                    : 'Nothing has been charged for it yet.'}{' '}
-                  This can’t be undone.
+                    ? t('accounts.deletePlanCharged', {
+                        count: deleting.postedCount,
+                        amount: money.format(deleting.totalAmount - deleting.remaining)
+                      })
+                    : t('accounts.nothingHasBeenCharged')}{' '}
+                  {t('recurring.thisCantBeUndone')}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="outline">Keep it</Button>
+                  <Button variant="outline">{t('confirm.keep')}</Button>
                 </DialogClose>
                 <Button
                   variant="danger"
                   disabled={deletePlan.isPending}
                   onClick={() => remove(deleting)}
                 >
-                  Delete purchase
+                  {t('panel.deletePurchaseAction')}
                 </Button>
               </DialogFooter>
             </>

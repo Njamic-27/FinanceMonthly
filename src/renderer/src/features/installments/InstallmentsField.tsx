@@ -7,6 +7,7 @@ import { Switch } from '@renderer/components/ui/switch'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps } from '@renderer/lib/forms'
 import { parseCount } from './count'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * "Pay in installments" for an expense on a credit card: a switch, the number of
@@ -39,9 +40,9 @@ export function InstallmentsField({
     <div className="grid gap-3 rounded-control bg-surface-2 p-3">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Label htmlFor="tx-installments">Pay in installments</Label>
+          <Label htmlFor="tx-installments">{t('inst.pay')}</Label>
           <p id="tx-installments-description" className="text-sm text-ink-muted">
-            Split the purchase into monthly payments on the card.
+            {t('inst.payHint')}
           </p>
         </div>
         <Switch
@@ -62,16 +63,20 @@ export function InstallmentsField({
                 min={MIN_INSTALLMENTS}
                 max={MAX_INSTALLMENTS}
                 className="w-20"
-                aria-label="Number of installments"
+                aria-label={t('inst.count')}
                 value={count}
                 {...errorProps('tx-installments-count', error)}
                 onChange={(event) => onCountChange(event.target.value)}
               />
-              <span className="text-ink-muted">installments</span>
+              <span className="text-ink-muted">{t('inst.installments')}</span>
             </div>
             {parts && total !== null && n !== null && (
               <p className="amount" aria-live="polite">
-                {money.format(total)} / {n} = {money.format(parts[0])}/month
+                {t('inst.perMonth', {
+                  total: money.format(total),
+                  count: n,
+                  each: money.format(parts[0])
+                })}
               </p>
             )}
           </div>
@@ -79,9 +84,8 @@ export function InstallmentsField({
           {parts && (
             <p className="text-sm text-ink-muted">
               {parts[0] !== parts[parts.length - 1] &&
-                `Last installment ${money.format(parts[parts.length - 1])}. `}
-              The first is charged on {formatDate(firstDate, money.locale)}, then one each month.
-              What’s still to come is held from the card’s limit.
+                `${t('inst.last', { amount: money.format(parts[parts.length - 1]) })} `}
+              {t('inst.firstOn', { date: formatDate(firstDate, money.locale) })}
             </p>
           )}
         </div>

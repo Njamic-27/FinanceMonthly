@@ -5,38 +5,19 @@ import {
   type MonthSectionKey,
   type MonthSheetRow
 } from '@shared/month'
+import { t } from '@renderer/lib/i18n'
 
 // What the Month sheet's cells show, and when typing into one saves something.
 
 export const rowKey = (row: Pick<MonthSheetRow, 'kind' | 'sourceId'>): string => monthRowKey(row)
 
-export const sectionTitles: Record<MonthSectionKey, string> = {
-  income: 'Income',
-  subscriptions: 'Subscriptions',
-  bills: 'Bills',
-  everyday: 'Everyday',
-  loans: 'Loans',
-  savings: 'Savings',
-  cards: 'Credit card bills'
-}
+export const sectionTitle = (key: MonthSectionKey): string => t(`group.${key}`)
 
-export const sectionEmpty: Record<MonthSectionKey, string> = {
-  income: 'No income this month yet.',
-  subscriptions: 'No subscriptions this month.',
-  bills: 'No bills this month.',
-  everyday: 'No everyday spending this month yet.',
-  cards: 'No credit cards.',
-  loans: 'No loan payments this month.',
-  savings: 'No savings goals.'
-}
+export const sectionEmpty = (key: MonthSectionKey): string => t(`month.empty.${key}`)
 
-/** Sections that need a word on how they count. */
-export const sectionNotes: Partial<Record<MonthSectionKey, string>> = {
-  cards:
-    'Each card’s bill this month. Its purchases are already in their groups above, so it isn’t counted again.',
-  loans: 'Loans change your balance but aren’t income or spending.',
-  savings: 'Money put aside from your accounts, not spending.'
-}
+/** A word on how a section counts, for the ones that need it. */
+export const sectionNote = (key: MonthSectionKey): string | null =>
+  key === 'cards' || key === 'loans' || key === 'savings' ? t(`month.note.${key}`) : null
 
 /** What a cell shows: what's recorded, or what's planned while nothing is. */
 export function cellValue(row: MonthSheetRow): { amount: Cents; planned: boolean } {
@@ -73,22 +54,22 @@ export function lockedReason(row: MonthSheetRow): string | null {
   if (row.editable) return null
   switch (row.kind) {
     case 'installment_plan':
-      return 'Card installments are charged by themselves on their dates.'
+      return t('month.locked.installment')
     case 'loan':
-      return 'Open the row to pay an installment or record a repayment.'
+      return t('month.locked.loan')
     case 'recurring':
-      return 'Due more than once this month: change each payment in its list.'
+      return t('month.locked.recurring')
     default:
-      return 'This row can’t take an amount.'
+      return t('month.locked.other')
   }
 }
 
 /** The short line beside a row's name. */
 export function rowNote(row: MonthSheetRow): string | null {
   const parts: string[] = []
-  if (row.kind === 'installment_plan') parts.push('Charged automatically')
-  if (row.overdue) parts.push('Overdue')
-  if (row.count > 1) parts.push(`${row.count} transactions`)
+  if (row.kind === 'installment_plan') parts.push(t('month.chargedAutomatically'))
+  if (row.overdue) parts.push(t('common.overdue'))
+  if (row.count > 1) parts.push(t('month.transactions', { count: row.count }))
   return parts.length > 0 ? parts.join(' · ') : null
 }
 

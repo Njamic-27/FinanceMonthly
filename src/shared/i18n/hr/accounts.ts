@@ -1,0 +1,126 @@
+import type { accounts as en } from '../en/accounts'
+import type { Translation } from '../types'
+
+export const accounts: Translation<typeof en> = {
+  'accounts.balance': 'Stanje',
+  'accounts.whatTheAccountHeld':
+    'Koliko je račun imao na taj datum. Transakcije od tada dodaju se na to.',
+  'accounts.amountOwed': 'Dug',
+  'accounts.whatYouOwedOn':
+    'Koliko si dugovao na kartici na taj datum, ili 0. Potrošnja od tada dodaje se na to.',
+  'accounts.cashOnHand': 'Gotovina u ruci',
+  'accounts.whatYouHadOn':
+    'Koliko si imao na taj datum. Gotovina koju podigneš ili potrošiš od tada to mijenja.',
+  'accounts.enterWhatYouOwe': 'Upiši dug kao pozitivan iznos, ili 0',
+  'accounts.enterTheCardsCredit': 'Upiši limit kartice',
+  'accounts.enterTheDayOf': 'Upiši dan u mjesecu kad se izvod zatvara, od 1 do 31',
+  'accounts.enterTheDayOf2': 'Upiši dan u mjesecu kad plaćanje dospijeva, od 1 do 31',
+  'accounts.accountSaved': 'Račun spremljen',
+  'accounts.accountNotSaved': 'Račun nije spremljen',
+  'accounts.accountNotAdded': 'Račun nije dodan',
+  'accounts.accountNotDeleted': 'Račun nije obrisan',
+  'accounts.itHasNoTransactions':
+    'Nema transakcija, pa se ništa drugo ne mijenja. Ovo se ne može poništiti.',
+  'accounts.deleteAccount': 'Obriši račun',
+  'accounts.accountNotArchived': 'Račun nije arhiviran',
+  'accounts.accountNotRestored': 'Račun nije vraćen',
+  'accounts.editAccount': 'Uredi račun',
+  'accounts.newAccount': 'Novi račun',
+  'accounts.changesToTheStarting': 'Promjene početnog stanja ili datuma odmah mijenjaju stanje.',
+  'accounts.aCardBankAccount':
+    'Kartica, bankovni račun ili novčanik s kojeg plaćaš ili na koji primaš novac.',
+  'accounts.type': 'Vrsta',
+  'accounts.on': 'Na dan',
+  'accounts.creditLimit': 'Limit',
+  'accounts.statementDay': 'Dan izvoda',
+  'accounts.optional': 'Neobavezno',
+  'accounts.paymentDueDay': 'Dan dospijeća',
+  'accounts.daysOfTheMonth':
+    'Dani u mjesecu kad se izvod zatvara i kad plaćanje dospijeva. Potrošnja karticom broji se u mjesecu kad je plaćaš: uz 25 i 15, kupnja 20. listopada broji se u studenom.',
+  'accounts.paidFrom': 'Plaća se s',
+  'accounts.theAccountTheBill':
+    'Račun s kojeg se plaća račun kartice. Svaki mjesec potrošnja kartice prikazuje se pod njim kao jedan redak.',
+  'accounts.restore': 'Vrati',
+  'accounts.archive': 'Arhiviraj',
+  'accounts.offerItAgainWhen': 'Ponovno ga nudi pri dodavanju transakcija.',
+  'accounts.hideItFromNew': 'Sakrij ga iz novih transakcija i zbrojeva. Povijest ostaje.',
+  'accounts.restoreAccount': 'Vrati račun',
+  'accounts.archiveAccount': 'Arhiviraj račun',
+  'accounts.onlyAccountsWithoutTransactions':
+    'Mogu se obrisati samo računi bez transakcija. Ovaj umjesto toga arhiviraj.',
+  'accounts.removeItForGood': 'Ukloni ga zauvijek.',
+  'accounts.saveAccount': 'Spremi račun',
+  'accounts.addAccount': 'Dodaj račun',
+  'accounts.inCredit': 'U plusu',
+  'accounts.owed': 'Dug',
+  'accounts.payCard': 'Plati karticu',
+  'accounts.available': 'Dostupno',
+  'accounts.used': 'Iskorišteno',
+  'accounts.statementAndPayment': 'Izvod i plaćanje',
+  'accounts.lastStatement': 'Zadnji izvod',
+  'accounts.paymentDue': 'Dospijeće plaćanja',
+  'accounts.paid': 'Plaćeno',
+  'accounts.nextStatement': 'Sljedeći izvod',
+  'accounts.paymentRemindersAreOff':
+    'Podsjetnici za plaćanje su isključeni. Uključi ih u Postavkama.',
+  'accounts.addStatementDays': 'Dodaj dane izvoda',
+  'accounts.creditUsed': 'Iskorišteni limit',
+  'accounts.balancesUpdated': 'Stanja ažurirana',
+  'accounts.yourAccounts': 'Tvoji računi',
+  'accounts.noAccountsYetAdd': 'Još nema računa. Dodaj kartice i gotovinu kojima plaćaš.',
+  'accounts.enterAnAmountLike': 'Upiši iznos, npr. 1250 ili 1250,50',
+  'accounts.creditCardInCredit': 'Kreditna kartica · u plusu, pa se prikazuje kao minus',
+  'accounts.creditCardWhatYou': 'Kreditna kartica · koliko duguješ',
+  'accounts.totalBalance': 'Ukupno stanje',
+  'accounts.addAccountOrCard': 'Dodaj račun ili karticu',
+  'accounts.saveBalance': 'Spremi stanje',
+  'accounts.paidOff': 'Otplaćeno',
+  'accounts.purchaseNotDeleted': 'Kupnja nije obrisana',
+  'accounts.installments': 'Rate',
+  'accounts.purchasesYouPayOff': 'Kupnje koje otplaćuješ u mjesečnim ratama.',
+  'accounts.buyInInstallments': 'Kupi na rate',
+  'accounts.noneYetAddAn': 'Još ništa. Dodaj trošak na ovoj kartici i uključi „Plaćanje na rate”.',
+  'accounts.nothingHasBeenCharged': 'Za nju još ništa nije naplaćeno.',
+  'accounts.heldForInstallments': '{amount} zadržano je za rate koje tek dolaze.',
+  'accounts.closedOn': 'Zatvoren {date}',
+  'accounts.paidSince': '{amount} plaćeno od tada',
+  'accounts.dueEachMonth': '{day} dan svakog mjeseca',
+  'accounts.toPay': '{amount} za platiti',
+  'accounts.forStatement': 'Za izvod zatvoren {date}',
+  'accounts.closesEachMonth': 'Zatvara se {day} dan svakog mjeseca',
+  'accounts.remindersOn':
+    'Financije te podsjeća kad se izvod zatvori i {days} dana prije dospijeća plaćanja.',
+  'accounts.addDaysHint':
+    'Dodaj dane zatvaranja izvoda i dospijeća plaćanja da vidiš što i kada platiti, uz podsjetnike.',
+  'accounts.usageOwed': '{owed} duga, od {limit}',
+  'accounts.usageOwedHeld': '{owed} duga i {held} zadržano za rate, od {limit}',
+  'accounts.overLimit': 'Preko limita za {amount}',
+  'accounts.availableOf': '{available} dostupno od {limit}',
+  'accounts.adjustmentsAdded': {
+    one: '{count} ispravak stanja dodan. Ne broji se kao prihod ni potrošnja.',
+    few: '{count} ispravka stanja dodana. Ne broje se kao prihod ni potrošnja.',
+    other: '{count} ispravaka stanja dodano. Ne broje se kao prihod ni potrošnja.'
+  },
+  'accounts.yourAccountsHint':
+    'Upiši koliko svaki račun danas stvarno ima. Razlika se dodaje kao ispravak stanja i ne broji se kao prihod ni potrošnja.',
+  'accounts.startsOn': 'Počinje {date}',
+  'accounts.adjustment': 'Ispravak {amount}',
+  'accounts.saveBalances': {
+    one: 'Spremi {count} stanje',
+    few: 'Spremi {count} stanja',
+    other: 'Spremi {count} stanja'
+  },
+  'accounts.planInfo': '{total} u {count} · {each} mjesečno',
+  'accounts.planLast': ', zadnja {amount}',
+  'accounts.toGo': 'još {amount}',
+  'accounts.chargedOf': 'Naplaćeno {posted} od {total}',
+  'accounts.installmentsCharged': '{title}: naplaćene rate',
+  'accounts.lastInstallmentOn': 'Zadnja rata {date}',
+  'accounts.nextAndLast': 'Sljedeća {next} · zadnja {last}',
+  'accounts.stillToComeHeld': '{amount} tek dolazi, zadržano od limita.',
+  'accounts.deletePlanCharged': {
+    one: 'Uklanja se i {count} naplaćena rata ({amount}), kao da je nikad nisi kupio.',
+    few: 'Uklanjaju se i {count} naplaćene rate ({amount}), kao da je nikad nisi kupio.',
+    other: 'Uklanja se i {count} naplaćenih rata ({amount}), kao da je nikad nisi kupio.'
+  }
+}

@@ -1,15 +1,15 @@
 import type { RecurringKind } from '@shared/recurring'
+import { t } from '@renderer/lib/i18n'
 
-export const kindLabels: Record<RecurringKind, { noun: string; placeholder: string }> = {
-  income: { noun: 'recurring income', placeholder: 'e.g. Salary' },
-  expense: { noun: 'recurring expense', placeholder: 'e.g. Rent' },
-  subscription: { noun: 'subscription', placeholder: 'e.g. Netflix' }
-}
+/** What to call a recurring item of each kind in a button or title. */
+export const kindText = (
+  kind: RecurringKind,
+  what: 'add' | 'new' | 'edit' | 'delete' | 'placeholder'
+): string => t(`recurring.${what}.${kind}`)
 
 /** "On the day", "2 days before", "A week before". */
 export function reminderLabel(daysBefore: number): string {
-  if (daysBefore === 0) return 'On the day'
-  if (daysBefore === 1) return '1 day before'
-  if (daysBefore === 7) return 'A week before'
-  return `${daysBefore} days before`
+  if (daysBefore === 0) return t('recurring.reminder.onDay')
+  if (daysBefore === 7) return t('recurring.reminder.weekBefore')
+  return t('recurring.reminder.daysBefore', { count: daysBefore })
 }

@@ -1,9 +1,10 @@
-import { expenseGroupLabels, type ExpenseGroup } from '@shared/categories'
+import type { ExpenseGroup } from '@shared/categories'
 import type { LoanKind } from '@shared/loans'
 import type { MonthLineType } from '@shared/month'
 import { subscriptionCategoryName, subscriptionPresets } from '@shared/subscription-presets'
 import { foldText } from '@shared/text'
 import type { AddChoice } from './cells'
+import { t } from '@renderer/lib/i18n'
 
 // What "+" on Income or Expenses offers (PLAN.md §3, Month; step 51). Income: a category to add
 // to, picked or created by name. Expenses: first a group (Subscriptions, Bills, Everyday, Loans,
@@ -20,11 +21,7 @@ export const addGroupKeys: AddGroupKey[] = [
   'savings'
 ]
 
-export const addGroupLabels: Record<AddGroupKey, string> = {
-  ...expenseGroupLabels,
-  loans: 'Loans',
-  savings: 'Savings'
-}
+export const addGroupLabel = (group: AddGroupKey): string => t(`group.${group}`)
 
 export type AddAction =
   /** Opens a group's own list. */
@@ -77,9 +74,9 @@ export interface AddMenuData {
 }
 
 const loanLabels: Record<LoanKind, (title: string) => string> = {
-  bank_loan: (title) => `Pay ${title} installment`,
-  borrowed: (title) => `Repay ${title}`,
-  lent: (title) => `Repayment of ${title}`
+  bank_loan: (title) => t('add.payLoanInstallment', { title }),
+  borrowed: (title) => t('add.repay', { title }),
+  lent: (title) => t('add.repaymentOf', { title })
 }
 
 type Category = AddMenuData['categories'][number]
@@ -108,9 +105,9 @@ function groupEntries(group: AddGroupKey, data: AddMenuData): AddEntry[] {
         label: loanLabels[loan.kind](loan.title),
         action: { kind: 'loan', loanId: loan.id }
       })),
-      open('bank_loan', 'New bank loan', 'Paid back in installments'),
-      open('borrowed', 'Money borrowed', 'From a friend or family'),
-      open('lent', 'Money lent', 'To a friend or family')
+      open('bank_loan', t('add.newBankLoan'), t('add.newBankLoanHint')),
+      open('borrowed', t('add.borrowed'), t('add.borrowedHint')),
+      open('lent', t('add.lent'), t('add.lentHint'))
     ]
   }
   if (group === 'savings') {
@@ -118,20 +115,20 @@ function groupEntries(group: AddGroupKey, data: AddMenuData): AddEntry[] {
       ...data.goals.flatMap((goal): AddEntry[] => [
         {
           key: `deposit-${goal.id}`,
-          label: `Put into ${goal.name}`,
+          label: t('add.putInto', { goal: goal.name }),
           action: { kind: 'savings', goalId: goal.id, movement: 'deposit' }
         },
         ...(goal.saved > 0
           ? [
               {
                 key: `withdrawal-${goal.id}`,
-                label: `Take out of ${goal.name}`,
+                label: t('add.takeOut', { goal: goal.name }),
                 action: { kind: 'savings', goalId: goal.id, movement: 'withdrawal' } as const
               }
             ]
           : [])
       ]),
-      open('goal', 'New savings goal')
+      open('goal', t('add.newGoal'))
     ]
   }
   return []
@@ -155,7 +152,7 @@ function presetEntries(data: AddMenuData): AddEntry[] {
     .map((preset): AddEntry => ({
       key: `preset-${preset}`,
       label: preset,
-      description: `In ${name}`,
+      description: t('add.inCategory', { name }),
       action: {
         kind: 'line',
         type: 'expense',
@@ -198,10 +195,10 @@ export function addMenu(
       ? [
           {
             key: 'create',
-            label: `Create “${typed}”`,
+            label: t('add.create', { name: typed }),
             description: createIn
-              ? `A new category in ${expenseGroupLabels[createIn]}`
-              : `A new ${type} category`,
+              ? t('add.newCategoryIn', { group: addGroupLabel(createIn) })
+              : t('add.newIncomeCategory'),
             action: { kind: 'line', type, name: typed, isNew: true, group: createIn }
           }
         ]
@@ -214,9 +211,9 @@ export function addMenu(
         key: `category-${c.id}`,
         label: c.name,
         description: c.isArchived
-          ? 'Archived; adding to it restores it'
+          ? t('add.archived')
           : describe && c.group
-            ? `In ${expenseGroupLabels[c.group]}`
+            ? t('add.inGroup', { group: addGroupLabel(c.group) })
             : undefined,
         action: lineOf(c)
       }))
@@ -235,44 +232,49 @@ export function addMenu(
 
   if (section === 'income') {
     return filtered([
-      { heading: 'Categories', entries: [...create, ...categoryEntries(() => true, false)] }
+      {
+        heading: t('add.headingCategories'),
+        entries: [...create, ...categoryEntries(() => true, false)]
+      }
     ])
   }
 
   if (group === 'subscriptions' || group === 'bills' || group === 'everyday') {
     return filtered([
       {
-        heading: addGroupLabels[group],
+        heading: addGroupLabel(group),
         entries: [
           ...create,
           // A name typed in full is that category, whichever group it's in.
           ...categoryEntries((c) => c.group === group || c === exact, true)
         ]
       },
-      ...(group === 'subscriptions' ? [{ heading: 'Services', entries: presetEntries(data) }] : [])
+      ...(group === 'subscriptions'
+        ? [{ heading: t('add.headingServices'), entries: presetEntries(data) }]
+        : [])
     ])
   }
   if (group)
-    return filtered([{ heading: addGroupLabels[group], entries: groupEntries(group, data) }])
+    return filtered([{ heading: addGroupLabel(group), entries: groupEntries(group, data) }])
 
   const extras: AddGroup = {
-    heading: 'Cards & accounts',
+    heading: t('add.headingCardsAccounts'),
     entries: [
       ...data.cards.map((card): AddEntry => ({
         key: `card-${card.id}`,
-        label: `Pay ${card.name}`,
-        description: 'Moving money to the card, not spending',
+        label: t('add.payCard', { card: card.name }),
+        description: t('add.payCardHint'),
         action: { kind: 'pay_card', accountId: card.id }
       })),
-      open('transfer', 'Move money between accounts', 'A cash withdrawal, a transfer'),
-      open('account', 'Add an account or card')
+      open('transfer', t('add.transfer'), t('add.transferHint')),
+      open('account', t('add.account'))
     ]
   }
   const groupList: AddGroup = {
-    heading: 'Add to',
+    heading: t('add.headingAddTo'),
     entries: addGroupKeys.map((key): AddEntry => ({
       key: `group-${key}`,
-      label: addGroupLabels[key],
+      label: addGroupLabel(key),
       description: groupDescription(key, data),
       action: { kind: 'group', group: key }
     }))
@@ -285,10 +287,13 @@ export function addMenu(
       ...groupList,
       entries: groupList.entries.filter((e) => matches(e.label))
     },
-    { heading: 'Categories', entries: [...create, ...categoryEntries(() => true, true)] },
-    { heading: 'Services', entries: presetEntries(data) },
-    { heading: 'Loans', entries: groupEntries('loans', data) },
-    { heading: 'Savings', entries: groupEntries('savings', data) },
+    {
+      heading: t('add.headingCategories'),
+      entries: [...create, ...categoryEntries(() => true, true)]
+    },
+    { heading: t('add.headingServices'), entries: presetEntries(data) },
+    { heading: addGroupLabel('loans'), entries: groupEntries('loans', data) },
+    { heading: addGroupLabel('savings'), entries: groupEntries('savings', data) },
     extras
   ])
 }
@@ -300,13 +305,13 @@ function groupDescription(group: AddGroupKey, data: AddMenuData): string {
   if (group === 'loans') {
     return names(
       data.loans.map((l) => l.title),
-      'A bank loan, money borrowed or lent'
+      t('add.loansFallback')
     )
   }
   if (group === 'savings') {
     return names(
       data.goals.map((g) => g.name),
-      'Money put aside for a goal'
+      t('add.savingsFallback')
     )
   }
   return names(
@@ -314,6 +319,6 @@ function groupDescription(group: AddGroupKey, data: AddMenuData): string {
       .filter((c) => c.type === 'expense' && c.group === group && !c.isArchived)
       .map((c) => c.name)
       .sort((a, b) => a.localeCompare(b)),
-    group === 'subscriptions' ? 'Netflix, Spotify and the like' : 'A new category'
+    group === 'subscriptions' ? t('add.subscriptionsFallback') : t('add.newCategoryFallback')
   )
 }

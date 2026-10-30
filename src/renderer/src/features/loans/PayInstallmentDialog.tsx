@@ -19,6 +19,7 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { usePayInstallment } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /** The installment to pay, from a loan's schedule or the Calendar. */
 export interface PayInstallmentTarget {
@@ -76,21 +77,22 @@ function PayForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Pay {target.title}</DialogTitle>
+        <DialogTitle>{t('loans.payTitle', { title: target.title })}</DialogTitle>
         <DialogDescription>
-          {money.format(target.amount)}, due{' '}
-          {formatDate(target.dueDate, money.locale, {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+          {t('loans.payDescription', {
+            amount: money.format(target.amount),
+            date: formatDate(target.dueDate, money.locale, {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            })
           })}
-          . The amount is set by the loan’s schedule.
         </DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid content-start gap-1.5">
-          <Label htmlFor="pay-account">Paid from</Label>
+          <Label htmlFor="pay-account">{t('accounts.paidFrom')}</Label>
           <AccountSelect
             id="pay-account"
             value={accountId}
@@ -102,7 +104,7 @@ function PayForm({
           />
         </div>
         <div className="grid content-start gap-1.5">
-          <Label htmlFor="pay-date">Paid on</Label>
+          <Label htmlFor="pay-date">{t('recurring.paidOn')}</Label>
           <DatePicker
             id="pay-date"
             value={date}
@@ -116,10 +118,10 @@ function PayForm({
       {formError && <FormError message={formError} className="mt-5" />}
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button disabled={pay.isPending || !accountId} onClick={submit}>
-          Mark as paid
+          {t('recurring.markAsPaid')}
         </Button>
       </DialogFooter>
     </>

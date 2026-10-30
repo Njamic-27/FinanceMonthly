@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HandCoins, HandHeart } from 'lucide-react'
+import { HandCoins, HandHeart, type LucideIcon } from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import { addMonths, formatDate, today, type IsoDate } from '@shared/dates'
 import {
@@ -36,15 +36,16 @@ import { errorProps, fieldErrors } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { useCreateLoan, useDeleteLoan, useUpdateLoan } from './queries'
 import { directionLabels } from './wording'
+import { t } from '@renderer/lib/i18n'
 
 export type LoanDialogTarget =
   { kind: 'new'; loanKind: PersonalLoanKind } | { kind: 'edit'; loan: Loan }
 
 type Field = 'counterparty' | 'title' | 'principal' | 'startDate' | 'dueDate' | 'accountId' | 'note'
 
-const kindOptions = [
-  { value: 'lent' as const, label: 'I lent', icon: HandCoins },
-  { value: 'borrowed' as const, label: 'I borrowed', icon: HandHeart }
+const kindOptions = (): { value: 'lent' | 'borrowed'; label: string; icon: LucideIcon }[] => [
+  { value: 'lent' as const, label: t('loans.iLent'), icon: HandCoins },
+  { value: 'borrowed' as const, label: t('loans.iBorrowed'), icon: HandHeart }
 ]
 
 function LoanForm({
@@ -97,7 +98,7 @@ function LoanForm({
   const deleteLoan = useDeleteLoan()
   const pending = createLoan.isPending || updateLoan.isPending || deleteLoan.isPending
   const account = usable.find((a) => String(a.id) === accountId)
-  const labels = directionLabels[kind]
+  const labels = directionLabels(kind)
 
   const clearError = (field: Field): void => {
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -109,10 +110,15 @@ function LoanForm({
     event.preventDefault()
     let found: Partial<Record<Field, string>> = {}
     const cents = money.parse(principal)
-    if (principal.trim() === '') found.principal = 'Enter the amount'
-    else if (cents === null) found.principal = `Enter an amount like ${money.toInput(30000)}`
+    if (principal.trim() === '') found.principal = t('recurring.enterTheAmount')
+    else if (cents === null) {
+      found.principal = t('line.enterAmountLike', { example: money.toInput(30000) })
+    }
     if (recordMoney && account && startDate < account.openingDate) {
-      found.startDate = `${account.name} starts on ${formatDate(account.openingDate, money.locale)}. Choose that day or later.`
+      found.startDate = t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, money.locale)
+      })
     }
     const parsed = personalLoanInputSchema.safeParse({
       kind,
@@ -132,7 +138,7 @@ function LoanForm({
     }
     const input = { ...parsed.data, note: parsed.data.note ?? null }
     const saved = (loan: Loan): void => {
-      toast({ title: existing ? 'Loan saved' : `${loan.title} added`, variant: 'success' })
+      toast({ title: existing ? t('loans.loanSaved') : `${loan.title} added`, variant: 'success' })
       onClose()
     }
     if (existing) updateLoan.mutate({ id: existing.id, input }, { onSuccess: saved, onError })
@@ -144,18 +150,16 @@ function LoanForm({
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Delete “{existing.title}”?</DialogTitle>
+          <DialogTitle>{t('panel.deleteTitle', { title: existing.title })}</DialogTitle>
           <DialogDescription>
-            {count > 0
-              ? `Its ${count} transaction${count === 1 ? '' : 's'} are removed too, and the money they moved goes back.`
-              : 'No money was recorded moving for it.'}{' '}
-            This can’t be undone.
+            {count > 0 ? t('loans.deleteTransactions', { count }) : t('loans.noMoneyWasRecorded')}{' '}
+            {t('recurring.thisCantBeUndone')}
           </DialogDescription>
         </DialogHeader>
         {formError && <FormError message={formError} />}
         <DialogFooter>
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-            Back
+            {t('shell.back')}
           </Button>
           <Button
             variant="danger"
@@ -171,7 +175,7 @@ function LoanForm({
               })
             }
           >
-            Delete loan
+            {t('loans.deleteLoan')}
           </Button>
         </DialogFooter>
       </>
@@ -181,16 +185,16 @@ function LoanForm({
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>{existing ? 'Edit loan' : 'New loan'}</DialogTitle>
-        <DialogDescription>Money between you and someone you know.</DialogDescription>
+        <DialogTitle>{existing ? t('loans.editLoan') : t('loans.newLoan')}</DialogTitle>
+        <DialogDescription>{t('loans.moneyBetweenYouAnd')}</DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="loan-kind"
-          aria-label="Lent or borrowed"
+          aria-label={t('loans.lentOrBorrowed')}
           value={kind}
-          options={kindOptions}
+          options={kindOptions()}
           onValueChange={(value) => {
             setKind(value)
             setFormError(null)
@@ -200,7 +204,9 @@ function LoanForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="loan-counterparty">{kind === 'lent' ? 'To' : 'From'}</Label>
+            <Label htmlFor="loan-counterparty">
+              {kind === 'lent' ? t('loans.to') : t('loans.from')}
+            </Label>
             <Input
               id="loan-counterparty"
               value={counterparty}
@@ -216,7 +222,7 @@ function LoanForm({
             <FieldError id="loan-counterparty-error" message={errors.counterparty} />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="loan-principal">Amount</Label>
+            <Label htmlFor="loan-principal">{t('common.amount')}</Label>
             <AmountInput
               id="loan-principal"
               value={principal}
@@ -233,7 +239,7 @@ function LoanForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="loan-start">On</Label>
+            <Label htmlFor="loan-start">{t('accounts.on')}</Label>
             <DatePicker
               id="loan-start"
               value={startDate}
@@ -249,14 +255,14 @@ function LoanForm({
           </div>
           <div className="grid content-start gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="loan-due">Paid back by</Label>
+              <Label htmlFor="loan-due">{t('loans.paidBackBy')}</Label>
               <Switch
                 checked={hasDue}
                 onCheckedChange={(on) => {
                   setHasDue(on)
                   clearError('dueDate')
                 }}
-                aria-label="Expected back by a date"
+                aria-label={t('loans.expectedBackByA')}
                 className="scale-75"
               />
             </div>
@@ -273,7 +279,7 @@ function LoanForm({
               />
             ) : (
               <p id="loan-due" className="flex h-10 items-center text-sm text-ink-muted">
-                No date
+                {t('loans.noDate')}
               </p>
             )}
             <FieldError id="loan-due-error" message={errors.dueDate} />
@@ -283,12 +289,10 @@ function LoanForm({
         <div className="grid gap-3 rounded-control bg-surface-2 p-3">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label htmlFor="loan-record">Record the money moving</Label>
+              <Label htmlFor="loan-record">{t('loans.recordTheMoneyMoving')}</Label>
               <p id="loan-record-description" className="text-sm text-ink-muted">
-                {kind === 'lent'
-                  ? 'Takes it out of one of your accounts on that day.'
-                  : 'Adds it to one of your accounts on that day.'}{' '}
-                Leave it off for a loan from before you used Financije.
+                {kind === 'lent' ? t('loans.takesItOutOf') : t('loans.addsItToOne')}{' '}
+                {t('loans.leaveItOffFor')}
               </p>
             </div>
             <Switch
@@ -323,13 +327,16 @@ function LoanForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="loan-title">
-            Title <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.titleOptional')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Input
             id="loan-title"
             value={title}
             maxLength={80}
-            placeholder={`Leave empty to use “${defaultLoanTitle(kind, counterparty.trim() || '…')}”`}
+            placeholder={t('loans.leaveEmpty', {
+              title: defaultLoanTitle(kind, counterparty.trim() || '…')
+            })}
             {...errorProps('loan-title', errors.title)}
             onChange={(event) => {
               setTitle(event.target.value)
@@ -341,14 +348,15 @@ function LoanForm({
 
         <div className="grid gap-1.5">
           <Label htmlFor="loan-note">
-            Note <span className="font-normal text-ink-muted">(optional)</span>
+            {t('common.note')}{' '}
+            <span className="font-normal text-ink-muted">{t('common.optional')}</span>
           </Label>
           <Textarea
             id="loan-note"
             rows={2}
             maxLength={500}
             value={note}
-            placeholder="e.g. For the car repair"
+            placeholder={t('loans.notePlaceholder')}
             {...errorProps('loan-note', errors.note)}
             onChange={(event) => {
               setNote(event.target.value)
@@ -363,7 +371,7 @@ function LoanForm({
 
       {existing && (
         <div className="mt-6 border-t border-line">
-          <ActionRow title="Delete" description="Remove the loan and everything recorded for it.">
+          <ActionRow title={t('common.delete')} description={t('loans.removeTheLoanAnd')}>
             <Button
               variant="outline"
               size="sm"
@@ -371,7 +379,7 @@ function LoanForm({
               className="text-expense"
               onClick={() => setConfirmDelete(true)}
             >
-              Delete…
+              {t('recurring.delete')}
             </Button>
           </ActionRow>
         </div>
@@ -379,10 +387,10 @@ function LoanForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
-          {existing ? 'Save loan' : 'Add loan'}
+          {existing ? t('loans.saveLoan') : t('loans.addLoan')}
         </Button>
       </DialogFooter>
     </form>

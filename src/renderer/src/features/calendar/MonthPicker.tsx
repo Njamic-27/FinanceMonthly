@@ -12,6 +12,7 @@ import { useFirstDate } from '@renderer/features/stats/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 import { pickableMonths } from './month'
+import { t } from '@renderer/lib/i18n'
 
 const monthOf = (year: number, index: number): IsoDate =>
   `${year}-${String(index + 1).padStart(2, '0')}-01`
@@ -45,7 +46,7 @@ export function MonthPicker({
       }}
     >
       <PopoverTrigger
-        title="Choose a month"
+        title={t('calendar.chooseAMonth')}
         className="group inline-flex cursor-pointer items-center gap-1.5 rounded-control px-1 underline-offset-[0.2em] hover:text-primary focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:text-primary"
       >
         <span className="group-hover:underline">
@@ -53,12 +54,12 @@ export function MonthPicker({
         </span>
         <ChevronDown className="size-5 text-ink-muted group-hover:text-primary" aria-hidden />
       </PopoverTrigger>
-      <PopoverContent className="w-72" aria-label="Choose a month">
+      <PopoverContent className="w-72" aria-label={t('calendar.chooseAMonth')}>
         <div className="mb-2 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Previous year"
+            aria-label={t('calendar.previousYear')}
             disabled={year <= Number(first.slice(0, 4))}
             onClick={() => setYear(year - 1)}
           >
@@ -68,7 +69,7 @@ export function MonthPicker({
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Next year"
+            aria-label={t('calendar.nextYear')}
             disabled={year >= Number(last.slice(0, 4))}
             onClick={() => setYear(year + 1)}
           >

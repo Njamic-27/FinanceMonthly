@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@renderer/components/ui/dialog'
+import { t } from '@renderer/lib/i18n'
 
 /** Asks before something that can't be undone. */
 export function Confirm({
@@ -35,7 +36,7 @@ export function Confirm({
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
-            Keep it
+            {t('confirm.keep')}
           </Button>
           <Button variant="danger" disabled={pending} onClick={onConfirm}>
             {action}

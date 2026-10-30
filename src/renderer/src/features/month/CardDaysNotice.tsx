@@ -4,6 +4,7 @@ import type { Account } from '@shared/accounts'
 import { Button } from '@renderer/components/ui/button'
 import { AccountDialog } from '@renderer/features/accounts/AccountDialog'
 import { useAccounts } from '@renderer/features/accounts/queries'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * Asks for the statement and due days of cards that don't have them: without both, their
@@ -20,17 +21,15 @@ export function CardDaysNotice(): React.JSX.Element | null {
 
   return (
     <section
-      aria-label="Card days missing"
+      aria-label={t('month.cardDaysMissing')}
       className="mb-6 grid gap-3 rounded-panel border border-line bg-surface p-4"
     >
       {missing.map((card) => (
         <div key={card.id} className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <CalendarClock className="size-5 shrink-0 text-primary" aria-hidden />
-          <p className="min-w-0 flex-1">
-            Set {card.name}’s statement and due days so its spending counts in the month you pay it.
-          </p>
+          <p className="min-w-0 flex-1">{t('month.setCardDays', { card: card.name })}</p>
           <Button variant="secondary" size="sm" onClick={() => setEditing(card)}>
-            Set days…
+            {t('month.setDays')}
           </Button>
         </div>
       ))}
