@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/componen
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
 
@@ -25,7 +26,7 @@ const axisTick = { fill: 'var(--ink-muted)', fontSize: 12 }
  */
 export function BalanceTrend({
   points: data,
-  title = 'Balance',
+  title = t('accounts.balance'),
   className
 }: {
   /** One point per day, ending today. */
@@ -45,6 +46,7 @@ export function BalanceTrend({
   const longDate = (date: IsoDate): string =>
     formatDate(date, money.locale, { weekday: 'short', day: 'numeric', month: 'long' })
 
+  const since = first ? formatDate(first.date, money.locale, { day: 'numeric', month: 'long' }) : ''
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
@@ -53,9 +55,13 @@ export function BalanceTrend({
           {first && (
             <CardDescription>
               {change === 0
-                ? 'Unchanged'
-                : `${change > 0 ? 'Up' : 'Down'} ${money.format(Math.abs(change))}`}{' '}
-              since {formatDate(first.date, money.locale, { day: 'numeric', month: 'long' })}
+                ? t('overview.unchangedSince', { date: since })
+                : t('overview.since', {
+                    change: t(change > 0 ? 'projections.changeUp' : 'projections.changeDown', {
+                      amount: money.format(Math.abs(change))
+                    }),
+                    date: since
+                  })}
             </CardDescription>
           )}
         </div>
@@ -150,7 +156,7 @@ export function BalanceTrend({
       </div>
 
       <table className="sr-only">
-        <caption>{title} on the first of each month and today</caption>
+        <caption>{t('overview.tableCaption', { title })}</caption>
         <tbody>
           {data
             .filter((d) => d.date.endsWith('-01') || d === last)

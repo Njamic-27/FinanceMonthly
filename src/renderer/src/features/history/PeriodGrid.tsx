@@ -5,6 +5,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { periodPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { HEAT_STEPS, heatLevel } from './year'
+import { t, tNode } from '@renderer/lib/i18n'
 
 /**
  * Spending heat: one hue (the expense colour) mixed into the surface, light to strong.
@@ -19,7 +20,7 @@ const heatStyle = (level: number): React.CSSProperties | undefined =>
 export function HeatLegend(): React.JSX.Element {
   return (
     <p className="flex items-center gap-2 text-sm text-ink-muted">
-      Less spending
+      {t('history.lessSpending')}
       <span aria-hidden className="flex gap-1">
         {Array.from({ length: HEAT_STEPS + 1 }, (_, level) => (
           <span
@@ -29,7 +30,7 @@ export function HeatLegend(): React.JSX.Element {
           />
         ))}
       </span>
-      More
+      {t('common.more')}
     </p>
   )
 }
@@ -78,7 +79,7 @@ export function PeriodGrid({
             <li key={p.start}>
               <div className={cn(tileClass, 'border-dashed bg-transparent text-ink-muted')}>
                 <p className={cn('font-semibold', view === 'week' && 'text-sm')}>{name}</p>
-                <p className="text-sm">Not yet</p>
+                <p className="text-sm">{t('history.notYet')}</p>
               </div>
             </li>
           )
@@ -100,10 +101,16 @@ export function PeriodGrid({
                   <p className="font-semibold">{name}</p>
                   <p className="amount mt-1 text-title">{money.format(p.expenses)}</p>
                   <p className="mt-2 text-sm text-ink-muted">
-                    In <span className="amount text-ink">{money.format(p.income)}</span>
+                    {tNode('history.in', {
+                      amount: <span className="amount text-ink">{money.format(p.income)}</span>
+                    })}
                   </p>
                   <p className="text-sm text-ink-muted">
-                    Net <span className="amount text-ink">{money.format(p.net, 'exceptZero')}</span>
+                    {tNode('projections.netAmount', {
+                      amount: (
+                        <span className="amount text-ink">{money.format(p.net, 'exceptZero')}</span>
+                      )
+                    })}
                   </p>
                 </>
               ) : (

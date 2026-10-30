@@ -40,5 +40,28 @@ export const savings = {
   'savings.planInTime': '{plan}, in time for {by}.',
   'savings.planLate': '{plan}. To make it by {by}, put in {amount} a month.',
   'savings.putInToReach': 'Put in {amount} a month to reach it by {by}.',
-  'savings.toGo': '{amount} to go.'
+  'savings.toGo': '{amount} to go.',
+  'savings.goalsAndHowClose': 'Goals and how close you are.',
+  'savings.savingsCouldNotBe': 'Savings could not be loaded',
+  'savings.saveTowardsSomething': 'Save towards something',
+  'savings.aHolidayANew':
+    'A holiday, a new laptop or a safety cushion. Set a target, put money in from your accounts, and see when you’ll get there.',
+  'savings.addYourFirstGoal': 'Add your first goal',
+  'savings.savedInTotal': 'Saved in total',
+  'savings.reachedOrSetAside':
+    'Reached or set aside. Their history stays, and money still in them still counts.',
+  'savings.leftToSave': 'Left to save',
+  'savings.depositsAndWithdrawals': 'Deposits and withdrawals',
+  'savings.everythingPutInAnd': 'Everything put in and taken out.',
+  'savings.nothingPutInYet': 'Nothing put in yet.',
+  'savings.takenOut2': 'Taken out',
+  'savings.thatGoalNoLonger': 'That goal no longer exists',
+  'savings.backToSavings': 'Back to savings',
+  'savings.ofAcross': {
+    one: 'of {target} across {count} goal',
+    other: 'of {target} across {count} goals'
+  },
+  'savings.startedWith': 'Started with {amount} already saved.',
+  'savings.goalLabel': 'Savings goal',
+  'savings.archivedSuffix': ' · Archived'
 } satisfies Record<string, Message>

@@ -60,5 +60,28 @@ export const transactions = {
   'transactions.deleteAdjustmentDescription':
     '{amount} on {account}, {date}. The balance goes back to what it was before. This can’t be undone.',
   'transactions.adjustmentDescription':
-    'A correction to {account}’s balance. It isn’t counted as income or spending.'
+    'A correction to {account}’s balance. It isn’t counted as income or spending.',
+  'transactions.expenses': 'Expenses',
+  'transactions.transfers': 'Transfers',
+  'transactions.everyPaymentIncomeAnd': 'Every payment, income and transfer in one list.',
+  'transactions.searchTransactions': 'Search transactions',
+  'transactions.searchTitleNoteCategory': 'Search title, note, category or amount',
+  'transactions.customDates': 'Custom dates…',
+  'transactions.allAccounts': 'All accounts',
+  'transactions.allCategories': 'All categories',
+  'transactions.allTypes': 'All types',
+  'transactions.clearFilters': 'Clear filters',
+  'transactions.transactionsCouldNotBe': 'Transactions could not be loaded',
+  'transactions.nothingMatchesTheseFilters': 'Nothing matches these filters',
+  'transactions.tryALongerPeriod': 'Try a longer period or fewer filters.',
+  'transactions.noTransactionsYet': 'No transactions yet',
+  'transactions.addWhatYouSpend':
+    'Add what you spend and earn, and it shows up here grouped by day.',
+  'transactions.addYourFirstTransaction': 'Add your first transaction',
+  'transactions.allTime': 'All time',
+  'transactions.lastMonth': 'Last month',
+  'transactions.last3Months': 'Last 3 months',
+  'transactions.lastYear': 'Last year',
+  'transactions.summaryIncome': 'Income {amount}',
+  'transactions.summaryExpenses': 'Expenses {amount}'
 } satisfies Record<string, Message>

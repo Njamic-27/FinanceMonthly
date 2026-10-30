@@ -37,5 +37,9 @@ export const common = {
   'accountType.credit': 'Credit card',
   'accountType.cash': 'Cash',
   'common.eg': 'e.g. {example}',
-  'common.titleOptional': 'Title'
+  'common.titleOptional': 'Title',
+  'common.restart': '{error} Restart Financije to try again.',
+  'common.mayBeDeleted': 'It may have been deleted.',
+  'common.showMoreLeft': 'Show more ({count} left)',
+  'common.ofAmount': 'of {amount}'
 } satisfies Record<string, Message>

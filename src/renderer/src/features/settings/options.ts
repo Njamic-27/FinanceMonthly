@@ -1,4 +1,6 @@
-/** Choices offered on the Settings screen. Labels are English, like the rest of the UI. */
+import { currentLanguage } from '@renderer/lib/i18n'
+
+// Choices offered on the Settings screen, named in the app's language.
 
 export interface Option<V> {
   value: V
@@ -49,8 +51,10 @@ export const localeTags = [
   'sv-SE'
 ]
 
-const currencyNames = new Intl.DisplayNames('en', { type: 'currency' })
-const localeNames = new Intl.DisplayNames('en', { type: 'language', languageDisplay: 'standard' })
+const currencyNames = (): Intl.DisplayNames =>
+  new Intl.DisplayNames(currentLanguage(), { type: 'currency' })
+const localeNames = (): Intl.DisplayNames =>
+  new Intl.DisplayNames(currentLanguage(), { type: 'language', languageDisplay: 'standard' })
 
 /** Keeps a saved value selectable even when it isn't in the list. */
 function withCurrent(values: string[], current: string | undefined): string[] {
@@ -61,7 +65,7 @@ function withCurrent(values: string[], current: string | undefined): string[] {
 export function currencyOptions(current?: string): Option<string>[] {
   return withCurrent(currencyCodes, current).map((code) => ({
     value: code,
-    label: `${code} · ${currencyNames.of(code) ?? code}`
+    label: `${code} · ${currencyNames().of(code) ?? code}`
   }))
 }
 
@@ -69,22 +73,21 @@ export function currencyOptions(current?: string): Option<string>[] {
 export function localeOptions(current?: string): Option<string>[] {
   return withCurrent(localeTags, current).map((tag) => ({
     value: tag,
-    label: localeNames.of(tag) ?? tag
+    label: localeNames().of(tag) ?? tag
   }))
 }
 
 /** Monday, 5 January 2026 — any known Monday works as a base. */
 const A_MONDAY = Date.UTC(2026, 0, 5)
-const weekdayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' })
+const weekdayFormat = (): Intl.DateTimeFormat =>
+  new Intl.DateTimeFormat(currentLanguage(), { weekday: 'long', timeZone: 'UTC' })
 
 /** Day name for Settings.weekStart numbering (0 = Sunday … 6 = Saturday). */
 export function weekdayName(day: number): string {
   const offsetFromMonday = (day + 6) % 7
-  return weekdayFormat.format(A_MONDAY + offsetFromMonday * 86_400_000)
+  return weekdayFormat().format(A_MONDAY + offsetFromMonday * 86_400_000)
 }
 
 /** Monday through Sunday, valued 1…6, 0. */
-export const weekStartOptions: Option<number>[] = [1, 2, 3, 4, 5, 6, 0].map((day) => ({
-  value: day,
-  label: weekdayName(day)
-}))
+export const weekStartOptions = (): Option<number>[] =>
+  [1, 2, 3, 4, 5, 6, 0].map((day) => ({ value: day, label: weekdayName(day) }))

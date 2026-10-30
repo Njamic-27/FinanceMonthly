@@ -11,13 +11,16 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath, plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { useUpcomingPayments } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 function dayLabel(date: IsoDate, now: IsoDate, locale: string): string {
   if (date < now) {
-    return `Overdue since ${formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })}`
+    return t('recurring.overdueSince', {
+      date: formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })
+    })
   }
-  if (date === now) return 'Today'
-  if (date === addDays(now, 1)) return 'Tomorrow'
+  if (date === now) return t('transactions.today')
+  if (date === addDays(now, 1)) return t('recurring.tomorrow')
   return formatDate(date, locale, { weekday: 'long', day: 'numeric', month: 'short' })
 }
 
@@ -34,14 +37,20 @@ function ReminderNote({
   const { remindOn, notified } = payment
   if (remindOn === null) return null
   const [Icon, text] = !enabled
-    ? [BellOff, 'Reminders are off']
+    ? [BellOff, t('recurring.remindersAreOff')]
     : notified
-      ? [BellRing, 'Reminder sent']
+      ? [BellRing, t('recurring.reminderSent')]
       : remindOn <= now
-        ? [BellRing, 'Reminder due']
+        ? [BellRing, t('recurring.reminderDue')]
         : [
             Bell,
-            `Reminder ${formatDate(remindOn, money.locale, { weekday: 'short', day: 'numeric', month: 'short' })}`
+            t('recurring.reminderOn', {
+              date: formatDate(remindOn, money.locale, {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short'
+              })
+            })
           ]
   return (
     <span className="flex items-center gap-1 text-xs text-ink-muted">
@@ -70,12 +79,12 @@ export function ComingUp({ className }: { className?: string }): React.JSX.Eleme
   return (
     <Card className={cn('grid content-start gap-4', className)}>
       <CardHeader className="mb-0 block">
-        <CardTitle>Coming up</CardTitle>
-        <CardDescription>The next 14 days.</CardDescription>
+        <CardTitle>{t('recurring.comingUp')}</CardTitle>
+        <CardDescription>{t('recurring.theNext14Days')}</CardDescription>
       </CardHeader>
 
       {upcoming.isSuccess && days.length === 0 && (
-        <p className="text-sm text-ink-muted">Nothing planned in the next 14 days.</p>
+        <p className="text-sm text-ink-muted">{t('recurring.nothingPlannedInThe')}</p>
       )}
 
       {days.map(({ date, payments }) => (
@@ -125,7 +134,7 @@ export function ComingUp({ className }: { className?: string }): React.JSX.Eleme
       ))}
 
       <Link to="/calendar" className="link justify-self-start text-sm font-semibold text-primary">
-        Open the calendar
+        {t('recurring.openTheCalendar')}
       </Link>
     </Card>
   )

@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/componen
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 interface Day {
   date: IsoDate
@@ -67,11 +68,13 @@ export function DailySpendingChart({
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <div>
-          <CardTitle>Daily spending</CardTitle>
+          <CardTitle>{t('overview.dailySpending')}</CardTitle>
           <CardDescription>
             {total > 0
-              ? `${money.format(average)} a day on average${elapsed < data.length ? ' so far' : ''}`
-              : 'Nothing spent yet'}
+              ? t(elapsed < data.length ? 'overview.aDaySoFar' : 'overview.aDay', {
+                  amount: money.format(average)
+                })
+              : t('overview.nothingSpentYet')}
           </CardDescription>
         </div>
       </CardHeader>
@@ -149,11 +152,11 @@ export function DailySpendingChart({
       </div>
 
       <table className="sr-only">
-        <caption>Spending per day</caption>
+        <caption>{t('overview.spendingPerDay')}</caption>
         <thead>
           <tr>
-            <th scope="col">Day</th>
-            <th scope="col">Spent</th>
+            <th scope="col">{t('overview.day')}</th>
+            <th scope="col">{t('overview.spent')}</th>
           </tr>
         </thead>
         <tbody>

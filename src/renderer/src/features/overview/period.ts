@@ -11,6 +11,7 @@ import {
   type PeriodKind,
   type WeekStart
 } from '@shared/dates'
+import { t } from '@renderer/lib/i18n'
 
 export interface OverviewPeriod {
   kind: PeriodKind
@@ -108,7 +109,7 @@ export function comparisonLabel(
       parseIsoDate(end)
     )
   }
-  if (period.kind === 'week') return 'the week before'
+  if (period.kind === 'week') return t('overview.weekBefore')
   const sameYear = start.slice(0, 4) === period.range.start.slice(0, 4)
   return formatDate(start, locale, { month: 'long', ...(!sameYear && { year: 'numeric' }) })
 }

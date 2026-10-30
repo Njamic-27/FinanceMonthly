@@ -17,6 +17,7 @@ import { ProgressRing } from '@renderer/features/savings/ProgressRing'
 import { useSavingsGoals } from '@renderer/features/savings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { goalPath } from '@renderer/lib/links'
+import { t } from '@renderer/lib/i18n'
 
 function GoalCard({
   goal,
@@ -49,7 +50,7 @@ function GoalCard({
           <span className="min-w-0">
             <span className="amount block text-title">{money.format(goal.saved)}</span>
             <span className="block text-sm text-ink-muted">
-              of {money.format(goal.targetAmount)}
+              {t('common.ofAmount', { amount: money.format(goal.targetAmount) })}
             </span>
           </span>
         </span>
@@ -62,7 +63,7 @@ function GoalCard({
             size="sm"
             onClick={() => onMove({ kind: 'new', goal, type: 'deposit' })}
           >
-            Put in
+            {t('savings.putIn')}
           </Button>
           {goal.saved > 0 && (
             <Button
@@ -70,7 +71,7 @@ function GoalCard({
               size="sm"
               onClick={() => onMove({ kind: 'new', goal, type: 'withdrawal' })}
             >
-              Take out
+              {t('savings.takeOut')}
             </Button>
           )}
         </div>
@@ -98,13 +99,13 @@ export function SavingsPage(): React.JSX.Element {
   return (
     <>
       <PageHeader
-        title="Savings"
-        description="Goals and how close you are."
+        title={t('group.savings')}
+        description={t('savings.goalsAndHowClose')}
         actions={
           active.length > 0 && (
             <Button onClick={() => setDialog({ kind: 'new' })}>
               <Plus />
-              Add goal
+              {t('savings.addGoal')}
             </Button>
           )
         }
@@ -112,9 +113,9 @@ export function SavingsPage(): React.JSX.Element {
 
       {goals.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>Savings could not be loaded</CardTitle>
+          <CardTitle>{t('savings.savingsCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">
-            {goals.error.message} Restart Financije to try again.
+            {t('common.restart', { error: goals.error.message })}
           </CardDescription>
         </Card>
       )}
@@ -125,15 +126,12 @@ export function SavingsPage(): React.JSX.Element {
             <PiggyBank className="size-6" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold">Save towards something</h2>
-            <p className="mt-1 text-ink-muted">
-              A holiday, a new laptop or a safety cushion. Set a target, put money in from your
-              accounts, and see when you’ll get there.
-            </p>
+            <h2 className="text-lg font-semibold">{t('savings.saveTowardsSomething')}</h2>
+            <p className="mt-1 text-ink-muted">{t('savings.aHolidayANew')}</p>
           </div>
           <Button onClick={() => setDialog({ kind: 'new' })}>
             <Plus />
-            Add your first goal
+            {t('savings.addYourFirstGoal')}
           </Button>
         </section>
       )}
@@ -142,12 +140,11 @@ export function SavingsPage(): React.JSX.Element {
         <>
           <Card className="mb-6 flex flex-wrap items-end gap-x-10 gap-y-2">
             <div>
-              <p className="text-sm text-ink-muted">Saved in total</p>
+              <p className="text-sm text-ink-muted">{t('savings.savedInTotal')}</p>
               <p className="amount text-amount">{money.format(saved)}</p>
             </div>
             <p className="pb-1.5 text-ink-muted">
-              of {money.format(target)} across {active.length}{' '}
-              {active.length === 1 ? 'goal' : 'goals'}
+              {t('savings.ofAcross', { target: money.format(target), count: active.length })}
             </p>
           </Card>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -160,10 +157,8 @@ export function SavingsPage(): React.JSX.Element {
 
       {archived.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-1 text-lg font-semibold">Archived</h2>
-          <p className="mb-3 text-sm text-ink-muted">
-            Reached or set aside. Their history stays, and money still in them still counts.
-          </p>
+          <h2 className="mb-1 text-lg font-semibold">{t('accounts.archived')}</h2>
+          <p className="mb-3 text-sm text-ink-muted">{t('savings.reachedOrSetAside')}</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {archived.map((goal) => (
               <GoalCard key={goal.id} goal={goal} onOpen={() => open(goal)} onMove={setMoving} />

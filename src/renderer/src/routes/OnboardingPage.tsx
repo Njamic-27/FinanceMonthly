@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { Check, CircleCheck, Plus, X } from 'lucide-react'
-import { accountTypeLabels, accountTypes, type Account, type AccountType } from '@shared/accounts'
+import { accountTypes, type Account, type AccountType } from '@shared/accounts'
 import type { Category, CategoryType } from '@shared/categories'
 import { formatDate, monthlySchedule, today } from '@shared/dates'
 import { decimalSeparator, formatMoney } from '@shared/money'
@@ -39,30 +39,29 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { errorProps } from '@renderer/lib/forms'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
+import { languageNames, languages, type Language } from '@shared/i18n'
+import { t, tNode } from '@renderer/lib/i18n'
 
-const steps = [
+const steps = (): { title: string; label: string; description: string }[] => [
   {
-    title: 'Money and dates',
-    label: 'Currency and dates',
-    description: 'How amounts and dates look. You can change this later in Settings.'
+    title: t('settings.moneyAndDates'),
+    label: t('onboarding.currencyAndDates'),
+    description: t('onboarding.howAmountsAndDates')
   },
   {
-    title: 'Your accounts',
-    label: 'Accounts',
-    description:
-      'Add the cards and cash you pay with, with what’s on each of them today. Every transaction comes from or goes to one of them.'
+    title: t('accounts.yourAccounts'),
+    label: t('screen.accounts'),
+    description: t('onboarding.addTheCardsAnd')
   },
   {
-    title: 'Categories',
-    label: 'Categories',
-    description:
-      'What you sort spending and income into. Remove the ones you won’t use and add your own; you can change them any time.'
+    title: t('add.headingCategories'),
+    label: t('add.headingCategories'),
+    description: t('onboarding.whatYouSortSpending')
   },
   {
-    title: 'Salary',
-    label: 'Salary (optional)',
-    description:
-      'If you’re paid a regular monthly salary, add it here and it shows up in your plans and projections.'
+    title: t('onboarding.salary'),
+    label: t('onboarding.salaryOptional'),
+    description: t('onboarding.ifYourePaidA')
   }
 ]
 
@@ -86,7 +85,7 @@ function StepFooter({
       <div>
         {onBack && (
           <Button variant="ghost" onClick={onBack}>
-            Back
+            {t('shell.back')}
           </Button>
         )}
       </div>
@@ -135,13 +134,37 @@ function BasicsStep({ onNext }: StepProps): React.JSX.Element | null {
   if (!settings) return null
 
   const save = (patch: Parameters<typeof updateSettings.mutate>[0]): void =>
-    updateSettings.mutate(patch, { onError: showError('Not saved') })
+    updateSettings.mutate(patch, { onError: showError(t('common.notSaved')) })
   const { currency, locale, weekStart } = settings
 
   return (
     <>
       <div className="grid max-w-md gap-5">
-        <Field id="setup-currency" label="Currency">
+        <Field id="setup-language" label={t('settings.language')}>
+          <Select
+            value={settings.language}
+            onValueChange={(value) => {
+              const language = value as Language
+              // Croatian starts with Croatian number and date formats, while they're the default.
+              save({
+                language,
+                ...(language === 'hr' && locale === 'en-GB' && { locale: 'hr-HR' })
+              })
+            }}
+          >
+            <SelectTrigger id="setup-language">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((language) => (
+                <SelectItem key={language} value={language}>
+                  {languageNames[language]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field id="setup-currency" label={t('settings.currency')}>
           <Select value={currency} onValueChange={(value) => save({ currency: value })}>
             <SelectTrigger id="setup-currency">
               <SelectValue />
@@ -155,7 +178,7 @@ function BasicsStep({ onNext }: StepProps): React.JSX.Element | null {
             </SelectContent>
           </Select>
         </Field>
-        <Field id="setup-locale" label="Number and date format">
+        <Field id="setup-locale" label={t('settings.numberAndDateFormat')}>
           <Select value={locale} onValueChange={(value) => save({ locale: value })}>
             <SelectTrigger id="setup-locale">
               <SelectValue />
@@ -169,7 +192,7 @@ function BasicsStep({ onNext }: StepProps): React.JSX.Element | null {
             </SelectContent>
           </Select>
         </Field>
-        <Field id="setup-week-start" label="First day of the week">
+        <Field id="setup-week-start" label={t('settings.firstDayOfThe')}>
           <Select
             value={String(weekStart)}
             onValueChange={(value) => save({ weekStart: Number(value) })}
@@ -178,7 +201,7 @@ function BasicsStep({ onNext }: StepProps): React.JSX.Element | null {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {weekStartOptions.map((o) => (
+              {weekStartOptions().map((o) => (
                 <SelectItem key={o.value} value={String(o.value)}>
                   {o.label}
                 </SelectItem>
@@ -187,17 +210,22 @@ function BasicsStep({ onNext }: StepProps): React.JSX.Element | null {
           </Select>
         </Field>
         <p className="rounded-control bg-surface-2 px-4 py-3 text-sm text-ink-muted">
-          Amounts look like{' '}
-          <span className="amount text-ink">{formatMoney(123456, { currency, locale })}</span>,
-          dates like{' '}
-          <span className="text-ink">
-            {formatDate(today(), locale, { day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
-          , and weeks run {weekdayName(weekStart)} to {weekdayName((weekStart + 6) % 7)}.
+          {tNode('onboarding.sample', {
+            amount: (
+              <span className="amount text-ink">{formatMoney(123456, { currency, locale })}</span>
+            ),
+            date: (
+              <span className="text-ink">
+                {formatDate(today(), locale, { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            ),
+            from: weekdayName(weekStart),
+            to: weekdayName((weekStart + 6) % 7)
+          })}
         </p>
       </div>
       <StepFooter>
-        <Button onClick={onNext}>Continue</Button>
+        <Button onClick={onNext}>{t('onboarding.continue')}</Button>
       </StepFooter>
     </>
   )
@@ -222,7 +250,7 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
             <Button key={type} variant="outline" onClick={() => setDialog({ kind: 'new', type })}>
               <Plus />
               <Icon />
-              {accountTypeLabels[type]}
+              {t(`accountType.${type}`)}
             </Button>
           )
         })}
@@ -240,7 +268,7 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
                 <ColorChip color={a.color} icon={accountTypeIcons[a.type]} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{a.name}</span>
-                  <span className="block text-sm text-ink-muted">{accountTypeLabels[a.type]}</span>
+                  <span className="block text-sm text-ink-muted">{t(`accountType.${a.type}`)}</span>
                 </span>
                 <span className="amount">{shown(a)}</span>
               </button>
@@ -249,17 +277,17 @@ function AccountsStep({ onBack, onNext }: StepProps): React.JSX.Element {
         </ul>
       ) : (
         <p className="mt-6 rounded-panel border border-dashed border-line px-6 py-8 text-center text-ink-muted">
-          No accounts yet. Start with the card you use most.
+          {t('onboarding.noAccountsYetStart')}
         </p>
       )}
       <StepNotice message={notice} />
 
       <StepFooter onBack={onBack}>
         {active.length === 0 && (
-          <span className="text-sm text-ink-muted">Add at least one account to continue</span>
+          <span className="text-sm text-ink-muted">{t('onboarding.addAtLeastOne')}</span>
         )}
         <Button disabled={active.length === 0} onClick={onNext}>
-          Continue
+          {t('onboarding.continue')}
         </Button>
       </StepFooter>
 
@@ -289,7 +317,9 @@ function CategoryChips({
   const deleteCategory = useDeleteCategory()
   return (
     <section>
-      <h2 className="mb-3 text-base font-semibold">{type === 'expense' ? 'Spending' : 'Income'}</h2>
+      <h2 className="mb-3 text-base font-semibold">
+        {type === 'expense' ? t('onboarding.spending') : t('group.income')}
+      </h2>
       <ul className="flex flex-wrap gap-2">
         {categories.map((c) => (
           <li
@@ -306,13 +336,13 @@ function CategoryChips({
             </button>
             <button
               type="button"
-              aria-label={`Remove ${c.name}`}
-              title="Remove"
+              aria-label={t('onboarding.removeName', { name: c.name })}
+              title={t('onboarding.remove')}
               disabled={deleteCategory.isPending}
               onClick={() =>
                 deleteCategory.mutate(c.id, {
-                  onSuccess: () => onRemoved(`${c.name} removed`),
-                  onError: showError(`${c.name} not removed`)
+                  onSuccess: () => onRemoved(t('onboarding.removed', { name: c.name })),
+                  onError: showError(t('onboarding.notRemoved', { name: c.name }))
                 })
               }
               className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
@@ -324,7 +354,7 @@ function CategoryChips({
         <li>
           <Button variant="ghost" size="sm" className="h-9 rounded-full" onClick={onAdd}>
             <Plus />
-            Add
+            {t('onboarding.add')}
           </Button>
         </li>
       </ul>
@@ -354,7 +384,7 @@ function CategoriesStep({ onBack, onNext }: StepProps): React.JSX.Element {
       </div>
       <StepNotice message={notice} />
       <StepFooter onBack={onBack}>
-        <Button onClick={onNext}>Continue</Button>
+        <Button onClick={onNext}>{t('onboarding.continue')}</Button>
       </StepFooter>
       <CategoryDialog
         target={dialog}
@@ -398,14 +428,16 @@ function SalaryStep({
     const cents = money.parse(amount)
     if (cents === null || cents <= 0) {
       setError(
-        amount.trim() ? `Enter an amount like ${money.toInput(245000)}` : 'Enter your monthly pay'
+        amount.trim()
+          ? t('line.enterAmountLike', { example: money.toInput(245000) })
+          : t('onboarding.enterYourMonthlyPay')
       )
       return
     }
     createRecurring.mutate(
       {
         kind: 'income',
-        title: 'Salary',
+        title: t('onboarding.salary'),
         amount: cents,
         accountId: Number(accountId),
         categoryId: Number(categoryId),
@@ -415,14 +447,14 @@ function SalaryStep({
         autoPost: true,
         reminderDaysBefore: null
       },
-      { onSuccess: () => onFinish(true), onError: showError('Salary not added') }
+      { onSuccess: () => onFinish(true), onError: showError(t('onboarding.salaryNotAdded')) }
     )
   }
 
   return (
     <>
       <div className="grid max-w-md gap-5">
-        <Field id="salary-amount" label="Monthly pay, after tax">
+        <Field id="salary-amount" label={t('onboarding.monthlyPayAfterTax')}>
           <AmountInput
             id="salary-amount"
             size="lg"
@@ -437,7 +469,7 @@ function SalaryStep({
           <FieldError id="salary-amount-error" message={error} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field id="salary-day" label="Paid on day">
+          <Field id="salary-day" label={t('onboarding.paidOnDay')}>
             <Select value={payday} onValueChange={setPayday}>
               <SelectTrigger id="salary-day">
                 <SelectValue />
@@ -451,10 +483,10 @@ function SalaryStep({
               </SelectContent>
             </Select>
           </Field>
-          <Field id="salary-account" label="Paid into">
+          <Field id="salary-account" label={t('line.paidInto')}>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger id="salary-account">
-                <SelectValue placeholder="Choose an account" />
+                <SelectValue placeholder={t('recurring.chooseAnAccount')} />
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((a) => (
@@ -467,7 +499,7 @@ function SalaryStep({
           </Field>
         </div>
         {incomeCategories.length > 1 && (
-          <Field id="salary-category" label="Category">
+          <Field id="salary-category" label={t('common.category')}>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger id="salary-category">
                 <SelectValue />
@@ -483,15 +515,18 @@ function SalaryStep({
           </Field>
         )}
         <p className="text-sm text-ink-muted">
-          Next expected on{' '}
-          <span className="text-ink">
-            {formatDate(schedule.nextDueDate, money.locale, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long'
-            })}
-          </span>
-          {Number(payday) > 28 && ' — in shorter months, on their last day'}.
+          {tNode('onboarding.nextExpected', {
+            date: (
+              <span className="text-ink">
+                {formatDate(schedule.nextDueDate, money.locale, {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long'
+                })}
+              </span>
+            ),
+            shortMonths: Number(payday) > 28 ? t('onboarding.shortMonths') : ''
+          })}
         </p>
       </div>
       <StepFooter onBack={onBack}>
@@ -500,10 +535,10 @@ function SalaryStep({
           disabled={createRecurring.isPending}
           onClick={() => onFinish(false)}
         >
-          Skip
+          {t('common.skip')}
         </Button>
         <Button disabled={createRecurring.isPending || !accountId || !categoryId} onClick={submit}>
-          Add salary and finish
+          {t('onboarding.addSalaryAndFinish')}
         </Button>
       </StepFooter>
     </>
@@ -530,12 +565,15 @@ export function OnboardingPage(): React.JSX.Element | null {
         onSuccess: () => {
           toast(
             how === 'skipped'
-              ? { title: 'Setup skipped', description: 'Add your accounts any time in Accounts.' }
+              ? {
+                  title: t('onboarding.setupSkipped'),
+                  description: t('onboarding.addYourAccountsAny')
+                }
               : {
-                  title: 'You’re all set',
+                  title: t('onboarding.youreAllSet'),
                   description: withSalary
-                    ? 'Your salary is in. Add what you spend with Ctrl+N.'
-                    : 'Add what you spend with Ctrl+N.',
+                    ? t('onboarding.yourSalaryIsIn')
+                    : t('onboarding.addWhatYouSpend'),
                   variant: 'success'
                 }
           )
@@ -543,26 +581,28 @@ export function OnboardingPage(): React.JSX.Element | null {
         },
         onError: (error) => {
           setFinishing(false)
-          showError('Setup not finished')(error)
+          showError(t('onboarding.setupNotFinished'))(error)
         }
       }
     )
   }
 
   const back = (): void => setStep((s) => Math.max(0, s - 1))
-  const next = (): void => setStep((s) => Math.min(steps.length - 1, s + 1))
-  const current = steps[step]
+  const next = (): void => setStep((s) => Math.min(steps().length - 1, s + 1))
+  const current = steps()[step]
 
   return (
     <div className="grid min-h-screen grid-cols-[17rem_1fr]">
       <aside className="flex flex-col border-r border-line bg-surface px-6 py-8">
         <div className="flex items-center gap-3">
           <BrandMark />
-          <span className="font-display text-xl font-bold tracking-tight">Financije</span>
+          <span className="font-display text-xl font-bold tracking-tight">
+            {t('onboarding.financije')}
+          </span>
         </div>
-        <p className="mt-8 text-sm text-ink-muted">Set up in four short steps.</p>
-        <ol className="mt-4 grid gap-1" aria-label="Setup steps">
-          {steps.map((s, i) => (
+        <p className="mt-8 text-sm text-ink-muted">{t('onboarding.setUpInFour')}</p>
+        <ol className="mt-4 grid gap-1" aria-label={t('onboarding.setupSteps')}>
+          {steps().map((s, i) => (
             <li
               key={s.title}
               aria-current={i === step ? 'step' : undefined}
@@ -587,7 +627,7 @@ export function OnboardingPage(): React.JSX.Element | null {
         </ol>
         <div className="mt-auto">
           <Button variant="ghost" className="-ml-3" onClick={() => finish('skipped')}>
-            Skip setup
+            {t('onboarding.skipSetup')}
           </Button>
         </div>
       </aside>
@@ -595,7 +635,7 @@ export function OnboardingPage(): React.JSX.Element | null {
       <main className="overflow-y-auto">
         <div className="mx-auto max-w-2xl px-12 py-14">
           <p className="text-sm font-semibold text-primary">
-            Step {step + 1} of {steps.length}
+            {t('onboarding.stepOf', { step: step + 1, total: steps().length })}
           </p>
           <h1 className="mt-1 text-[2rem] leading-tight font-bold">{current.title}</h1>
           <p className="mt-2 mb-8 max-w-xl text-ink-muted">{current.description}</p>

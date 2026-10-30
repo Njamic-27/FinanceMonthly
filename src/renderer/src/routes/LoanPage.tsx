@@ -25,6 +25,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 function Overview({ loan }: { loan: Loan }): React.JSX.Element {
   const money = useCurrency()
@@ -57,19 +58,17 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
           <dd className="amount text-lg">{money.format(loan.principal)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">On</dt>
+          <dt className="text-sm text-ink-muted">{t('accounts.on')}</dt>
           <dd className="text-lg font-semibold">{day(loan.startDate)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">Expected back</dt>
+          <dt className="text-sm text-ink-muted">{t('panel.expectedBack')}</dt>
           <dd className={cn('text-lg font-semibold', overdue && 'text-expense')}>
             {loan.dueDate ? day(loan.dueDate) : '—'}
           </dd>
         </div>
       </dl>
-      {overdue && (
-        <p className="text-sm font-semibold text-expense">Past the date it was expected back.</p>
-      )}
+      {overdue && <p className="text-sm font-semibold text-expense">{t('loans.pastTheDateIt')}</p>}
       {loan.note && <p className="text-ink-muted">{loan.note}</p>}
     </Card>
   )
@@ -92,16 +91,16 @@ function History({
     <Card>
       <CardHeader>
         <div>
-          <CardTitle>History</CardTitle>
+          <CardTitle>{t('screen.history')}</CardTitle>
           <CardDescription>
             {loan.createDisbursementTx
-              ? 'The money moving at the start, then every repayment.'
-              : 'Every repayment. The start wasn’t recorded as a transaction.'}
+              ? t('loans.theMoneyMovingAt')
+              : t('loans.everyRepaymentTheStart')}
           </CardDescription>
         </div>
       </CardHeader>
       {transactions.isSuccess && list.length === 0 ? (
-        <p className="text-sm text-ink-muted">Nothing paid back yet.</p>
+        <p className="text-sm text-ink-muted">{t('loans.nothingPaidBackYet')}</p>
       ) : (
         <ul className="divide-y divide-line">
           {list.map((tx) => {
@@ -188,14 +187,16 @@ function LoanDetail({ loan }: { loan: Loan }): React.JSX.Element {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setDialog({ kind: 'edit', loan })}>
             <Pencil />
-            Edit loan
+            {t('loans.editLoan')}
           </Button>
           {loan.status === 'active' ? (
             <>
               <Button variant="outline" onClick={() => setSettling(loan)}>
-                Close loan…
+                {t('loans.closeLoan')}
               </Button>
-              <Button onClick={() => setRepaying({ kind: 'new', loan })}>Record repayment</Button>
+              <Button onClick={() => setRepaying({ kind: 'new', loan })}>
+                {t('loans.recordRepayment')}
+              </Button>
             </>
           ) : (
             loan.principal > loan.repaid && (
@@ -206,11 +207,15 @@ function LoanDetail({ loan }: { loan: Loan }): React.JSX.Element {
                   reopen.mutate(loan.id, {
                     onSuccess: () => toast({ title: `${loan.title} reopened`, variant: 'success' }),
                     onError: (error) =>
-                      toast({ title: 'Not reopened', description: error.message, variant: 'error' })
+                      toast({
+                        title: t('loans.notReopened'),
+                        description: error.message,
+                        variant: 'error'
+                      })
                   })
                 }
               >
-                Reopen
+                {t('loans.reopen')}
               </Button>
             )
           )}
@@ -248,11 +253,11 @@ export function LoanPage(): React.JSX.Element | null {
   if (loans.isSuccess && !loan) {
     return (
       <Card className="max-w-3xl">
-        <CardTitle>That loan no longer exists</CardTitle>
+        <CardTitle>{t('loans.thatLoanNoLonger')}</CardTitle>
         <CardDescription className="mt-1">
-          It may have been deleted.{' '}
+          {t('common.mayBeDeleted')}{' '}
           <Link to="/loans" className="link font-semibold text-primary">
-            Back to loans
+            {t('loans.backToLoans')}
           </Link>
         </CardDescription>
       </Card>

@@ -41,5 +41,29 @@ export const savings: Translation<typeof en> = {
   'savings.planInTime': '{plan}, na vrijeme za {by}.',
   'savings.planLate': '{plan}. Da stigneš do {by}, uplaćuj {amount} mjesečno.',
   'savings.putInToReach': 'Uplaćuj {amount} mjesečno da ga dosegneš do {by}.',
-  'savings.toGo': 'Još {amount}.'
+  'savings.toGo': 'Još {amount}.',
+  'savings.ofAcross': {
+    one: 'od {target} u {count} cilju',
+    few: 'od {target} u {count} cilja',
+    other: 'od {target} u {count} ciljeva'
+  },
+  'savings.startedWith': 'Počelo s već ušteđenih {amount}.',
+  'savings.goalLabel': 'Cilj štednje',
+  'savings.archivedSuffix': ' · Arhivirano',
+  'savings.goalsAndHowClose': 'Ciljevi i koliko si im blizu.',
+  'savings.savingsCouldNotBe': 'Štednja se nije mogla učitati',
+  'savings.saveTowardsSomething': 'Štedi za nešto',
+  'savings.aHolidayANew':
+    'Odmor, novo računalo ili rezerva. Postavi cilj, uplaćuj s računa i vidi kada ćeš stići.',
+  'savings.addYourFirstGoal': 'Dodaj svoj prvi cilj',
+  'savings.savedInTotal': 'Ukupno ušteđeno',
+  'savings.reachedOrSetAside':
+    'Dosegnuti ili ostavljeni. Povijest ostaje, a novac koji je još u njima i dalje se broji.',
+  'savings.leftToSave': 'Preostalo za uštedjeti',
+  'savings.depositsAndWithdrawals': 'Uplate i podizanja',
+  'savings.everythingPutInAnd': 'Sve uplaćeno i podignuto.',
+  'savings.nothingPutInYet': 'Još ništa nije uplaćeno.',
+  'savings.takenOut2': 'Podignuto',
+  'savings.thatGoalNoLonger': 'Taj cilj više ne postoji',
+  'savings.backToSavings': 'Natrag na štednju'
 }

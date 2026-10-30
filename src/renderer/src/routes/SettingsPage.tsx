@@ -32,13 +32,13 @@ const languageOptions: SegmentedOption<Language>[] = languages.map((value) => ({
   label: languageNames[value]
 }))
 
-const themeOptions: SegmentedOption<ThemeMode>[] = [
-  { value: 'system', label: 'System', icon: Monitor },
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon }
+const themeOptions = (): SegmentedOption<ThemeMode>[] => [
+  { value: 'system', label: t('settings.system'), icon: Monitor },
+  { value: 'light', label: t('settings.light'), icon: Sun },
+  { value: 'dark', label: t('settings.dark'), icon: Moon }
 ]
 
-const laterSettings = ['Backup and restore, CSV export and reset data (step 56)']
+const laterSettings = (): string[] => [t('settings.backupAndRestoreCsv')]
 
 interface SettingRowProps {
   id: string
@@ -139,7 +139,11 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
     updateSettings.mutate(patch, {
       onSuccess: () => savedTitle && toast({ title: savedTitle, variant: 'success' }),
       onError: (error) =>
-        toast({ title: 'Settings not saved', description: error.message, variant: 'error' })
+        toast({
+          title: t('settings.settingsNotSaved'),
+          description: error.message,
+          variant: 'error'
+        })
     })
 
   const { currency, locale, weekStart } = settings
@@ -165,21 +169,20 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
 
       <Card>
         <CardHeader className="block">
-          <CardTitle>Money and dates</CardTitle>
+          <CardTitle>{t('settings.moneyAndDates')}</CardTitle>
           <CardDescription>
-            How amounts and dates look throughout the app: {sampleAmount} · {sampleDate}
+            {t('settings.formatHint', { amount: sampleAmount, date: sampleDate })}
           </CardDescription>
         </CardHeader>
         <div className="divide-y divide-line">
           <SettingRow
             id="setting-currency"
-            label="Currency"
-            description="The currency all your accounts use."
+            label={t('settings.currency')}
+            description={t('settings.theCurrencyAllYour')}
             footer={
               <p className="mt-3 flex gap-2.5 rounded-control bg-surface-2 px-3 py-2.5 text-sm text-ink-muted">
                 <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                Changing the currency only changes the symbol. Amounts are not converted, so{' '}
-                {formatMoney(10000, { currency, locale })} stays 100 in the new currency.
+                {t('settings.currencyHint', { amount: formatMoney(10000, { currency, locale }) })}
               </p>
             }
           >
@@ -187,36 +190,38 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
               id="setting-currency"
               value={currency}
               options={currencyOptions(currency)}
-              onValueChange={(value) => save({ currency: value }, `Currency changed to ${value}`)}
+              onValueChange={(value) =>
+                save({ currency: value }, t('settings.currencyChanged', { currency: value }))
+              }
             />
           </SettingRow>
 
           <SettingRow
             id="setting-locale"
-            label="Number and date format"
-            description="Decimal separator, digit grouping and date order."
+            label={t('settings.numberAndDateFormat')}
+            description={t('settings.decimalSeparatorDigitGrouping')}
           >
             <SettingSelect
               id="setting-locale"
               value={locale}
               options={localeOptions(locale)}
-              onValueChange={(value) => save({ locale: value }, 'Number and date format changed')}
+              onValueChange={(value) => save({ locale: value }, t('settings.numberAndDateFormat2'))}
             />
           </SettingRow>
 
           <SettingRow
             id="setting-week-start"
-            label="First day of the week"
-            description={`Weeks run ${weekdayName(weekStart)} to ${weekEnd} in weekly views and the calendar.`}
+            label={t('settings.firstDayOfThe')}
+            description={t('settings.weeksRun', { from: weekdayName(weekStart), to: weekEnd })}
           >
             <SettingSelect
               id="setting-week-start"
               value={String(weekStart)}
-              options={weekStartOptions.map((o) => ({ ...o, value: String(o.value) }))}
+              options={weekStartOptions().map((o) => ({ ...o, value: String(o.value) }))}
               onValueChange={(value) =>
                 save(
                   { weekStart: Number(value) },
-                  `Weeks now start on ${weekdayName(Number(value))}`
+                  t('settings.weeksStart', { day: weekdayName(Number(value)) })
                 )
               }
             />
@@ -226,52 +231,48 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
 
       <Card>
         <CardHeader className="block">
-          <CardTitle id="setting-theme-label">Appearance</CardTitle>
-          <CardDescription>System follows the Windows light or dark mode.</CardDescription>
+          <CardTitle id="setting-theme-label">{t('settings.appearance')}</CardTitle>
+          <CardDescription>{t('settings.systemFollowsTheWindows')}</CardDescription>
         </CardHeader>
         <SegmentedControl
           name="theme"
           aria-labelledby="setting-theme-label"
           value={settings.theme}
-          options={themeOptions}
+          options={themeOptions()}
           onValueChange={(theme) => save({ theme })}
         />
       </Card>
 
       <Card>
         <CardHeader className="block">
-          <CardTitle>Reminders and startup</CardTitle>
-          <CardDescription>
-            Reminders arrive while Financije is open or running in the tray.
-          </CardDescription>
+          <CardTitle>{t('settings.remindersAndStartup')}</CardTitle>
+          <CardDescription>{t('settings.remindersArriveWhileFinancije')}</CardDescription>
         </CardHeader>
         <div className="divide-y divide-line">
           <ToggleRow
             id="setting-notifications"
-            label="Payment reminders"
-            description="A Windows notification before bills and subscriptions are due. Set how many days before on each one under Recurring."
+            label={t('settings.paymentReminders')}
+            description={t('settings.aWindowsNotificationBefore')}
             checked={settings.notificationsEnabled}
             onCheckedChange={(on) =>
               save(
                 { notificationsEnabled: on },
-                on ? 'Reminders turned on' : 'Reminders turned off'
+                on ? t('settings.remindersTurnedOn') : t('settings.remindersTurnedOff')
               )
             }
           />
           <ToggleRow
             id="setting-tray"
-            label="Keep running in the tray"
-            description="Closing the window leaves Financije in the tray, so reminders still arrive. Quit from the tray icon’s menu."
+            label={t('settings.keepRunningInThe')}
+            description={t('settings.closingTheWindowLeaves')}
             checked={settings.closeToTray}
             onCheckedChange={(on) => save({ closeToTray: on })}
           />
           <ToggleRow
             id="setting-start"
-            label="Start with Windows"
+            label={t('settings.startWithWindows')}
             description={
-              settings.closeToTray
-                ? 'Starts in the tray when you sign in, so reminders arrive without opening it.'
-                : 'Starts when you sign in, so reminders arrive without opening it.'
+              settings.closeToTray ? t('settings.startsInTheTray') : t('settings.startsWhenYouSign')
             }
             checked={settings.startWithWindows}
             onCheckedChange={(on) => save({ startWithWindows: on })}
@@ -280,9 +281,9 @@ function SettingsForm({ settings }: { settings: Settings }): React.JSX.Element {
       </Card>
 
       <section className="rounded-panel border border-dashed border-line p-5">
-        <h2 className="font-semibold">More settings on the way</h2>
+        <h2 className="font-semibold">{t('settings.moreSettingsOnThe')}</h2>
         <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm text-ink-muted marker:text-primary">
-          {laterSettings.map((item) => (
+          {laterSettings().map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
@@ -296,14 +297,17 @@ export function SettingsPage(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader title="Settings" description="Currency, formats, theme and reminders." />
+      <PageHeader
+        title={t('screen.settings')}
+        description={t('settings.currencyFormatsThemeAnd')}
+      />
       {settings.data ? (
         <SettingsForm settings={settings.data} />
       ) : settings.isError ? (
         <Card className="max-w-3xl">
-          <CardTitle>Settings could not be loaded</CardTitle>
+          <CardTitle>{t('settings.settingsCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">
-            {settings.error.message} Restart Financije to try again.
+            {t('settings.restartToRetry', { error: settings.error.message })}
           </CardDescription>
         </Card>
       ) : null}

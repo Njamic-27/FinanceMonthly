@@ -6,6 +6,7 @@ import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { periodLabel } from './labels'
 import { flowParts } from './parts'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * Every week or month of the projection in numbers: the table behind both charts. Each opens in
@@ -19,15 +20,19 @@ export function DetailTable({
   className?: string
 }): React.JSX.Element {
   const money = useCurrency()
-  const parts = flowParts.filter((part) => projection.periods.some((p) => p[part.key] > 0))
+  const parts = flowParts().filter((part) => projection.periods.some((p) => p[part.key] > 0))
 
   return (
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>{t('projections.details')}</CardTitle>
           <CardDescription>
-            Each {projection.granularity}, and the balance at its end.
+            {t(
+              projection.granularity === 'week'
+                ? 'projections.eachWeekBalance'
+                : 'projections.eachMonthBalance'
+            )}
           </CardDescription>
         </div>
       </CardHeader>
@@ -36,7 +41,7 @@ export function DetailTable({
           <thead className="text-left text-ink-muted">
             <tr className="border-b border-line">
               <th scope="col" className="py-2 pr-4 font-semibold">
-                {projection.granularity === 'week' ? 'Week' : 'Month'}
+                {projection.granularity === 'week' ? t('projections.week') : t('screen.month')}
               </th>
               {parts.map((part) => (
                 <th key={part.key} scope="col" className="py-2 pr-4 text-right font-semibold">
@@ -44,10 +49,10 @@ export function DetailTable({
                 </th>
               ))}
               <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                Net
+                {t('calendar.net')}
               </th>
               <th scope="col" className="py-2 text-right font-semibold">
-                Balance
+                {t('accounts.balance')}
               </th>
             </tr>
           </thead>

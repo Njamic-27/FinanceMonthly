@@ -16,8 +16,9 @@ import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { periodLabel, periodTick } from './labels'
 import { flowParts } from './parts'
+import { t, tNode } from '@renderer/lib/i18n'
 
-type Part = (typeof flowParts)[number]['key']
+type Part = ReturnType<typeof flowParts>[number]['key']
 
 interface Row extends Record<Part, number> {
   tick: string
@@ -63,15 +64,19 @@ export function FlowChart({
     savings: -p.savings
   }))
   // Only kinds that occur get a bar and a legend entry.
-  const parts = flowParts.filter((part) => projection.periods.some((p) => p[part.key] > 0))
+  const parts = flowParts().filter((part) => projection.periods.some((p) => p[part.key] > 0))
 
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader className="flex-wrap">
         <div>
-          <CardTitle>Money in and out</CardTitle>
+          <CardTitle>{t('projections.moneyInAndOut')}</CardTitle>
           <CardDescription>
-            Each {projection.granularity}: what comes in above the line, what goes out below.
+            {t(
+              projection.granularity === 'week'
+                ? 'projections.eachWeekFlow'
+                : 'projections.eachMonthFlow'
+            )}
           </CardDescription>
         </div>
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted">
@@ -135,10 +140,13 @@ export function FlowChart({
                         </p>
                       ))}
                     <p className="border-t border-line pt-1 text-sm text-ink-muted">
-                      Net{' '}
-                      <span className="amount text-ink">
-                        {money.format(row.period.net, 'exceptZero')}
-                      </span>
+                      {tNode('projections.netAmount', {
+                        amount: (
+                          <span className="amount text-ink">
+                            {money.format(row.period.net, 'exceptZero')}
+                          </span>
+                        )
+                      })}
                     </p>
                   </div>
                 )

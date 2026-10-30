@@ -16,6 +16,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { periodLabel, periodTick } from './labels'
+import { t } from '@renderer/lib/i18n'
 
 interface Point {
   date: IsoDate
@@ -44,30 +45,37 @@ export function BalanceChart({
   const data: Point[] = [
     {
       date: today,
-      tick: 'Today',
-      label: 'Today',
+      tick: t('transactions.today'),
+      label: t('transactions.today'),
       balance: projection.startBalance
     },
     ...projection.periods.map((p) => ({
       date: p.end,
       tick: periodTick(p, projection.granularity, money.locale),
-      label: `End of ${periodLabel(p, projection.granularity, money.locale)}`,
+      label: t('projections.endOf', {
+        period: periodLabel(p, projection.granularity, money.locale)
+      }),
       balance: p.balance
     }))
   ]
   const goesNegative = data.some((d) => d.balance < 0)
   const change = projection.endBalance - projection.startBalance
+  const endDate = formatDate(projection.periods.at(-1)?.end ?? today, money.locale)
 
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader>
         <div>
-          <CardTitle>Projected balance</CardTitle>
+          <CardTitle>{t('projections.projectedBalance')}</CardTitle>
           <CardDescription>
             {change === 0
-              ? 'No change'
-              : `${change > 0 ? 'Up' : 'Down'} ${money.format(Math.abs(change))}`}{' '}
-            by {formatDate(projection.periods.at(-1)?.end ?? today, money.locale)}
+              ? t('projections.noChangeBy', { date: endDate })
+              : t('projections.change', {
+                  change: t(change > 0 ? 'projections.changeUp' : 'projections.changeDown', {
+                    amount: money.format(Math.abs(change))
+                  }),
+                  date: endDate
+                })}
           </CardDescription>
         </div>
       </CardHeader>

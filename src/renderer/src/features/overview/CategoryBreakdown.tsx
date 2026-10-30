@@ -13,6 +13,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { categoryPath } from '@renderer/lib/links'
 import { swatchStyle } from '@renderer/lib/palette'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /** Rows shown before the rest fold into "Other". */
 const MAX_ROWS = 7
@@ -62,7 +63,11 @@ function Row({
   return (
     <li>
       {to ? (
-        <Link to={to} title={`Show ${name} transactions`} className={cn(rowClass, 'link-row')}>
+        <Link
+          to={to}
+          title={t('overview.showCategory', { name })}
+          className={cn(rowClass, 'link-row')}
+        >
           {content}
         </Link>
       ) : (
@@ -93,10 +98,10 @@ export function CategoryBreakdown({
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Spending by category</CardTitle>
+          <CardTitle>{t('overview.spendingByCategory')}</CardTitle>
           <CardDescription>
             {totals.length === 0
-              ? 'Nothing spent yet'
+              ? t('overview.nothingSpentYet')
               : `${totals.length} ${totals.length === 1 ? 'category' : 'categories'}`}
           </CardDescription>
         </div>
@@ -108,7 +113,7 @@ export function CategoryBreakdown({
           return (
             <Row
               key={row.categoryId}
-              name={category?.name ?? 'Unknown category'}
+              name={category?.name ?? t('overview.unknownCategory')}
               color={color}
               chip={
                 <ColorChip
@@ -125,7 +130,7 @@ export function CategoryBreakdown({
         })}
         {other && (
           <Row
-            name={`${other.categories} more categories`}
+            name={t('overview.moreCategories', { count: other.categories })}
             color={neutralPaletteColor}
             chip={<ColorChip color={neutralPaletteColor} icon={Ellipsis} size="sm" />}
             total={money.format(other.total)}

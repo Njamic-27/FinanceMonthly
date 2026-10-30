@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/componen
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { periodPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t, tNode } from '@renderer/lib/i18n'
 
 interface Month {
   start: IsoDate
@@ -68,13 +69,11 @@ export function IncomeSpendingChart({
       <CardHeader className="flex-wrap">
         <div>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>
-            Income above the line, spending below. Click a month to open it.
-          </CardDescription>
+          <CardDescription>{t('overview.incomeAboveTheLine')}</CardDescription>
         </div>
         <p className="flex gap-4 text-sm text-ink-muted">
-          <LegendKey color="var(--income)" label="Income" />
-          <LegendKey color="var(--expense)" label="Spending" />
+          <LegendKey color="var(--income)" label={t('group.income')} />
+          <LegendKey color="var(--expense)" label={t('onboarding.spending')} />
         </p>
       </CardHeader>
 
@@ -115,8 +114,8 @@ export function IncomeSpendingChart({
                     </p>
                     {(
                       [
-                        ['Income', month.income, 'var(--income)'],
-                        ['Spent', -month.spent, 'var(--expense)']
+                        [t('group.income'), month.income, 'var(--income)'],
+                        [t('overview.spent'), -month.spent, 'var(--expense)']
                       ] as const
                     ).map(([label, value, color]) => (
                       <p key={label} className="flex items-center gap-2">
@@ -130,10 +129,13 @@ export function IncomeSpendingChart({
                       </p>
                     ))}
                     <p className="border-t border-line pt-1 text-sm text-ink-muted">
-                      Net{' '}
-                      <span className="amount text-ink">
-                        {money.format(month.net, 'exceptZero')}
-                      </span>
+                      {tNode('projections.netAmount', {
+                        amount: (
+                          <span className="amount text-ink">
+                            {money.format(month.net, 'exceptZero')}
+                          </span>
+                        )
+                      })}
                     </p>
                   </div>
                 )
@@ -163,10 +165,10 @@ export function IncomeSpendingChart({
         <caption>{title}</caption>
         <thead>
           <tr>
-            <th scope="col">Month</th>
-            <th scope="col">Income</th>
-            <th scope="col">Spent</th>
-            <th scope="col">Net</th>
+            <th scope="col">{t('screen.month')}</th>
+            <th scope="col">{t('group.income')}</th>
+            <th scope="col">{t('overview.spent')}</th>
+            <th scope="col">{t('calendar.net')}</th>
           </tr>
         </thead>
         <tbody>

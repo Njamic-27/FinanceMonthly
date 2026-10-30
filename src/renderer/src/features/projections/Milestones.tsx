@@ -7,6 +7,7 @@ import { useAccounts } from '@renderer/features/accounts/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath, milestonePath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 const looks: Record<Milestone['kind'], { icon: LucideIcon; tone: string }> = {
   loan_paid_off: { icon: Landmark, tone: 'bg-loan-soft text-loan' },
@@ -20,15 +21,17 @@ function useText(milestone: Milestone): string {
   const accounts = useAccounts().data ?? []
   switch (milestone.kind) {
     case 'loan_paid_off':
-      return `${milestone.title} paid off`
+      return t('projections.paidOff', { title: milestone.title })
     case 'plan_paid_off': {
       const card = accounts.find((a) => a.id === milestone.accountId)
-      return `${milestone.title} paid off${card ? ` on ${card.name}` : ''}`
+      return card
+        ? t('projections.paidOffOn', { title: milestone.title, card: card.name })
+        : t('projections.paidOff', { title: milestone.title })
     }
     case 'goal_reached':
-      return `${milestone.title} reached`
+      return t('projections.reached', { title: milestone.title })
     case 'below_zero':
-      return `Balance goes below zero: ${money.format(milestone.balance)}`
+      return t('projections.belowZero', { amount: money.format(milestone.balance) })
   }
 }
 
@@ -82,14 +85,12 @@ export function Milestones({
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Milestones</CardTitle>
-          <CardDescription>Along the way, if things go as planned.</CardDescription>
+          <CardTitle>{t('projections.milestones')}</CardTitle>
+          <CardDescription>{t('projections.alongTheWayIf')}</CardDescription>
         </div>
       </CardHeader>
       {milestones.length === 0 ? (
-        <p className="text-sm text-ink-muted">
-          Nothing paid off or reached in this time, and the balance stays above zero.
-        </p>
+        <p className="text-sm text-ink-muted">{t('projections.nothingPaidOffOr')}</p>
       ) : (
         <ul className="-mx-2 grid gap-0.5">
           {milestones.map((m) => (

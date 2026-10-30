@@ -1,6 +1,7 @@
 import type { Account } from '@shared/accounts'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /** The one bold panel: total balance of the given accounts, split into money and card debt. */
 export function BalanceBanner({
@@ -22,23 +23,23 @@ export function BalanceBanner({
 
   return (
     <section
-      aria-label="Total balance"
+      aria-label={t('accounts.totalBalance')}
       className={cn(
         'flex flex-wrap items-end justify-between gap-6 rounded-panel bg-banner p-7 text-on-banner',
         className
       )}
     >
       <div>
-        <p className="text-on-banner/80">Total balance</p>
+        <p className="text-on-banner/80">{t('accounts.totalBalance')}</p>
         <p className="amount mt-1 text-hero">{money.format(total)}</p>
       </div>
       <dl className="flex gap-10">
         <div>
-          <dt className="text-sm text-on-banner/80">Cards and cash</dt>
+          <dt className="text-sm text-on-banner/80">{t('accounts.cardsAndCash')}</dt>
           <dd className="amount mt-0.5 text-lg">{money.format(onHand)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-on-banner/80">Owed on credit cards</dt>
+          <dt className="text-sm text-on-banner/80">{t('accounts.owedOnCreditCards')}</dt>
           <dd className="amount mt-0.5 text-lg">{money.format(owed)}</dd>
         </div>
       </dl>

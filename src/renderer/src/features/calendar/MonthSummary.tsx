@@ -4,6 +4,7 @@ import type { CalendarSummary } from '@shared/planned'
 import { Card } from '@renderer/components/ui/card'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 function Tile({
   label,
@@ -43,41 +44,38 @@ export function MonthSummary({
   const withPlanned = totals?.withPlanned ?? false
 
   return (
-    <section aria-label="Month summary" className="mb-6">
+    <section aria-label={t('calendar.monthSummary')} className="mb-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
-          label={withPlanned ? 'Income, with planned' : 'Income'}
+          label={withPlanned ? t('calendar.incomeWithPlanned') : t('group.income')}
           value={totals ? money.format(totals.moneyIn) : '…'}
           className="text-income"
         />
         <Tile
-          label={withPlanned ? 'Money out, with planned' : 'Money out'}
+          label={withPlanned ? t('calendar.moneyOutWithPlanned') : t('month.moneyOut')}
           value={totals ? money.format(totals.moneyOut) : '…'}
-          caption="Spending, loan payments and savings"
+          caption={t('calendar.moneyOutCaption')}
         />
         <Tile
-          label="Net"
+          label={t('calendar.net')}
           value={totals ? money.format(totals.net, 'exceptZero') : '…'}
           caption={
             totals && withPlanned
-              ? `${money.format(totals.recordedNet, 'exceptZero')} recorded so far`
+              ? t('month.recordedSoFar', { amount: money.format(totals.recordedNet, 'exceptZero') })
               : undefined
           }
         />
         <Tile
-          label={projected ? 'Expected balance at month end' : 'Balance at month end'}
+          label={projected ? t('month.expectedBalanceEnd') : t('month.balanceEnd')}
           value={money.format(summary.endingBalance)}
-          caption={projected ? 'Today’s balance with everything planned until then' : undefined}
+          caption={projected ? t('calendar.todaysBalanceWithEverything') : undefined}
           className={cn(summary.endingBalance < 0 && 'text-expense')}
         />
       </div>
       {summary.overdue > 0 && (
         <p className="mt-3 flex items-center gap-2 text-sm text-expense">
           <CircleAlert className="size-4 shrink-0" aria-hidden />
-          {summary.overdue === 1
-            ? '1 planned payment this month is overdue.'
-            : `${summary.overdue} planned payments this month are overdue.`}{' '}
-          Open its day to mark it paid.
+          {t('calendar.overdue', { count: summary.overdue })} {t('calendar.openItsDayTo')}
         </p>
       )}
     </section>

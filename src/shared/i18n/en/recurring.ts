@@ -113,5 +113,45 @@ export const recurring = {
   'recurring.confirmTitle': 'Confirm “{title}”',
   'recurring.payTitle': 'Pay “{title}”',
   'recurring.dueOn': 'Due {date}. Change anything that was different this time.',
-  'recurring.website': 'Website'
+  'recurring.website': 'Website',
+  'recurring.yourSubscriptionsCost': 'Your subscriptions cost',
+  'recurring.noSubscriptionsYetAdd':
+    'No subscriptions yet. Add the services you pay for regularly, like streaming or software.',
+  'recurring.yourRecurringIncomeBrings': 'Your recurring income brings in',
+  'recurring.noRecurringIncomeYet':
+    'No recurring income yet. Add your salary so it’s added on payday.',
+  'recurring.yourRecurringExpensesCost': 'Your recurring expenses cost',
+  'recurring.noRecurringExpensesYet':
+    'No recurring expenses yet. Add rent, utilities or other regular bills.',
+  'recurring.subscriptionsRegularBillsAnd':
+    'Subscriptions, regular bills and regular income, added when they’re due.',
+  'recurring.recurringItemsCouldNot': 'Recurring items could not be loaded',
+  'recurring.kind': 'Kind',
+  'recurring.ended': 'Ended',
+  'recurring.pastTheirEndDate': 'Past their end date. What they added stays in your transactions.',
+  'recurring.tomorrow': 'Tomorrow',
+  'recurring.remindersAreOff': 'Reminders are off',
+  'recurring.reminderSent': 'Reminder sent',
+  'recurring.reminderDue': 'Reminder due',
+  'recurring.comingUp': 'Coming up',
+  'recurring.theNext14Days': 'The next 14 days.',
+  'recurring.nothingPlannedInThe': 'Nothing planned in the next 14 days.',
+  'recurring.openTheCalendar': 'Open the calendar',
+  'recurring.dueNow': 'Due now',
+  'recurring.confirmEachPaymentTo':
+    'Confirm each payment to add it to your transactions, or skip it if it didn’t happen.',
+  'recurring.reminderLabel': 'Reminder {when}',
+  'recurring.endedOn': 'Ended {date}',
+  'recurring.nextOnLink': 'Next {date}',
+  'recurring.aYear': ' · {amount} a year',
+  'recurring.asksFirst': ' · asks first',
+  'recurring.aMonthShort': 'a month',
+  'recurring.aYearShort': 'a year',
+  'recurring.averaged':
+    'Averaged over the year, from {items}. Paused and ended ones aren’t counted.',
+  'recurring.count.subscription': { one: '{count} subscription', other: '{count} subscriptions' },
+  'recurring.count.income': { one: '{count} source of income', other: '{count} sources of income' },
+  'recurring.count.expense': { one: '{count} bill', other: '{count} bills' },
+  'recurring.overdueSince': 'Overdue since {date}',
+  'recurring.reminderOn': 'Reminder {date}'
 } satisfies Record<string, Message>

@@ -3,9 +3,13 @@ import { add } from './en/add'
 import { calendar } from './en/calendar'
 import { categories } from './en/categories'
 import { common } from './en/common'
+import { history } from './en/history'
 import { loans } from './en/loans'
 import { month } from './en/month'
+import { onboarding } from './en/onboarding'
+import { overview } from './en/overview'
 import { panel } from './en/panel'
+import { projections } from './en/projections'
 import { recurring } from './en/recurring'
 import { savings } from './en/savings'
 import { settings } from './en/settings'
@@ -30,7 +34,11 @@ export const en = {
   ...transactions,
   ...categories,
   ...calendar,
-  ...ui
+  ...ui,
+  ...onboarding,
+  ...projections,
+  ...overview,
+  ...history
 }
 
 export type MessageKey = keyof typeof en

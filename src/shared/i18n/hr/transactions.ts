@@ -62,5 +62,28 @@ export const transactions: Translation<typeof en> = {
   'transactions.deleteAdjustmentDescription':
     '{amount} na računu {account}, {date}. Stanje se vraća na ono prije. Ovo se ne može poništiti.',
   'transactions.adjustmentDescription':
-    'Ispravak stanja računa {account}. Ne broji se kao prihod ni potrošnja.'
+    'Ispravak stanja računa {account}. Ne broji se kao prihod ni potrošnja.',
+  'transactions.summaryIncome': 'Prihodi {amount}',
+  'transactions.summaryExpenses': 'Troškovi {amount}',
+  'transactions.expenses': 'Troškovi',
+  'transactions.transfers': 'Prijenosi',
+  'transactions.everyPaymentIncomeAnd': 'Svako plaćanje, prihod i prijenos na jednom popisu.',
+  'transactions.searchTransactions': 'Traži transakcije',
+  'transactions.searchTitleNoteCategory': 'Traži naslov, bilješku, kategoriju ili iznos',
+  'transactions.customDates': 'Odabrani datumi…',
+  'transactions.allAccounts': 'Svi računi',
+  'transactions.allCategories': 'Sve kategorije',
+  'transactions.allTypes': 'Sve vrste',
+  'transactions.clearFilters': 'Očisti filtre',
+  'transactions.transactionsCouldNotBe': 'Transakcije se nisu mogle učitati',
+  'transactions.nothingMatchesTheseFilters': 'Ništa ne odgovara ovim filtrima',
+  'transactions.tryALongerPeriod': 'Pokušaj dulje razdoblje ili manje filtara.',
+  'transactions.noTransactionsYet': 'Još nema transakcija',
+  'transactions.addWhatYouSpend':
+    'Dodaj ono što trošiš i zarađuješ, i pojavit će se ovdje, po danima.',
+  'transactions.addYourFirstTransaction': 'Dodaj svoju prvu transakciju',
+  'transactions.allTime': 'Sve vrijeme',
+  'transactions.lastMonth': 'Prošli mjesec',
+  'transactions.last3Months': 'Zadnja 3 mjeseca',
+  'transactions.lastYear': 'Prošla godina'
 }

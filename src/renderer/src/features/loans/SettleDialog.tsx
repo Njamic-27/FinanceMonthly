@@ -22,6 +22,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
 import { useSettleLoan } from './queries'
 import { directionLabels, owedLabel } from './wording'
+import { t } from '@renderer/lib/i18n'
 
 type How = 'repaid' | 'forgiven'
 
@@ -54,11 +55,11 @@ function SettleForm({
   const options = [
     {
       value: 'repaid' as const,
-      label: lent ? `${loan.counterparty} paid the rest` : 'I paid the rest'
+      label: lent ? t('loans.paidTheRest', { name: loan.counterparty }) : t('loans.iPaidTheRest')
     },
     {
       value: 'forgiven' as const,
-      label: lent ? 'Let the rest go' : `${loan.counterparty} let it go`
+      label: lent ? t('loans.letTheRestGo') : t('loans.letItGo', { name: loan.counterparty })
     }
   ]
 
@@ -80,16 +81,16 @@ function SettleForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Close “{loan.title}”</DialogTitle>
+        <DialogTitle>{t('loans.closeTitle', { title: loan.title })}</DialogTitle>
         <DialogDescription>
-          {owedLabel(loan)} {rest}. How was it settled?
+          {t('loans.howSettled', { owed: owedLabel(loan), rest })}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-5">
         <SegmentedControl
           name="settle-how"
-          aria-label="How it was settled"
+          aria-label={t('loans.howItWasSettled')}
           value={how}
           options={options}
           onValueChange={(value) => {
@@ -115,7 +116,7 @@ function SettleForm({
               />
             </div>
             <div className="grid content-start gap-1.5">
-              <Label htmlFor="settle-date">Date</Label>
+              <Label htmlFor="settle-date">{t('common.date')}</Label>
               <DatePicker
                 id="settle-date"
                 value={date}
@@ -126,15 +127,11 @@ function SettleForm({
                 }}
               />
             </div>
-            <p className="col-span-2 text-sm text-ink-muted">
-              Records a final repayment of {rest}.
-            </p>
+            <p className="col-span-2 text-sm text-ink-muted">{t('loans.recordsFinal', { rest })}</p>
           </div>
         ) : (
           <p className="text-sm text-ink-muted">
-            {lent
-              ? `The ${rest} that’s left won’t be paid back. No money moves; the loan is closed.`
-              : `You won’t pay back the ${rest} that’s left. No money moves; the loan is closed.`}
+            {lent ? t('loans.restNotPaid', { rest }) : t('loans.youWontPay', { rest })}
           </p>
         )}
       </div>
@@ -143,10 +140,10 @@ function SettleForm({
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </DialogClose>
         <Button disabled={settle.isPending || (how === 'repaid' && !accountId)} onClick={submit}>
-          Close loan
+          {t('loans.closeLoan2')}
         </Button>
       </DialogFooter>
     </>

@@ -24,25 +24,26 @@ import { owedLabel, statusLabel } from '@renderer/features/loans/wording'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { loanPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
-const tabs: { kind: LoanKind; label: string; empty: string; add: string }[] = [
+const tabs = (): { kind: LoanKind; label: string; empty: string; add: string }[] => [
   {
     kind: 'lent',
-    label: 'Lent',
-    empty: 'Nothing lent. When you lend someone money, add it here to keep track of it.',
-    add: 'Add money lent'
+    label: t('loans.lent'),
+    empty: t('loans.nothingLentWhenYou'),
+    add: t('loans.addMoneyLent')
   },
   {
     kind: 'borrowed',
-    label: 'Borrowed',
-    empty: 'Nothing borrowed. Money a friend or family member lent you goes here.',
-    add: 'Add money borrowed'
+    label: t('loans.borrowed'),
+    empty: t('loans.nothingBorrowedMoneyA'),
+    add: t('loans.addMoneyBorrowed')
   },
   {
     kind: 'bank_loan',
-    label: 'Bank loans',
-    empty: 'No bank loans. Add a car loan, a mortgage or a cash loan to see its schedule.',
-    add: 'Add bank loan'
+    label: t('loans.bankLoans'),
+    empty: t('loans.noBankLoansAdd'),
+    add: t('loans.addBankLoan')
   }
 ]
 
@@ -57,11 +58,13 @@ function DueLine({ loan }: { loan: Loan }): React.JSX.Element | null {
       <span className="grid text-sm">
         <span className={cn(overdueCount > 0 ? 'font-semibold text-expense' : 'text-ink-muted')}>
           {overdueCount > 0
-            ? `${overdueCount} installment${overdueCount === 1 ? '' : 's'} overdue`
-            : `Next ${money.format(next.amount)} on ${short(next.dueDate)}`}
+            ? t('loans.installmentsOverdue', { count: overdueCount })
+            : t('loans.nextOn', { amount: money.format(next.amount), date: short(next.dueDate) })}
         </span>
         <span className="text-ink-muted">
-          Paid off in {formatDate(payoffDate, money.locale, { month: 'long', year: 'numeric' })}
+          {t('loans.paidOffInMonth', {
+            month: formatDate(payoffDate, money.locale, { month: 'long', year: 'numeric' })
+          })}
         </span>
       </span>
     )
@@ -69,9 +72,9 @@ function DueLine({ loan }: { loan: Loan }): React.JSX.Element | null {
   if (!loan.dueDate || loan.status !== 'active') return null
   const date = formatDate(loan.dueDate, money.locale)
   return isOverdue(loan, today()) ? (
-    <span className="text-sm font-semibold text-expense">Overdue since {date}</span>
+    <span className="text-sm font-semibold text-expense">{t('loans.overdueSince', { date })}</span>
   ) : (
-    <span className="text-sm text-ink-muted">Expected back by {date}</span>
+    <span className="text-sm text-ink-muted">{t('loans.expectedBackBy', { date })}</span>
   )
 }
 
@@ -117,7 +120,7 @@ function LoanCard({
       </button>
       <div className="px-5 pb-5">
         <Button variant="secondary" size="sm" onClick={onRepay}>
-          {loan.kind === 'bank_loan' ? 'Pay next…' : 'Record repayment'}
+          {loan.kind === 'bank_loan' ? t('loans.payNext') : t('loans.recordRepayment')}
         </Button>
       </div>
     </div>
@@ -149,13 +152,13 @@ export function LoansPage(): React.JSX.Element {
   const open = (loan: Loan): void => {
     void navigate(loanPath(loan.id))
   }
-  const current = tabs.find((t) => t.kind === tab) ?? tabs[0]
+  const current = tabs().find((x) => x.kind === tab) ?? tabs()[0]
 
   return (
     <>
       <PageHeader
-        title="Loans"
-        description="Money you lent, money you borrowed and bank loans."
+        title={t('group.loans')}
+        description={t('loans.moneyYouLentMoney')}
         actions={
           <Button onClick={() => addLoan(tab)}>
             <Plus />
@@ -166,9 +169,9 @@ export function LoansPage(): React.JSX.Element {
 
       {loans.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>Loans could not be loaded</CardTitle>
+          <CardTitle>{t('loans.loansCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">
-            {loans.error.message} Restart Financije to try again.
+            {t('common.restart', { error: loans.error.message })}
           </CardDescription>
         </Card>
       )}
@@ -177,26 +180,23 @@ export function LoansPage(): React.JSX.Element {
         <>
           <Card className="mb-6 flex flex-wrap gap-x-12 gap-y-3">
             <div>
-              <p className="text-sm text-ink-muted">Owed to you</p>
+              <p className="text-sm text-ink-muted">{t('loans.owedToYou')}</p>
               <p className="amount text-amount">{money.format(owed('lent'))}</p>
             </div>
             <div>
-              <p className="text-sm text-ink-muted">You owe people</p>
+              <p className="text-sm text-ink-muted">{t('loans.youOwePeople')}</p>
               <p className="amount text-amount">{money.format(owed('borrowed'))}</p>
             </div>
             <div>
-              <p className="text-sm text-ink-muted">You owe banks</p>
+              <p className="text-sm text-ink-muted">{t('loans.youOweBanks')}</p>
               <p className="amount text-amount">{money.format(owed('bank_loan'))}</p>
             </div>
-            <p className="w-full text-sm text-ink-muted">
-              Loans aren’t counted as income or spending: they move money between you and someone
-              else. Bank loans show the principal still owed; installments also include interest.
-            </p>
+            <p className="w-full text-sm text-ink-muted">{t('loans.loansArentCountedAs')}</p>
           </Card>
 
           <Tabs value={tab} onValueChange={(value) => setTab(value as LoanKind)}>
-            <TabsList aria-label="Kind of loan">
-              {tabs.map(({ kind, label }) => (
+            <TabsList aria-label={t('loans.kindOfLoan')}>
+              {tabs().map(({ kind, label }) => (
                 <TabsTrigger key={kind} value={kind}>
                   {label}
                   <span className="text-ink-muted tabular-nums">{active(kind).length || ''}</span>
@@ -204,7 +204,7 @@ export function LoansPage(): React.JSX.Element {
               ))}
             </TabsList>
 
-            {tabs.map(({ kind, empty, add }) => {
+            {tabs().map(({ kind, empty, add }) => {
               const running = active(kind)
               const closed = all.filter((l) => l.kind === kind && l.status !== 'active')
               return (
@@ -232,10 +232,8 @@ export function LoansPage(): React.JSX.Element {
 
                   {closed.length > 0 && (
                     <section className="max-w-3xl">
-                      <h2 className="mb-1 text-lg font-semibold">Closed</h2>
-                      <p className="mb-3 text-sm text-ink-muted">
-                        Paid off, or let go. Their history stays.
-                      </p>
+                      <h2 className="mb-1 text-lg font-semibold">{t('loans.closed')}</h2>
+                      <p className="mb-3 text-sm text-ink-muted">{t('loans.paidOffOrLet')}</p>
                       <Card className="p-3">
                         <ul className="divide-y divide-line">
                           {closed.map((loan) => (

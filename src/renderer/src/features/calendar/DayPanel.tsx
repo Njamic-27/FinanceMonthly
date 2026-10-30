@@ -15,6 +15,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { cardDueLabel } from './cardDue'
+import { t } from '@renderer/lib/i18n'
 
 function PlannedRow({
   item,
@@ -38,14 +39,14 @@ function PlannedRow({
         </p>
         <p className={cn('truncate text-sm text-ink-muted', item.overdue && 'text-expense')}>
           {item.source === 'installment_plan'
-            ? 'Installment, charged automatically'
+            ? t('calendar.installmentChargedAutomatically')
             : item.source === 'loan_installment'
               ? item.overdue
-                ? 'Loan installment, overdue'
-                : 'Loan installment'
+                ? t('calendar.loanInstallmentOverdue')
+                : t('calendar.loanInstallment')
               : item.overdue
-                ? 'Overdue'
-                : 'Planned'}
+                ? t('common.overdue')
+                : t('common.planned')}
           {account && (
             <>
               {' · '}
@@ -63,12 +64,12 @@ function PlannedRow({
         </span>
         <Button variant="secondary" size="sm" onClick={onConfirm}>
           {item.source === 'installment_plan'
-            ? 'View card'
+            ? t('calendar.viewCard')
             : item.source === 'loan_installment'
-              ? 'Pay…'
+              ? t('month.pay')
               : isIncome
-                ? 'Mark received…'
-                : 'Mark paid…'}
+                ? t('month.markReceived')
+                : t('month.markPaid')}
         </Button>
       </div>
     </li>
@@ -106,7 +107,7 @@ export function DayPanel({
     <Card
       ref={ref}
       className="sticky top-6 grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5"
-      aria-label="Selected day"
+      aria-label={t('calendar.selectedDay')}
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -119,18 +120,16 @@ export function DayPanel({
         </div>
         <Button size="sm" onClick={() => openTransactionDialog({ kind: 'new', prefill: { date } })}>
           <Plus />
-          Add transaction
+          {t('shell.addTransaction')}
         </Button>
       </header>
 
       {cardDues.length > 0 && (
         <section aria-labelledby="day-cards">
           <h3 id="day-cards" className="text-sm font-semibold">
-            Card payments due
+            {t('calendar.cardPaymentsDue')}
           </h3>
-          <p className="mt-1 text-sm text-ink-muted">
-            Paying a card moves money between your accounts, so it isn’t counted as spending.
-          </p>
+          <p className="mt-1 text-sm text-ink-muted">{t('calendar.payingACardMoves')}</p>
           <ul className="mt-1">
             {cardDues.map((marker) => (
               <li key={marker.accountId}>
@@ -155,13 +154,12 @@ export function DayPanel({
       {planned.length > 0 && (
         <section aria-labelledby="day-planned">
           <h3 id="day-planned" className="text-sm font-semibold">
-            Planned
+            {t('common.planned')}
           </h3>
           {overdue > 0 && (
             <p className="mt-1 flex gap-1.5 text-sm text-expense">
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-              Not marked paid yet. Mark it paid with what you actually paid, or skip it under
-              Recurring.
+              {t('calendar.notMarkedPaidYet')}
             </p>
           )}
           <ul className="divide-y divide-line">
@@ -176,7 +174,7 @@ export function DayPanel({
         </section>
       )}
 
-      <section aria-label="Transactions">
+      <section aria-label={t('screen.transactions')}>
         {transactions.length > 0 ? (
           <TransactionList
             transactions={transactions}
@@ -189,8 +187,8 @@ export function DayPanel({
           list.isSuccess && (
             <p className="text-sm text-ink-muted">
               {planned.length + cardDues.length > 0
-                ? 'Nothing recorded yet.'
-                : 'Nothing recorded on this day.'}
+                ? t('calendar.nothingRecordedYet')
+                : t('calendar.nothingRecordedOnThis')}
             </p>
           )
         )}
@@ -202,7 +200,7 @@ export function DayPanel({
             disabled={list.isFetchingNextPage}
             onClick={() => list.fetchNextPage()}
           >
-            Show more
+            {t('calendar.showMore')}
           </Button>
         )}
       </section>

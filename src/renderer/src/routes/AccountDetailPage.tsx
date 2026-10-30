@@ -20,6 +20,7 @@ import { useTransactionList } from '@renderer/features/transactions/queries'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /** The last six months, or since the account opened if that's later. */
 function chartRange(account: Account, now: IsoDate): { from: IsoDate; to: IsoDate } {
@@ -32,13 +33,17 @@ function BalanceTile({ account }: { account: Account }): React.JSX.Element {
   const money = useCurrency()
   return (
     <Card className="grid content-start gap-1">
-      <p className="text-sm text-ink-muted">{account.balance < 0 ? 'Overdrawn' : 'Balance'}</p>
+      <p className="text-sm text-ink-muted">
+        {account.balance < 0 ? t('accounts.overdrawn') : t('accounts.balance')}
+      </p>
       <p className={cn('amount text-amount', account.balance < 0 && 'text-expense')}>
         {money.format(account.balance)}
       </p>
       <p className="text-sm text-ink-muted">
-        Started with {money.format(account.openingBalance)} on{' '}
-        {formatDate(account.openingDate, money.locale)}
+        {t('accounts.startedWith', {
+          amount: money.format(account.openingBalance),
+          date: formatDate(account.openingDate, money.locale)
+        })}
       </p>
     </Card>
   )
@@ -59,18 +64,18 @@ function AccountTransactions({ account }: { account: Account }): React.JSX.Eleme
     <section aria-labelledby="account-transactions" className="mt-8 max-w-3xl">
       <header className="mb-4 flex items-baseline justify-between gap-4 px-1">
         <h2 id="account-transactions" className="text-lg font-semibold">
-          {count} transaction{count === 1 ? '' : 's'}
+          {t('month.transactions', { count })}
         </h2>
         <Link
           to={`/transactions?${writeFilters({ search: '', accountId: account.id })}`}
           className="link text-sm font-semibold text-primary"
         >
-          Open in Transactions
+          {t('accounts.openInTransactions')}
         </Link>
       </header>
       {list.isSuccess && transactions.length === 0 ? (
         <p className="rounded-panel border border-dashed border-line p-6 text-ink-muted">
-          Nothing paid with or into {account.name} yet.
+          {t('accounts.nothingPaid', { name: account.name })}
         </p>
       ) : (
         <TransactionList
@@ -89,8 +94,8 @@ function AccountTransactions({ account }: { account: Account }): React.JSX.Eleme
             onClick={() => list.fetchNextPage()}
           >
             {list.isFetchingNextPage
-              ? 'Loading…'
-              : `Show more (${count - transactions.length} left)`}
+              ? t('overview.loading')
+              : t('common.showMoreLeft', { count: count - transactions.length })}
           </Button>
         </div>
       )}
@@ -127,7 +132,7 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={edit}>
             <Pencil />
-            Edit account
+            {t('accounts.editAccount')}
           </Button>
           {!account.isArchived && (
             <Button
@@ -136,7 +141,7 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
               }
             >
               <Plus />
-              Add transaction
+              {t('shell.addTransaction')}
             </Button>
           )}
         </div>
@@ -158,7 +163,10 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
           )}
         </div>
         <div className="grid gap-4 lg:col-span-3">
-          <BalanceTrend points={points} title={isCredit ? 'Owed' : 'Balance'} />
+          <BalanceTrend
+            points={points}
+            title={isCredit ? t('accounts.owed') : t('accounts.balance')}
+          />
           {isCredit && <InstallmentPlans accountId={account.id} />}
         </div>
       </div>
@@ -180,11 +188,11 @@ export function AccountDetailPage(): React.JSX.Element | null {
   if (accounts.isSuccess && !account) {
     return (
       <Card className="max-w-3xl">
-        <CardTitle>That account no longer exists</CardTitle>
+        <CardTitle>{t('accounts.thatAccountNoLonger')}</CardTitle>
         <CardDescription className="mt-1">
-          It may have been deleted.{' '}
+          {t('common.mayBeDeleted')}{' '}
           <Link to="/accounts" className="link font-semibold text-primary">
-            Back to accounts
+            {t('accounts.backToAccounts')}
           </Link>
         </CardDescription>
       </Card>

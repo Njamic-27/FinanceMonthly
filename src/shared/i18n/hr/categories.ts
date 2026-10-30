@@ -51,5 +51,15 @@ export const categories: Translation<typeof en> = {
   'categories.sortIncome': 'Razvrstavaj u nju prihode kad dodaješ transakcije.',
   'categories.sortSpending': 'Razvrstavaj u nju potrošnju kad dodaješ transakcije.',
   'categories.moveIncome': 'Premjesti sve iz nje u drugu kategoriju prihoda.',
-  'categories.moveExpense': 'Premjesti sve iz nje u drugu kategoriju troška.'
+  'categories.moveExpense': 'Premjesti sve iz nje u drugu kategoriju troška.',
+  'categories.noExpenseCategoriesYet':
+    'Još nema kategorija troškova. Dodaj jednu za razvrstavanje potrošnje.',
+  'categories.noIncomeCategoriesYet':
+    'Još nema kategorija prihoda. Dodaj jednu za plaću ili druge prihode.',
+  'categories.usedByRecurringItems': 'Koriste je ponavljajuće stavke',
+  'categories.notUsedYet': 'Još se ne koristi',
+  'categories.whatYouSortIncome': 'U što razvrstavaš prihode i potrošnju.',
+  'categories.categoriesCouldNotBe': 'Kategorije se nisu mogle učitati',
+  'categories.categoryType': 'Vrsta kategorije',
+  'categories.notOfferedForNew': 'Ne nude se za nove transakcije. Prošle transakcije ih zadržavaju.'
 }

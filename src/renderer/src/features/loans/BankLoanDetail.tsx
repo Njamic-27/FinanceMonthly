@@ -16,6 +16,7 @@ import { nextInstallment } from './installment'
 import { LoanProgress } from './LoanProgress'
 import { PayInstallmentDialog, type PayInstallmentTarget } from './PayInstallmentDialog'
 import { useLoanSchedule, useUnpayInstallment } from './queries'
+import { t, tNode } from '@renderer/lib/i18n'
 
 /** How the installments get paid: by themselves, or by you with a reminder. */
 function PaidHow({ loan }: { loan: Loan }): React.JSX.Element | null {
@@ -23,22 +24,17 @@ function PaidHow({ loan }: { loan: Loan }): React.JSX.Element | null {
   if (loan.status !== 'active') return null
   return (
     <p className="text-sm text-ink-muted">
-      {loan.autoPay ? (
-        <>
-          Paid automatically
-          {account && (
-            <>
-              {' from '}
-              <Link to={accountPath(account.id)} className="link">
-                {account.name}
-              </Link>
-            </>
-          )}{' '}
-          on each due date.
-        </>
-      ) : (
-        `You mark each installment paid; Financije reminds you ${LOAN_REMINDER_DAYS} days before.`
-      )}
+      {loan.autoPay
+        ? account
+          ? tNode('loans.paidFromOnDue', {
+              account: (
+                <Link to={accountPath(account.id)} className="link">
+                  {account.name}
+                </Link>
+              )
+            })
+          : t('loans.paidOnDue')
+        : t('loans.youMark', { days: LOAN_REMINDER_DAYS })}
     </p>
   )
 }
@@ -53,7 +49,9 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
     <Card className="grid content-start gap-5">
       <div>
         <p className="text-sm text-ink-muted">
-          {loan.status === 'paid_off' ? 'Paid off' : `You owe ${loan.counterparty}`}
+          {loan.status === 'paid_off'
+            ? t('accounts.paidOff')
+            : t('loans.youOwe', { name: loan.counterparty })}
         </p>
         <p className="amount text-amount">
           {money.format(loan.status === 'paid_off' ? loan.principal : loan.outstanding)}
@@ -64,15 +62,15 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
         <>
           <dl className="grid grid-cols-3 gap-4 border-t border-line pt-4">
             <div>
-              <dt className="text-sm text-ink-muted">Each month</dt>
+              <dt className="text-sm text-ink-muted">{t('panel.eachMonth')}</dt>
               <dd className="amount text-lg">{money.format(bank.monthlyPayment)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Interest</dt>
-              <dd className="text-lg font-semibold">{percent}% a year</dd>
+              <dt className="text-sm text-ink-muted">{t('loans.interest')}</dt>
+              <dd className="text-lg font-semibold">{t('loans.perYear', { percent })}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Paid off in</dt>
+              <dt className="text-sm text-ink-muted">{t('loans.paidOffIn')}</dt>
               <dd className="text-lg font-semibold">
                 <Link to={dayPath(bank.payoffDate)} className="link">
                   {formatDate(bank.payoffDate, money.locale, { month: 'short', year: 'numeric' })}
@@ -82,24 +80,26 @@ function Overview({ loan }: { loan: Loan }): React.JSX.Element {
           </dl>
           <dl className="grid grid-cols-3 gap-4">
             <div>
-              <dt className="text-sm text-ink-muted">Installments paid</dt>
+              <dt className="text-sm text-ink-muted">{t('loans.installmentsPaid')}</dt>
               <dd className="text-lg font-semibold">
-                {bank.paidCount} of {loan.installmentsCount}
+                {t('loans.paidOfTotal', {
+                  paid: bank.paidCount,
+                  total: loan.installmentsCount ?? 0
+                })}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Interest paid</dt>
+              <dt className="text-sm text-ink-muted">{t('loans.interestPaid')}</dt>
               <dd className="amount text-lg">{money.format(bank.interestPaid)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Interest in total</dt>
+              <dt className="text-sm text-ink-muted">{t('loans.interestInTotal')}</dt>
               <dd className="amount text-lg">{money.format(bank.totalInterest)}</dd>
             </div>
           </dl>
           {bank.overdueCount > 0 && (
             <p className="text-sm font-semibold text-expense">
-              {bank.overdueCount} installment{bank.overdueCount === 1 ? ' is' : 's are'} past due
-              and not marked paid.
+              {t('loans.pastDue', { count: bank.overdueCount })}
             </p>
           )}
         </>
@@ -131,19 +131,17 @@ function Schedule({
 
   const undo = (row: LoanInstallment): void =>
     unpay.mutate(row.id, {
-      onSuccess: () => toast({ title: `Installment ${row.seq} is due again`, variant: 'success' }),
+      onSuccess: () => toast({ title: t('loans.dueAgain', { seq: row.seq }), variant: 'success' }),
       onError: (error) =>
-        toast({ title: 'Not undone', description: error.message, variant: 'error' })
+        toast({ title: t('owned.notUndone'), description: error.message, variant: 'error' })
     })
 
   return (
     <Card className="mt-8">
       <CardHeader>
         <div>
-          <CardTitle>Schedule</CardTitle>
-          <CardDescription>
-            Each payment is part interest on what’s still owed, part principal.
-          </CardDescription>
+          <CardTitle>{t('loans.schedule')}</CardTitle>
+          <CardDescription>{t('loans.eachPaymentIsPart')}</CardDescription>
         </div>
       </CardHeader>
       <div className="overflow-x-auto">
@@ -154,22 +152,22 @@ function Schedule({
                 #
               </th>
               <th scope="col" className="py-2 pr-3 font-semibold">
-                Due
+                {t('month.due')}
               </th>
               <th scope="col" className="py-2 pr-3 text-right font-semibold">
-                Payment
+                {t('loans.payment')}
               </th>
               <th scope="col" className="py-2 pr-3 text-right font-semibold">
-                Principal
+                {t('loans.principal')}
               </th>
               <th scope="col" className="py-2 pr-3 text-right font-semibold">
-                Interest
+                {t('loans.interest')}
               </th>
               <th scope="col" className="py-2 pr-3 text-right font-semibold">
-                Still owed
+                {t('loans.stillOwed')}
               </th>
               <th scope="col" className="py-2 font-semibold">
-                <span className="sr-only">Status</span>
+                <span className="sr-only">{t('loans.status')}</span>
               </th>
             </tr>
           </thead>
@@ -189,26 +187,30 @@ function Schedule({
                     {paid ? (
                       <span className="inline-flex items-center gap-2">
                         <span className="text-income">
-                          Paid {row.paidDate && short(row.paidDate)}
+                          {tNode('loans.paidOn', { date: row.paidDate ? short(row.paidDate) : '' })}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
                           disabled={unpay.isPending}
-                          aria-label={`Undo payment of installment ${row.seq}`}
+                          aria-label={t('loans.undoPaymentOf', { seq: row.seq })}
                           onClick={() => undo(row)}
                         >
-                          Undo
+                          {t('loans.undo')}
                         </Button>
                       </span>
                     ) : (
                       loan.status === 'active' && (
                         <span className="inline-flex items-center gap-2">
-                          {overdue && <span className="font-semibold text-expense">Overdue</span>}
+                          {overdue && (
+                            <span className="font-semibold text-expense">
+                              {t('common.overdue')}
+                            </span>
+                          )}
                           <Button
                             variant={overdue ? 'secondary' : 'ghost'}
                             size="sm"
-                            aria-label={`Pay installment ${row.seq}`}
+                            aria-label={t('loans.payInstallment', { seq: row.seq })}
                             onClick={() =>
                               onPay({
                                 installmentId: row.id,
@@ -223,7 +225,7 @@ function Schedule({
                               })
                             }
                           >
-                            Pay…
+                            {t('month.pay')}
                           </Button>
                         </span>
                       )
@@ -256,17 +258,17 @@ export function BankLoanDetail({ loan }: { loan: Loan }): React.JSX.Element {
           <div className="min-w-0">
             <h1 className="truncate text-[2rem] leading-tight font-bold">{loan.title}</h1>
             <p className="mt-1 text-ink-muted">
-              Bank loan from {loan.counterparty}
-              {loan.status === 'paid_off' && ' · Paid off'}
+              {t('loans.bankLoanFrom', { bank: loan.counterparty })}
+              {loan.status === 'paid_off' && t('loans.paidOffSuffix')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil />
-            Edit loan
+            {t('loans.editLoan')}
           </Button>
-          {next && <Button onClick={() => setPaying(next)}>Pay next installment</Button>}
+          {next && <Button onClick={() => setPaying(next)}>{t('loans.payNextInstallment')}</Button>}
         </div>
       </header>
 

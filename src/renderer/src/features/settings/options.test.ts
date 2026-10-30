@@ -48,7 +48,7 @@ describe('week start options', () => {
   })
 
   it('lists Monday to Sunday', () => {
-    expect(weekStartOptions.map((o) => o.value)).toEqual([1, 2, 3, 4, 5, 6, 0])
-    expect(weekStartOptions[0].label).toBe('Monday')
+    expect(weekStartOptions().map((o) => o.value)).toEqual([1, 2, 3, 4, 5, 6, 0])
+    expect(weekStartOptions()[0].label).toBe('Monday')
   })
 })

@@ -20,10 +20,11 @@ import { useFirstDate, useSeries, useTotals } from '@renderer/features/stats/que
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
-const viewOptions: { value: PeriodKind; label: string }[] = [
-  { value: 'month', label: 'Months' },
-  { value: 'week', label: 'Weeks' }
+const viewOptions = (): { value: PeriodKind; label: string }[] => [
+  { value: 'month', label: t('history.months') },
+  { value: 'week', label: t('history.weeks') }
 ]
 
 /** A year at a time: totals against the year before, a monthly chart and a heat grid. */
@@ -56,25 +57,25 @@ export function HistoryPage(): React.JSX.Element {
   return (
     <>
       <PageHeader
-        title="History"
-        description="Past months and weeks side by side."
+        title={t('screen.history')}
+        description={t('history.pastMonthsAndWeeks')}
         actions={
           <SegmentedControl
             name="history-view"
-            aria-label="Show months or weeks"
+            aria-label={t('history.showMonthsOrWeeks')}
             value={view}
-            options={viewOptions}
+            options={viewOptions()}
             onValueChange={(next) => go({ view: next })}
           />
         }
       />
 
-      <nav aria-label="Year" className="mb-6 flex flex-wrap items-center gap-2">
+      <nav aria-label={t('history.year')} className="mb-6 flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
           size="icon"
-          aria-label="Previous year"
-          title="Previous year"
+          aria-label={t('calendar.previousYear')}
+          title={t('calendar.previousYear')}
           disabled={year <= firstYear}
           onClick={() => go({ year: year - 1 })}
         >
@@ -83,8 +84,8 @@ export function HistoryPage(): React.JSX.Element {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Next year"
-          title="Next year"
+          aria-label={t('calendar.nextYear')}
+          title={t('calendar.nextYear')}
           disabled={year >= currentYear}
           onClick={() => go({ year: year + 1 })}
         >
@@ -95,14 +96,14 @@ export function HistoryPage(): React.JSX.Element {
         </h2>
         {year !== currentYear && (
           <Button variant="ghost" className="ml-2" onClick={() => go({ year: currentYear })}>
-            This year
+            {t('history.thisYear')}
           </Button>
         )}
       </nav>
 
       {totals.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>History could not be loaded</CardTitle>
+          <CardTitle>{t('history.historyCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">{totals.error.message}</CardDescription>
         </Card>
       )}
@@ -121,11 +122,13 @@ export function HistoryPage(): React.JSX.Element {
                 <History className="size-6" />
               </span>
               <div>
-                <h2 className="text-lg font-semibold">Nothing recorded in {year}</h2>
+                <h2 className="text-lg font-semibold">
+                  {t('history.nothingRecordedIn', { year })}
+                </h2>
                 <p className="mt-1 text-ink-muted">
                   {year === currentYear
-                    ? 'As you add what you spend and earn, each month fills in here.'
-                    : 'Choose another year, or add what you spent back then.'}
+                    ? t('history.asYouAddWhat')
+                    : t('history.chooseAnotherYearOr')}
                 </p>
               </div>
               <Button
@@ -137,14 +140,14 @@ export function HistoryPage(): React.JSX.Element {
                 }
               >
                 <Plus />
-                Add transaction
+                {t('shell.addTransaction')}
               </Button>
             </section>
           ) : (
             <>
               <div className="mt-6">
                 <IncomeSpendingChart
-                  title="Income and spending by month"
+                  title={t('history.incomeAndSpendingBy')}
                   months={months.data ?? []}
                 />
               </div>
@@ -152,11 +155,10 @@ export function HistoryPage(): React.JSX.Element {
                 <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
                   <div>
                     <h2 id="history-grid" className="text-lg font-semibold">
-                      {view === 'month' ? 'Month by month' : 'Week by week'}
+                      {view === 'month' ? t('history.monthByMonth') : t('history.weekByWeek')}
                     </h2>
                     <p className="text-sm text-ink-muted">
-                      Shaded from the lowest to the highest spending in {year}. Open any {view} to
-                      see it in detail.
+                      {t(view === 'month' ? 'history.shadedMonth' : 'history.shadedWeek', { year })}
                     </p>
                   </div>
                   <HeatLegend />

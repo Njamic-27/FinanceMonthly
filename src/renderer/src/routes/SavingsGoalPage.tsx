@@ -22,6 +22,7 @@ import {
 } from '@renderer/features/savings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath } from '@renderer/lib/links'
+import { t } from '@renderer/lib/i18n'
 
 function Progress({ goal }: { goal: SavingsGoal }): React.JSX.Element {
   const money = useCurrency()
@@ -36,24 +37,26 @@ function Progress({ goal }: { goal: SavingsGoal }): React.JSX.Element {
           label={`${Math.floor(share * 100)}% of ${money.format(goal.targetAmount)} saved`}
         />
         <div>
-          <p className="text-sm text-ink-muted">Saved</p>
+          <p className="text-sm text-ink-muted">{t('loans.saved')}</p>
           <p className="amount text-amount">{money.format(goal.saved)}</p>
-          <p className="text-sm text-ink-muted">of {money.format(goal.targetAmount)}</p>
+          <p className="text-sm text-ink-muted">
+            {t('common.ofAmount', { amount: money.format(goal.targetAmount) })}
+          </p>
         </div>
       </div>
       <dl className="grid grid-cols-3 gap-4 border-y border-line py-4">
         <div>
-          <dt className="text-sm text-ink-muted">Left to save</dt>
+          <dt className="text-sm text-ink-muted">{t('savings.leftToSave')}</dt>
           <dd className="amount text-lg">{money.format(left)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">Each month</dt>
+          <dt className="text-sm text-ink-muted">{t('panel.eachMonth')}</dt>
           <dd className="amount text-lg">
             {goal.plannedMonthly ? money.format(goal.plannedMonthly) : '—'}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-ink-muted">By</dt>
+          <dt className="text-sm text-ink-muted">{t('savings.by')}</dt>
           <dd className="text-lg font-semibold">
             {goal.targetDate
               ? formatDate(goal.targetDate, money.locale, { month: 'short', year: 'numeric' })
@@ -82,16 +85,16 @@ function Movements({
     <Card className="mt-8 max-w-3xl">
       <CardHeader>
         <div>
-          <CardTitle>Deposits and withdrawals</CardTitle>
+          <CardTitle>{t('savings.depositsAndWithdrawals')}</CardTitle>
           <CardDescription>
             {goal.startingAmount > 0
-              ? `Started with ${money.format(goal.startingAmount)} already saved.`
-              : 'Everything put in and taken out.'}
+              ? t('savings.startedWith', { amount: money.format(goal.startingAmount) })
+              : t('savings.everythingPutInAnd')}
           </CardDescription>
         </div>
       </CardHeader>
       {movements.isSuccess && list.length === 0 ? (
-        <p className="text-sm text-ink-muted">Nothing put in yet.</p>
+        <p className="text-sm text-ink-muted">{t('savings.nothingPutInYet')}</p>
       ) : (
         <ul className="divide-y divide-line">
           {list.map((tx) => {
@@ -111,7 +114,7 @@ function Movements({
                         onClick={() => onEdit({ kind: 'edit', goal, movement: tx })}
                         className="link-cover cursor-pointer text-left"
                       >
-                        {deposit ? 'Put in' : 'Taken out'}
+                        {deposit ? t('savings.putIn') : t('savings.takenOut2')}
                       </button>
                       {account && (
                         <>
@@ -155,25 +158,28 @@ function GoalDetail({ goal, all }: { goal: SavingsGoal; all: SavingsGoal[] }): R
           <ColorChip color={goal.color} icon={PiggyBank} />
           <div className="min-w-0">
             <h1 className="truncate text-[2rem] leading-tight font-bold">{goal.name}</h1>
-            <p className="mt-1 text-ink-muted">Savings goal{goal.isArchived && ' · Archived'}</p>
+            <p className="mt-1 text-ink-muted">
+              {t('savings.goalLabel')}
+              {goal.isArchived && t('savings.archivedSuffix')}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setDialog({ kind: 'edit', goal })}>
             <Pencil />
-            Edit goal
+            {t('savings.editGoal')}
           </Button>
           {!goal.isArchived && goal.saved > 0 && (
             <Button
               variant="outline"
               onClick={() => setMoving({ kind: 'new', goal, type: 'withdrawal' })}
             >
-              Take out
+              {t('savings.takeOut')}
             </Button>
           )}
           {!goal.isArchived && (
             <Button onClick={() => setMoving({ kind: 'new', goal, type: 'deposit' })}>
-              Put in
+              {t('savings.putIn')}
             </Button>
           )}
         </div>
@@ -183,7 +189,11 @@ function GoalDetail({ goal, all }: { goal: SavingsGoal; all: SavingsGoal[] }): R
         <div className="lg:col-span-2">
           <Progress goal={goal} />
         </div>
-        <BalanceTrend className="lg:col-span-3" points={series.data ?? []} title="Saved" />
+        <BalanceTrend
+          className="lg:col-span-3"
+          points={series.data ?? []}
+          title={t('loans.saved')}
+        />
       </div>
 
       <Movements goal={goal} onEdit={setMoving} />
@@ -209,11 +219,11 @@ export function SavingsGoalPage(): React.JSX.Element | null {
   if (goals.isSuccess && !goal) {
     return (
       <Card className="max-w-3xl">
-        <CardTitle>That goal no longer exists</CardTitle>
+        <CardTitle>{t('savings.thatGoalNoLonger')}</CardTitle>
         <CardDescription className="mt-1">
-          It may have been deleted.{' '}
+          {t('common.mayBeDeleted')}{' '}
           <Link to="/savings" className="link font-semibold text-primary">
-            Back to savings
+            {t('savings.backToSavings')}
           </Link>
         </CardDescription>
       </Card>

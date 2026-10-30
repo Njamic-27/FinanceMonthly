@@ -17,20 +17,17 @@ import { useProjection } from '@renderer/features/projections/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
-const horizonLabels: Record<ProjectionHorizon, string> = {
-  3: '3 months',
-  6: '6 months',
-  12: '1 year',
-  24: '2 years'
-}
-const horizonOptions = projectionHorizons.map((m) => ({
-  value: String(m) as `${ProjectionHorizon}`,
-  label: horizonLabels[m]
-}))
-const granularityOptions: { value: PeriodKind; label: string }[] = [
-  { value: 'week', label: 'Weekly' },
-  { value: 'month', label: 'Monthly' }
+const horizonLabel = (months: ProjectionHorizon): string => t(`projections.horizon${months}`)
+const horizonOptions = (): { value: `${ProjectionHorizon}`; label: string }[] =>
+  projectionHorizons.map((m) => ({
+    value: String(m) as `${ProjectionHorizon}`,
+    label: horizonLabel(m)
+  }))
+const granularityOptions = (): { value: PeriodKind; label: string }[] => [
+  { value: 'week', label: t('projections.weekly') },
+  { value: 'month', label: t('projections.monthly') }
 ]
 
 function Tile({
@@ -77,22 +74,22 @@ export function ProjectionsPage(): React.JSX.Element {
   return (
     <>
       <PageHeader
-        title="Projections"
-        description="Where your balance is heading, if things go as planned."
+        title={t('screen.projections')}
+        description={t('projections.whereYourBalanceIs')}
         actions={
           <>
             <SegmentedControl
               name="projection-horizon"
-              aria-label="How far ahead"
+              aria-label={t('projections.howFarAhead')}
               value={String(months) as `${ProjectionHorizon}`}
-              options={horizonOptions}
+              options={horizonOptions()}
               onValueChange={(value) => set({ months: Number(value) as ProjectionHorizon })}
             />
             <SegmentedControl
               name="projection-granularity"
-              aria-label="Weeks or months"
+              aria-label={t('projections.weeksOrMonths')}
               value={granularity}
-              options={granularityOptions}
+              options={granularityOptions()}
               onValueChange={(value) => set({ granularity: value })}
             />
           </>
@@ -105,21 +102,18 @@ export function ProjectionsPage(): React.JSX.Element {
             <ChartLine className="size-6" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold">Add your accounts first</h2>
-            <p className="mt-1 text-ink-muted">
-              A projection starts from what’s in your accounts today, then adds your income, bills
-              and loans as they come.
-            </p>
+            <h2 className="text-lg font-semibold">{t('projections.addYourAccountsFirst')}</h2>
+            <p className="mt-1 text-ink-muted">{t('projections.aProjectionStartsFrom')}</p>
           </div>
           <Button asChild>
-            <Link to="/accounts">Go to accounts</Link>
+            <Link to="/accounts">{t('transactions.goToAccounts')}</Link>
           </Button>
         </section>
       )}
 
       {projection.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>The projection could not be made</CardTitle>
+          <CardTitle>{t('projections.theProjectionCouldNot')}</CardTitle>
           <CardDescription className="mt-1">{projection.error.message}</CardDescription>
         </Card>
       )}
@@ -131,16 +125,25 @@ export function ProjectionsPage(): React.JSX.Element {
             projection.isPlaceholderData && 'opacity-60'
           )}
         >
-          <section aria-label="Summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="Today" value={money.format(data.startBalance)} caption="Total balance" />
+          <section
+            aria-label={t('projections.summary')}
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
             <Tile
-              label={`In ${horizonLabels[months]}`}
+              label={t('transactions.today')}
+              value={money.format(data.startBalance)}
+              caption={t('projections.totalBalance')}
+            />
+            <Tile
+              label={t('projections.inHorizon', { horizon: horizonLabel(months) })}
               value={money.format(data.endBalance)}
-              caption={`${money.format(data.endBalance - data.startBalance, 'exceptZero')} from today`}
+              caption={t('projections.fromToday', {
+                amount: money.format(data.endBalance - data.startBalance, 'exceptZero')
+              })}
               className={cn(data.endBalance < 0 && 'text-expense')}
             />
             <Tile
-              label="Lowest point"
+              label={t('projections.lowestPoint')}
               value={money.format(data.lowest.balance)}
               caption={
                 <Link to={dayPath(data.lowest.date)} className="link">
@@ -150,12 +153,12 @@ export function ProjectionsPage(): React.JSX.Element {
               className={cn(data.lowest.balance < 0 && 'text-expense')}
             />
             <Tile
-              label="A month on average"
+              label={t('projections.aMonthOnAverage')}
               value={money.format(
                 Math.round((data.endBalance - data.startBalance) / months),
                 'exceptZero'
               )}
-              caption="How the balance changes"
+              caption={t('projections.howBalanceChanges')}
             />
           </section>
 

@@ -28,36 +28,37 @@ import { describeSchedule } from '@renderer/features/recurring/schedule'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath, dayPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import type { MessageKey } from '@shared/i18n'
+import { t, tNode } from '@renderer/lib/i18n'
 
-const tabs: {
+const tabs = (): {
   kind: RecurringKind
   label: string
   empty: string
   total: string
   /** What the summary counts: one, many. */
-  nouns: [string, string]
-}[] = [
+  nouns: MessageKey
+}[] => [
   {
     kind: 'subscription',
-    label: 'Subscriptions',
-    total: 'Your subscriptions cost',
-    nouns: ['subscription', 'subscriptions'],
-    empty:
-      'No subscriptions yet. Add the services you pay for regularly, like streaming or software.'
+    label: t('group.subscriptions'),
+    total: t('recurring.yourSubscriptionsCost'),
+    nouns: 'recurring.count.subscription',
+    empty: t('recurring.noSubscriptionsYetAdd')
   },
   {
     kind: 'income',
-    label: 'Income',
-    total: 'Your recurring income brings in',
-    nouns: ['source of income', 'sources of income'],
-    empty: 'No recurring income yet. Add your salary so it’s added on payday.'
+    label: t('group.income'),
+    total: t('recurring.yourRecurringIncomeBrings'),
+    nouns: 'recurring.count.income',
+    empty: t('recurring.noRecurringIncomeYet')
   },
   {
     kind: 'expense',
-    label: 'Expenses',
-    total: 'Your recurring expenses cost',
-    nouns: ['bill', 'bills'],
-    empty: 'No recurring expenses yet. Add rent, utilities or other regular bills.'
+    label: t('transactions.expenses'),
+    total: t('recurring.yourRecurringExpensesCost'),
+    nouns: 'recurring.count.expense',
+    empty: t('recurring.noRecurringExpensesYet')
   }
 ]
 
@@ -70,23 +71,24 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
   const paused = !ended && !item.isActive
   const reminder =
     !ended && item.isActive && item.reminderDaysBefore !== null
-      ? `Reminder ${reminderLabel(item.reminderDaysBefore).toLowerCase()}`
+      ? t('recurring.reminderLabel', {
+          when: reminderLabel(item.reminderDaysBefore).toLowerCase()
+        })
       : null
 
   const short = (date: string): string =>
     formatDate(date, money.locale, { weekday: 'short', day: 'numeric', month: 'short' })
-  const status = ended ? (
-    `Ended ${formatDate(item.endDate ?? item.nextDueDate, money.locale)}`
-  ) : !item.isActive ? (
-    'Paused'
-  ) : (
-    <>
-      Next{' '}
-      <Link to={dayPath(item.nextDueDate)} className="link">
-        {short(item.nextDueDate)}
-      </Link>
-    </>
-  )
+  const status = ended
+    ? t('recurring.endedOn', { date: formatDate(item.endDate ?? item.nextDueDate, money.locale) })
+    : !item.isActive
+      ? t('panel.paused')
+      : tNode('recurring.nextOnLink', {
+          date: (
+            <Link to={dayPath(item.nextDueDate)} className="link">
+              {short(item.nextDueDate)}
+            </Link>
+          )
+        })
 
   return (
     <li className="py-1.5 first:pt-0 last:pb-0">
@@ -110,7 +112,8 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
                 </Link>
               </>
             )}
-            {item.kind === 'subscription' && ` · ${money.format(yearlyCost(item))} a year`}
+            {item.kind === 'subscription' &&
+              t('recurring.aYear', { amount: money.format(yearlyCost(item)) })}
           </span>
         </span>
         <span className="text-right">
@@ -127,7 +130,7 @@ function ItemRow({ item, onOpen }: { item: RecurringItem; onOpen: () => void }):
           <span className="flex items-center justify-end gap-1.5 text-sm text-ink-muted">
             {reminder && <BellRing className="size-3.5" aria-label={reminder} />}
             <span>{status}</span>
-            {!ended && item.isActive && !item.autoPost && ' · asks first'}
+            {!ended && item.isActive && !item.autoPost && t('recurring.asksFirst')}
           </span>
         </span>
         <ChevronRight
@@ -148,7 +151,7 @@ function CostSummary({
 }: {
   items: RecurringItem[]
   label: string
-  nouns: [string, string]
+  nouns: MessageKey
   income: boolean
 }): React.JSX.Element {
   const money = useCurrency()
@@ -160,18 +163,21 @@ function CostSummary({
         <p className="text-sm text-ink-muted">{label}</p>
         <p className={cn('amount text-amount', income && 'text-income')}>
           {money.format(perMonth)}
-          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">a month</span>
+          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">
+            {t('recurring.aMonthShort')}
+          </span>
         </p>
       </div>
       <div className="pb-1.5">
         <p className="amount text-title">
           {money.format(perYear)}
-          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">a year</span>
+          <span className="ml-1.5 font-sans text-body font-normal text-ink-muted">
+            {t('recurring.aYearShort')}
+          </span>
         </p>
       </div>
       <p className="w-full text-sm text-ink-muted">
-        Averaged over the year, from {items.length} {items.length === 1 ? nouns[0] : nouns[1]}.
-        Paused and ended ones aren’t counted.
+        {t('recurring.averaged', { items: t(nouns, { count: items.length }) })}
       </p>
     </Card>
   )
@@ -203,8 +209,8 @@ export function RecurringPage(): React.JSX.Element {
   return (
     <>
       <PageHeader
-        title="Recurring"
-        description="Subscriptions, regular bills and regular income, added when they’re due."
+        title={t('line.repeat')}
+        description={t('recurring.subscriptionsRegularBillsAnd')}
         actions={
           <Button onClick={add}>
             <Plus />
@@ -219,9 +225,9 @@ export function RecurringPage(): React.JSX.Element {
 
           {items.isError ? (
             <Card className="max-w-3xl">
-              <CardTitle>Recurring items could not be loaded</CardTitle>
+              <CardTitle>{t('recurring.recurringItemsCouldNot')}</CardTitle>
               <CardDescription className="mt-1">
-                {items.error.message} Restart Financije to try again.
+                {t('common.restart', { error: items.error.message })}
               </CardDescription>
             </Card>
           ) : (
@@ -230,8 +236,8 @@ export function RecurringPage(): React.JSX.Element {
               onValueChange={(value) => setTab(value as RecurringKind)}
               className="max-w-3xl"
             >
-              <TabsList aria-label="Kind">
-                {tabs.map(({ kind, label }) => (
+              <TabsList aria-label={t('recurring.kind')}>
+                {tabs().map(({ kind, label }) => (
                   <TabsTrigger key={kind} value={kind}>
                     {label}
                     <span className="text-ink-muted tabular-nums">
@@ -241,7 +247,7 @@ export function RecurringPage(): React.JSX.Element {
                 ))}
               </TabsList>
 
-              {tabs.map(({ kind, empty, total, nouns }) => {
+              {tabs().map(({ kind, empty, total, nouns }) => {
                 // Running ones first, then paused ones.
                 const current = all
                   .filter((i) => i.kind === kind && !hasEnded(i))
@@ -284,9 +290,9 @@ export function RecurringPage(): React.JSX.Element {
 
                     {ended.length > 0 && (
                       <section>
-                        <h2 className="mb-1 text-lg font-semibold">Ended</h2>
+                        <h2 className="mb-1 text-lg font-semibold">{t('recurring.ended')}</h2>
                         <p className="mb-3 text-sm text-ink-muted">
-                          Past their end date. What they added stays in your transactions.
+                          {t('recurring.pastTheirEndDate')}
                         </p>
                         <Card className="p-3">
                           <ul className="divide-y divide-line">

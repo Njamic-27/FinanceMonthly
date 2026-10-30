@@ -33,13 +33,15 @@ import { useTransactionList } from '@renderer/features/transactions/queries'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t, tNode } from '@renderer/lib/i18n'
 
 const ALL = 'all'
-const kindLabels: Record<TransactionKind, string> = {
-  income: 'Income',
-  expense: 'Expenses',
-  transfer: 'Transfers'
-}
+const kindLabel = (kind: TransactionKind): string =>
+  ({
+    income: t('group.income'),
+    expense: t('transactions.expenses'),
+    transfer: t('transactions.transfers')
+  })[kind]
 
 /** Waits until typing pauses before searching. */
 function useDebounced<T>(value: T, ms: number): T {
@@ -118,8 +120,8 @@ export function TransactionsPage(): React.JSX.Element {
   return (
     <>
       <PageHeader
-        title="Transactions"
-        description="Every payment, income and transfer in one list."
+        title={t('screen.transactions')}
+        description={t('transactions.everyPaymentIncomeAnd')}
         actions={
           <Button
             onClick={() =>
@@ -133,7 +135,7 @@ export function TransactionsPage(): React.JSX.Element {
             }
           >
             <Plus />
-            Add transaction
+            {t('shell.addTransaction')}
           </Button>
         }
       />
@@ -146,9 +148,9 @@ export function TransactionsPage(): React.JSX.Element {
           />
           <Input
             type="search"
-            aria-label="Search transactions"
-            placeholder="Search"
-            title="Search title, note, category or amount"
+            aria-label={t('transactions.searchTransactions')}
+            placeholder={t('add.search')}
+            title={t('transactions.searchTitleNoteCategory')}
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             className="pl-9"
@@ -167,7 +169,7 @@ export function TransactionsPage(): React.JSX.Element {
             }
           }}
         >
-          <SelectTrigger aria-label="Period" className="w-36">
+          <SelectTrigger aria-label={t('overview.period')} className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -176,7 +178,7 @@ export function TransactionsPage(): React.JSX.Element {
                 {p.label}
               </SelectItem>
             ))}
-            <SelectItem value="custom">Custom dates…</SelectItem>
+            <SelectItem value="custom">{t('transactions.customDates')}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -186,11 +188,11 @@ export function TransactionsPage(): React.JSX.Element {
             update({ accountId: value === ALL ? undefined : Number(value) })
           }
         >
-          <SelectTrigger aria-label="Account" className="w-40">
+          <SelectTrigger aria-label={t('common.account')} className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All accounts</SelectItem>
+            <SelectItem value={ALL}>{t('transactions.allAccounts')}</SelectItem>
             {allAccounts.map((a) => (
               <SelectItem key={a.id} value={String(a.id)}>
                 {a.name}
@@ -206,14 +208,16 @@ export function TransactionsPage(): React.JSX.Element {
             update({ categoryId: value === ALL ? undefined : Number(value) })
           }
         >
-          <SelectTrigger aria-label="Category" className="w-40">
+          <SelectTrigger aria-label={t('common.category')} className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
+            <SelectItem value={ALL}>{t('transactions.allCategories')}</SelectItem>
             {(['expense', 'income'] as const).map((type) => (
               <SelectGroup key={type}>
-                <SelectLabel>{type === 'expense' ? 'Expenses' : 'Income'}</SelectLabel>
+                <SelectLabel>
+                  {type === 'expense' ? t('transactions.expenses') : t('group.income')}
+                </SelectLabel>
                 {allCategories
                   .filter((c) => c.type === type)
                   .map((c) => (
@@ -233,14 +237,14 @@ export function TransactionsPage(): React.JSX.Element {
             update({ kind: value === ALL ? undefined : (value as TransactionKind) })
           }
         >
-          <SelectTrigger aria-label="Type" className="w-32">
+          <SelectTrigger aria-label={t('accounts.type')} className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All types</SelectItem>
+            <SelectItem value={ALL}>{t('transactions.allTypes')}</SelectItem>
             {transactionKinds.map((kind) => (
               <SelectItem key={kind} value={kind}>
-                {kindLabels[kind]}
+                {kindLabel(kind)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -249,7 +253,7 @@ export function TransactionsPage(): React.JSX.Element {
         {filtered && (
           <Button variant="ghost" onClick={clearAll}>
             <X />
-            Clear filters
+            {t('transactions.clearFilters')}
           </Button>
         )}
       </div>
@@ -257,7 +261,7 @@ export function TransactionsPage(): React.JSX.Element {
       {period === 'custom' && (
         <div className="mb-3 flex flex-wrap items-end gap-3">
           <div className="grid w-52 gap-1.5">
-            <Label htmlFor="filter-from">From</Label>
+            <Label htmlFor="filter-from">{t('loans.from')}</Label>
             <DatePicker
               id="filter-from"
               value={filters.from ?? startOfMonth(now)}
@@ -267,7 +271,7 @@ export function TransactionsPage(): React.JSX.Element {
             />
           </div>
           <div className="grid w-52 gap-1.5">
-            <Label htmlFor="filter-to">To</Label>
+            <Label htmlFor="filter-to">{t('loans.to')}</Label>
             <DatePicker
               id="filter-to"
               value={filters.to ?? now}
@@ -283,17 +287,19 @@ export function TransactionsPage(): React.JSX.Element {
           className="mb-6 flex flex-wrap gap-x-5 gap-y-1 px-1 text-sm text-ink-muted"
           aria-live="polite"
         >
-          <span>
-            {summary.count} transaction{summary.count === 1 ? '' : 's'}
-          </span>
+          <span>{t('month.transactions', { count: summary.count })}</span>
           {summary.income > 0 && (
             <span>
-              Income <span className="amount text-income">{money.format(summary.income)}</span>
+              {tNode('transactions.summaryIncome', {
+                amount: <span className="amount text-income">{money.format(summary.income)}</span>
+              })}
             </span>
           )}
           {summary.expenses > 0 && (
             <span>
-              Expenses <span className="amount text-ink">{money.format(summary.expenses)}</span>
+              {tNode('transactions.summaryExpenses', {
+                amount: <span className="amount text-ink">{money.format(summary.expenses)}</span>
+              })}
             </span>
           )}
         </p>
@@ -301,7 +307,7 @@ export function TransactionsPage(): React.JSX.Element {
 
       {list.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>Transactions could not be loaded</CardTitle>
+          <CardTitle>{t('transactions.transactionsCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">{list.error.message}</CardDescription>
         </Card>
       )}
@@ -314,24 +320,24 @@ export function TransactionsPage(): React.JSX.Element {
           {filtered ? (
             <>
               <div>
-                <h2 className="text-lg font-semibold">Nothing matches these filters</h2>
-                <p className="mt-1 text-ink-muted">Try a longer period or fewer filters.</p>
+                <h2 className="text-lg font-semibold">
+                  {t('transactions.nothingMatchesTheseFilters')}
+                </h2>
+                <p className="mt-1 text-ink-muted">{t('transactions.tryALongerPeriod')}</p>
               </div>
               <Button variant="outline" onClick={clearAll}>
-                Clear filters
+                {t('transactions.clearFilters')}
               </Button>
             </>
           ) : (
             <>
               <div>
-                <h2 className="text-lg font-semibold">No transactions yet</h2>
-                <p className="mt-1 text-ink-muted">
-                  Add what you spend and earn, and it shows up here grouped by day.
-                </p>
+                <h2 className="text-lg font-semibold">{t('transactions.noTransactionsYet')}</h2>
+                <p className="mt-1 text-ink-muted">{t('transactions.addWhatYouSpend')}</p>
               </div>
               <Button onClick={() => openTransactionDialog()}>
                 <Plus />
-                Add your first transaction
+                {t('transactions.addYourFirstTransaction')}
               </Button>
             </>
           )}
@@ -354,7 +360,9 @@ export function TransactionsPage(): React.JSX.Element {
                 disabled={list.isFetchingNextPage}
                 onClick={() => list.fetchNextPage()}
               >
-                {list.isFetchingNextPage ? 'Loading…' : `Show more (${remaining} left)`}
+                {list.isFetchingNextPage
+                  ? t('overview.loading')
+                  : t('common.showMoreLeft', { count: remaining })}
               </Button>
             </div>
           )}

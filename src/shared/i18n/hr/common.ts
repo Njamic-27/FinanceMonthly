@@ -37,5 +37,9 @@ export const common: Translation<typeof en> = {
   'accountType.credit': 'Kreditna kartica',
   'accountType.cash': 'Gotovina',
   'common.eg': 'npr. {example}',
-  'common.titleOptional': 'Naslov'
+  'common.titleOptional': 'Naslov',
+  'common.restart': '{error} Ponovno pokreni Financije i pokušaj opet.',
+  'common.mayBeDeleted': 'Možda je obrisano.',
+  'common.showMoreLeft': 'Prikaži više (još {count})',
+  'common.ofAmount': 'od {amount}'
 }

@@ -14,6 +14,7 @@ import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
 import { ConfirmPaymentDialog, type ConfirmPaymentTarget } from './ConfirmPaymentDialog'
 import { useSkipOccurrence } from './queries'
+import { t } from '@renderer/lib/i18n'
 
 /**
  * Payments that have fallen due and wait for the user: items that ask first, and automatic
@@ -35,12 +36,12 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
       {
         onSuccess: () =>
           toast({
-            title: `${item.title} skipped`,
-            description: `Nothing was added for ${formatDate(plannedDate, money.locale)}.`,
+            title: t('month.skipped', { title: item.title }),
+            description: t('month.skippedHint', { date: formatDate(plannedDate, money.locale) }),
             variant: 'success'
           }),
         onError: (error) =>
-          toast({ title: 'Not skipped', description: error.message, variant: 'error' })
+          toast({ title: t('month.notSkipped'), description: error.message, variant: 'error' })
       }
     )
 
@@ -48,10 +49,8 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
     <Card className="mb-8 max-w-3xl border-primary/40">
       <CardHeader className="mb-2">
         <div>
-          <CardTitle>Due now</CardTitle>
-          <CardDescription>
-            Confirm each payment to add it to your transactions, or skip it if it didn’t happen.
-          </CardDescription>
+          <CardTitle>{t('recurring.dueNow')}</CardTitle>
+          <CardDescription>{t('recurring.confirmEachPaymentTo')}</CardDescription>
         </div>
       </CardHeader>
       <ul className="divide-y divide-line">
@@ -75,10 +74,10 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
                   </Link>
                 </p>
                 <p className="text-sm text-ink-muted">
-                  Due{' '}
+                  {t('month.due')}{' '}
                   <Link to={dayPath(plannedDate)} className="link">
                     {plannedDate === now
-                      ? 'today'
+                      ? t('common.today')
                       : formatDate(plannedDate, money.locale, {
                           weekday: 'short',
                           day: 'numeric',
@@ -97,7 +96,7 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
                 {problem && (
                   <p className="mt-1 flex gap-1.5 text-sm text-expense">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    <span>Couldn’t be added automatically: {problem}</span>
+                    <span>{t('month.couldntAdd', { problem })}</span>
                   </p>
                 )}
               </div>
@@ -115,14 +114,14 @@ export function DueNow({ due }: { due: DueOccurrence[] }): React.JSX.Element | n
                   disabled={skip.isPending || !canSkip}
                   onClick={() => skipOne(occurrence)}
                 >
-                  Skip
+                  {t('common.skip')}
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setConfirming({ item, plannedDate })}
                 >
-                  {isIncome ? 'Mark received…' : 'Mark paid…'}
+                  {isIncome ? t('month.markReceived') : t('month.markPaid')}
                 </Button>
               </div>
             </li>

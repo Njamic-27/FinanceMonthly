@@ -29,6 +29,7 @@ import { useRecurringItems } from '@renderer/features/recurring/queries'
 import { useSettings } from '@renderer/features/settings/queries'
 import { plannedPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 /** Any past month and up to 24 months ahead: recorded days, planned payments, the balance. */
 export function CalendarPage(): React.JSX.Element {
@@ -85,13 +86,13 @@ export function CalendarPage(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader title="Calendar" description="What happened and what’s coming, day by day." />
+      <PageHeader title={t('screen.calendar')} description={t('calendar.whatHappenedAndWhats')} />
 
       <MonthNav month={month} onChange={go} />
 
       {calendar.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>The calendar could not be loaded</CardTitle>
+          <CardTitle>{t('calendar.theCalendarCouldNot')}</CardTitle>
           <CardDescription className="mt-1">{calendar.error.message}</CardDescription>
         </Card>
       )}

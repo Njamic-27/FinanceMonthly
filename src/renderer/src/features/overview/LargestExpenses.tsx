@@ -9,6 +9,7 @@ import { categoryIconComponents } from '@renderer/features/categories/appearance
 import { openTransactionDialog } from '@renderer/features/transactions/dialogStore'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { categoryPath, dayPath } from '@renderer/lib/links'
+import { t } from '@renderer/lib/i18n'
 
 /** The period's biggest expenses; each opens for editing. */
 export function LargestExpenses({
@@ -30,8 +31,10 @@ export function LargestExpenses({
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Largest expenses</CardTitle>
-          {transactions.length === 0 && <CardDescription>Nothing spent yet</CardDescription>}
+          <CardTitle>{t('overview.largestExpenses')}</CardTitle>
+          {transactions.length === 0 && (
+            <CardDescription>{t('overview.nothingSpentYet')}</CardDescription>
+          )}
         </div>
       </CardHeader>
       <ol className="-mx-2 flex flex-col gap-0.5">

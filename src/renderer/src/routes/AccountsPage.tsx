@@ -16,6 +16,7 @@ import { useCurrency } from '@renderer/hooks/useCurrency'
 import { accountPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
 function AccountCard({
   account,
@@ -32,11 +33,11 @@ function AccountCard({
   const figure = isCredit ? Math.max(0, -account.balance) : account.balance
   const caption = isCredit
     ? account.balance > 0
-      ? 'In credit'
-      : 'Owed'
+      ? t('accounts.inCredit')
+      : t('accounts.owed')
     : account.balance < 0
-      ? 'Overdrawn'
-      : 'Balance'
+      ? t('accounts.overdrawn')
+      : t('accounts.balance')
 
   const owed = isCredit ? Math.max(0, -account.balance) : 0
 
@@ -90,7 +91,7 @@ function AccountCard({
               })
             }
           >
-            Pay card
+            {t('accounts.payCard')}
           </Button>
         </div>
       )}
@@ -114,20 +115,24 @@ export function AccountsPage(): React.JSX.Element {
       {
         onSuccess: () => toast({ title: `${account.name} restored`, variant: 'success' }),
         onError: (error) =>
-          toast({ title: 'Account not restored', description: error.message, variant: 'error' })
+          toast({
+            title: t('accounts.accountNotRestored'),
+            description: error.message,
+            variant: 'error'
+          })
       }
     )
 
   return (
     <>
       <PageHeader
-        title="Accounts"
-        description="Debit cards, credit cards and cash."
+        title={t('screen.accounts')}
+        description={t('accounts.debitCardsCreditCards')}
         actions={
           active.length > 0 && (
             <Button onClick={() => setDialog({ kind: 'new' })}>
               <Plus />
-              Add account
+              {t('accounts.addAccount')}
             </Button>
           )
         }
@@ -135,9 +140,9 @@ export function AccountsPage(): React.JSX.Element {
 
       {accounts.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>Accounts could not be loaded</CardTitle>
+          <CardTitle>{t('accounts.accountsCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">
-            {accounts.error.message} Restart Financije to try again.
+            {t('common.restart', { error: accounts.error.message })}
           </CardDescription>
         </Card>
       )}
@@ -148,15 +153,12 @@ export function AccountsPage(): React.JSX.Element {
             <Wallet className="size-6" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold">Add the accounts you pay with</h2>
-            <p className="mt-1 text-ink-muted">
-              Your debit cards, credit cards and cash, with what’s on each of them today. Every
-              transaction then comes from or goes to one of them.
-            </p>
+            <h2 className="text-lg font-semibold">{t('accounts.addTheAccountsYou')}</h2>
+            <p className="mt-1 text-ink-muted">{t('accounts.yourDebitCardsCredit')}</p>
           </div>
           <Button onClick={() => setDialog({ kind: 'new' })}>
             <Plus />
-            Add your first account
+            {t('accounts.addYourFirstAccount')}
           </Button>
         </section>
       )}
@@ -179,10 +181,8 @@ export function AccountsPage(): React.JSX.Element {
 
       {archived.length > 0 && (
         <section className="mt-10 max-w-3xl">
-          <h2 className="mb-1 text-lg font-semibold">Archived</h2>
-          <p className="mb-3 text-sm text-ink-muted">
-            Left out of totals and new transactions. Their history stays.
-          </p>
+          <h2 className="mb-1 text-lg font-semibold">{t('accounts.archived')}</h2>
+          <p className="mb-3 text-sm text-ink-muted">{t('accounts.leftOutOfTotals')}</p>
           <Card className="p-3">
             <ul className="divide-y divide-line">
               {archived.map((account) => (
@@ -207,7 +207,7 @@ export function AccountsPage(): React.JSX.Element {
                     disabled={archiveAccount.isPending}
                     onClick={() => restore(account)}
                   >
-                    Restore
+                    {t('accounts.restore')}
                   </Button>
                 </li>
               ))}

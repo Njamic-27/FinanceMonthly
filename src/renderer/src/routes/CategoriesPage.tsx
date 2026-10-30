@@ -14,17 +14,18 @@ import {
 import { useCategories, useUpdateCategory } from '@renderer/features/categories/queries'
 import { categoryPath } from '@renderer/lib/links'
 import { toast } from '@renderer/lib/toast'
+import { t } from '@renderer/lib/i18n'
 
-const tabs: { type: CategoryType; label: string; empty: string }[] = [
+const tabs = (): { type: CategoryType; label: string; empty: string }[] => [
   {
     type: 'expense',
-    label: 'Expenses',
-    empty: 'No expense categories yet. Add one to start sorting your spending.'
+    label: t('transactions.expenses'),
+    empty: t('categories.noExpenseCategoriesYet')
   },
   {
     type: 'income',
-    label: 'Income',
-    empty: 'No income categories yet. Add one for your salary or other income.'
+    label: t('group.income'),
+    empty: t('categories.noIncomeCategoriesYet')
   }
 ]
 
@@ -32,7 +33,7 @@ function usage(category: Category): string {
   if (category.transactionCount > 0) {
     return `${category.transactionCount} transaction${category.transactionCount === 1 ? '' : 's'}`
   }
-  return category.usageCount > 0 ? 'Used by recurring items' : 'Not used yet'
+  return category.usageCount > 0 ? t('categories.usedByRecurringItems') : t('categories.notUsedYet')
 }
 
 function CategoryRow({
@@ -87,28 +88,32 @@ export function CategoriesPage(): React.JSX.Element {
       {
         onSuccess: () => toast({ title: `${category.name} restored`, variant: 'success' }),
         onError: (error) =>
-          toast({ title: 'Category not restored', description: error.message, variant: 'error' })
+          toast({
+            title: t('categories.categoryNotRestored'),
+            description: error.message,
+            variant: 'error'
+          })
       }
     )
 
   return (
     <>
       <PageHeader
-        title="Categories"
-        description="What you sort income and spending into."
+        title={t('add.headingCategories')}
+        description={t('categories.whatYouSortIncome')}
         actions={
           <Button onClick={() => setDialog({ kind: 'new', type: tab })}>
             <Plus />
-            Add category
+            {t('categories.addCategory')}
           </Button>
         }
       />
 
       {categories.isError ? (
         <Card className="max-w-3xl">
-          <CardTitle>Categories could not be loaded</CardTitle>
+          <CardTitle>{t('categories.categoriesCouldNotBe')}</CardTitle>
           <CardDescription className="mt-1">
-            {categories.error.message} Restart Financije to try again.
+            {t('common.restart', { error: categories.error.message })}
           </CardDescription>
         </Card>
       ) : (
@@ -117,8 +122,8 @@ export function CategoriesPage(): React.JSX.Element {
           onValueChange={(value) => setTab(value as CategoryType)}
           className="max-w-3xl"
         >
-          <TabsList aria-label="Category type">
-            {tabs.map(({ type, label }) => (
+          <TabsList aria-label={t('categories.categoryType')}>
+            {tabs().map(({ type, label }) => (
               <TabsTrigger key={type} value={type}>
                 {label}
                 <span className="text-ink-muted tabular-nums">
@@ -128,7 +133,7 @@ export function CategoriesPage(): React.JSX.Element {
             ))}
           </TabsList>
 
-          {tabs.map(({ type, empty }) => {
+          {tabs().map(({ type, empty }) => {
             const active = all.filter((c) => c.type === type && !c.isArchived)
             const archived = all.filter((c) => c.type === type && c.isArchived)
             return (
@@ -153,9 +158,9 @@ export function CategoriesPage(): React.JSX.Element {
 
                 {archived.length > 0 && (
                   <section>
-                    <h2 className="mb-1 text-lg font-semibold">Archived</h2>
+                    <h2 className="mb-1 text-lg font-semibold">{t('accounts.archived')}</h2>
                     <p className="mb-3 text-sm text-ink-muted">
-                      Not offered for new transactions. Past transactions keep them.
+                      {t('categories.notOfferedForNew')}
                     </p>
                     <Card className="p-3">
                       <ul className="divide-y divide-line">
@@ -171,7 +176,7 @@ export function CategoriesPage(): React.JSX.Element {
                                 disabled={updateCategory.isPending}
                                 onClick={() => restore(category)}
                               >
-                                Restore
+                                {t('accounts.restore')}
                               </Button>
                             }
                           />

@@ -135,5 +135,57 @@ export const recurring: Translation<typeof en> = {
   'recurring.confirmTitle': 'Potvrdi „{title}”',
   'recurring.payTitle': 'Plati „{title}”',
   'recurring.dueOn': 'Dospijeva {date}. Promijeni sve što je ovaj put bilo drukčije.',
-  'recurring.website': 'Web stranica'
+  'recurring.website': 'Web stranica',
+  'recurring.reminderLabel': 'Podsjetnik: {when}',
+  'recurring.endedOn': 'Završeno {date}',
+  'recurring.nextOnLink': 'Sljedeće {date}',
+  'recurring.aYear': ' · {amount} godišnje',
+  'recurring.asksFirst': ' · prvo pita',
+  'recurring.aMonthShort': 'mjesečno',
+  'recurring.aYearShort': 'godišnje',
+  'recurring.averaged': 'Prosjek kroz godinu, iz: {items}. Pauzirani i završeni se ne broje.',
+  'recurring.count.subscription': {
+    one: '{count} pretplate',
+    few: '{count} pretplate',
+    other: '{count} pretplata'
+  },
+  'recurring.count.income': {
+    one: '{count} izvora prihoda',
+    few: '{count} izvora prihoda',
+    other: '{count} izvora prihoda'
+  },
+  'recurring.count.expense': {
+    one: '{count} režije',
+    few: '{count} režije',
+    other: '{count} režija'
+  },
+  'recurring.overdueSince': 'Kasni od {date}',
+  'recurring.reminderOn': 'Podsjetnik {date}',
+  'recurring.yourSubscriptionsCost': 'Tvoje pretplate koštaju',
+  'recurring.noSubscriptionsYetAdd':
+    'Još nema pretplata. Dodaj usluge koje redovno plaćaš, poput streaminga ili softvera.',
+  'recurring.yourRecurringIncomeBrings': 'Tvoji ponavljajući prihodi donose',
+  'recurring.noRecurringIncomeYet':
+    'Još nema ponavljajućih prihoda. Dodaj plaću da se dodaje na dan isplate.',
+  'recurring.yourRecurringExpensesCost': 'Tvoji ponavljajući troškovi iznose',
+  'recurring.noRecurringExpensesYet':
+    'Još nema ponavljajućih troškova. Dodaj najamninu, režije ili druge redovne račune.',
+  'recurring.subscriptionsRegularBillsAnd':
+    'Pretplate, redovne režije i redovni prihodi, dodani kad dospiju.',
+  'recurring.recurringItemsCouldNot': 'Ponavljajuće stavke nisu se mogle učitati',
+  'recurring.kind': 'Vrsta',
+  'recurring.ended': 'Završeno',
+  'recurring.pastTheirEndDate':
+    'Prošao im je datum završetka. Ono što su dodali ostaje u transakcijama.',
+  'recurring.tomorrow': 'Sutra',
+  'recurring.remindersAreOff': 'Podsjetnici su isključeni',
+  'recurring.reminderSent': 'Podsjetnik poslan',
+  'recurring.reminderDue': 'Podsjetnik stiže',
+  'recurring.comingUp': 'Uskoro',
+  'recurring.theNext14Days': 'Sljedećih 14 dana.',
+  'recurring.nothingPlannedInThe': 'U sljedećih 14 dana ništa nije planirano.',
+  'recurring.openTheCalendar': 'Otvori kalendar',
+  'recurring.dueNow': 'Dospijeva sada',
+  'recurring.confirmEachPaymentTo':
+    'Potvrdi svako plaćanje da ga dodaš u transakcije ili ga preskoči ako se nije dogodilo.'
 }

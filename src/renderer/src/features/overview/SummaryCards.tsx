@@ -4,6 +4,7 @@ import { Card } from '@renderer/components/ui/card'
 import { useCurrency, type CurrencyTools } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
 import { relativeChange } from './period'
+import { t } from '@renderer/lib/i18n'
 
 type Change = { text: string; direction: -1 | 0 | 1 } | null
 
@@ -21,23 +22,23 @@ function changeText(
   if (current === 0 && previous === 0) return null
   if (by === 'percent') {
     const change = relativeChange(current, previous)
-    if (change === null) return { text: `Nothing in ${against}`, direction: 1 }
+    if (change === null) return { text: t('overview.nothingIn', { against }), direction: 1 }
     const percent = new Intl.NumberFormat(money.locale, {
       style: 'percent',
       maximumFractionDigits: 0
     }).format(Math.abs(change))
     if (Math.round(change * 100) === 0)
-      return { text: `About the same as ${against}`, direction: 0 }
+      return { text: t('overview.aboutSame', { against }), direction: 0 }
     return change > 0
-      ? { text: `${percent} more than ${against}`, direction: 1 }
-      : { text: `${percent} less than ${against}`, direction: -1 }
+      ? { text: t('overview.percentMore', { percent, against }), direction: 1 }
+      : { text: t('overview.percentLess', { percent, against }), direction: -1 }
   }
   const difference = current - previous
-  if (difference === 0) return { text: `Same as ${against}`, direction: 0 }
+  if (difference === 0) return { text: t('overview.same', { against }), direction: 0 }
   const amount = money.format(Math.abs(difference))
   return difference > 0
-    ? { text: `${amount} higher than ${against}`, direction: 1 }
-    : { text: `${amount} lower than ${against}`, direction: -1 }
+    ? { text: t('overview.higher', { amount, against }), direction: 1 }
+    : { text: t('overview.lower', { amount, against }), direction: -1 }
 }
 
 const directionIcons = { [-1]: TrendingDown, 0: Minus, 1: TrendingUp }
@@ -70,12 +71,14 @@ function StatCard({
 function OtherMovements({ totals }: { totals: Totals }): React.JSX.Element | null {
   const money = useCurrency()
   const savings = [
-    totals.savingsDeposits > 0 && `${money.format(totals.savingsDeposits)} put into savings`,
-    totals.savingsWithdrawals > 0 && `${money.format(totals.savingsWithdrawals)} taken out`
+    totals.savingsDeposits > 0 &&
+      t('overview.putIntoSavings', { amount: money.format(totals.savingsDeposits) }),
+    totals.savingsWithdrawals > 0 &&
+      t('overview.takenOut', { amount: money.format(totals.savingsWithdrawals) })
   ].filter(Boolean)
   const loans = [
-    totals.loansOut > 0 && `${money.format(totals.loansOut)} lent or repaid`,
-    totals.loansIn > 0 && `${money.format(totals.loansIn)} borrowed or paid back to you`
+    totals.loansOut > 0 && t('overview.lentOrRepaid', { amount: money.format(totals.loansOut) }),
+    totals.loansIn > 0 && t('overview.borrowedOrBack', { amount: money.format(totals.loansIn) })
   ].filter(Boolean)
   if (savings.length === 0 && loans.length === 0) return null
 
@@ -84,16 +87,16 @@ function OtherMovements({ totals }: { totals: Totals }): React.JSX.Element | nul
       {savings.length > 0 && (
         <span className="inline-flex items-center gap-1.5">
           <PiggyBank className="size-4 text-savings" aria-hidden />
-          Savings: {savings.join(', ')}
+          {t('overview.savingsList', { list: savings.join(', ') })}
         </span>
       )}
       {loans.length > 0 && (
         <span className="inline-flex items-center gap-1.5">
           <HandCoins className="size-4 text-loan" aria-hidden />
-          Loans: {loans.join(', ')}
+          {t('overview.loansList', { list: loans.join(', ') })}
         </span>
       )}
-      <span>Not counted as income or spending.</span>
+      <span>{t('overview.notCountedAsIncome')}</span>
     </p>
   )
 }
@@ -115,21 +118,21 @@ export function SummaryCards({
     previous ? changeText(totals[key], previous[key], against, money, by) : null
 
   return (
-    <section aria-label="Summary">
+    <section aria-label={t('projections.summary')}>
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
-          label="Income"
+          label={t('group.income')}
           value={money.format(totals.income)}
           valueClassName={totals.income > 0 ? 'text-income' : undefined}
           change={change('income', 'percent')}
         />
         <StatCard
-          label="Spent"
+          label={t('overview.spent')}
           value={money.format(totals.expenses)}
           change={change('expenses', 'percent')}
         />
         <StatCard
-          label="Income minus spending"
+          label={t('overview.incomeMinusSpending')}
           value={money.format(totals.net, 'exceptZero')}
           change={change('net', 'amount')}
         />

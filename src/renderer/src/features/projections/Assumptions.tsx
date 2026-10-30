@@ -12,6 +12,7 @@ import { Switch } from '@renderer/components/ui/switch'
 import { useUpdateSettings } from '@renderer/features/settings/queries'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { toast } from '@renderer/lib/toast'
+import { t } from '@renderer/lib/i18n'
 
 const monthsOptions = [1, 3, 6, 12]
 
@@ -32,29 +33,28 @@ export function Assumptions({
   const save = (patch: Parameters<typeof update.mutate>[0]): void =>
     update.mutate(patch, {
       onError: (error) =>
-        toast({ title: 'Not saved', description: error.message, variant: 'error' })
+        toast({ title: t('common.notSaved'), description: error.message, variant: 'error' })
     })
 
   return (
     <Card className={className}>
       <CardHeader>
         <div>
-          <CardTitle>Assumptions</CardTitle>
-          <CardDescription>
-            Always included: today’s balance, recurring income and bills, subscriptions, card and
-            bank loan installments, and anything entered for later dates.
-          </CardDescription>
+          <CardTitle>{t('projections.assumptions')}</CardTitle>
+          <CardDescription>{t('projections.alwaysIncludedTodaysBalance')}</CardDescription>
         </div>
       </CardHeader>
       <div className="grid gap-5">
         <div className="grid gap-3">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <Label htmlFor="assume-variable">Everyday spending</Label>
+              <Label htmlFor="assume-variable">{t('projections.everydaySpending')}</Label>
               <p id="assume-variable-description" className="text-sm text-ink-muted">
                 {assumptions.variableMonthly === null
-                  ? 'Your average once there’s a full month of data.'
-                  : `About ${money.format(assumptions.variableMonthly)} a month: what you spent beyond bills and installments.`}
+                  ? t('projections.yourAverageOnceTheres')
+                  : t('projections.variableAbout', {
+                      amount: money.format(assumptions.variableMonthly)
+                    })}
               </p>
             </div>
             <Switch
@@ -66,7 +66,7 @@ export function Assumptions({
           </div>
           <div className="flex items-center gap-3">
             <Label htmlFor="assume-months" className="font-normal text-ink-muted">
-              Averaged over the last
+              {t('projections.averagedOverTheLast')}
             </Label>
             <Select
               value={String(assumptions.variableMonths)}
@@ -78,7 +78,7 @@ export function Assumptions({
               <SelectContent>
                 {monthsOptions.map((n) => (
                   <SelectItem key={n} value={String(n)}>
-                    {n === 1 ? 'month' : `${n} months`}
+                    {t('projections.months', { count: n })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -88,11 +88,13 @@ export function Assumptions({
 
         <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
           <div>
-            <Label htmlFor="assume-savings">Savings plans</Label>
+            <Label htmlFor="assume-savings">{t('projections.savingsPlans')}</Label>
             <p id="assume-savings-description" className="text-sm text-ink-muted">
               {assumptions.savingsMonthly > 0
-                ? `${money.format(assumptions.savingsMonthly)} a month into your goals, until each is reached.`
-                : 'None of your goals has a monthly amount yet.'}
+                ? t('projections.savingsAbout', {
+                    amount: money.format(assumptions.savingsMonthly)
+                  })
+                : t('projections.noneOfYourGoals')}
             </p>
           </div>
           <Switch

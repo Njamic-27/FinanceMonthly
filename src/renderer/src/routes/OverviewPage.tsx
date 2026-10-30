@@ -36,13 +36,12 @@ import { useTransactionList } from '@renderer/features/transactions/queries'
 import { TransactionList } from '@renderer/features/transactions/TransactionList'
 import { useCurrency } from '@renderer/hooks/useCurrency'
 import { cn } from '@renderer/lib/utils'
+import { t } from '@renderer/lib/i18n'
 
-const kindOptions: { value: PeriodKind; label: string }[] = [
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' }
+const kindOptions = (): { value: PeriodKind; label: string }[] => [
+  { value: 'week', label: t('overview.week') },
+  { value: 'month', label: t('screen.month') }
 ]
-
-const unit = (kind: PeriodKind): string => (kind === 'week' ? 'week' : 'month')
 
 /** Transactions in the period, newest first, a page at a time. */
 function PeriodTransactions({
@@ -66,13 +65,13 @@ function PeriodTransactions({
     <section aria-labelledby="period-transactions" className="min-w-0">
       <header className="mb-4 flex items-baseline justify-between gap-4 px-1">
         <h2 id="period-transactions" className="text-lg font-semibold">
-          {count} transaction{count === 1 ? '' : 's'}
+          {t('month.transactions', { count })}
         </h2>
         <Link
           to={`/transactions?${writeFilters({ search: '', from: period.range.start, to: period.range.end })}`}
           className="link text-sm font-semibold text-primary"
         >
-          Open {label} in Transactions
+          {t('overview.openIn', { period: label })}
         </Link>
       </header>
       <TransactionList
@@ -89,8 +88,8 @@ function PeriodTransactions({
             onClick={() => list.fetchNextPage()}
           >
             {list.isFetchingNextPage
-              ? 'Loading…'
-              : `Show more (${count - transactions.length} left)`}
+              ? t('overview.loading')
+              : t('common.showMoreLeft', { count: count - transactions.length })}
           </Button>
         </div>
       )}
@@ -130,28 +129,29 @@ export function OverviewPage(): React.JSX.Element {
     largest.isPlaceholderData
   const empty = totals.data?.count === 0
 
+  const isWeek = period.kind === 'week'
   return (
     <>
       <PageHeader
-        title="Overview"
-        description="One week or one month in detail."
+        title={t('screen.overview')}
+        description={t('overview.oneWeekOrOne')}
         actions={
           <SegmentedControl
             name="overview-kind"
-            aria-label="Show a week or a month"
+            aria-label={t('overview.showAWeekOr')}
             value={period.kind}
-            options={kindOptions}
+            options={kindOptions()}
             onValueChange={(kind) => go(switchKind(period, kind, now, weekStart))}
           />
         }
       />
 
-      <nav aria-label="Period" className="mb-6 flex flex-wrap items-center gap-2">
+      <nav aria-label={t('overview.period')} className="mb-6 flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
           size="icon"
-          aria-label={`Previous ${unit(period.kind)}`}
-          title={`Previous ${unit(period.kind)}`}
+          aria-label={t(isWeek ? 'overview.previousWeek' : 'overview.previousMonth')}
+          title={t(isWeek ? 'overview.previousWeek' : 'overview.previousMonth')}
           onClick={() => go(stepPeriod(period, -1, now, weekStart))}
         >
           <ChevronLeft />
@@ -159,8 +159,8 @@ export function OverviewPage(): React.JSX.Element {
         <Button
           variant="outline"
           size="icon"
-          aria-label={`Next ${unit(period.kind)}`}
-          title={`Next ${unit(period.kind)}`}
+          aria-label={t(isWeek ? 'overview.nextWeek' : 'overview.nextMonth')}
+          title={t(isWeek ? 'overview.nextWeek' : 'overview.nextMonth')}
           disabled={period.isCurrent}
           onClick={() => go(stepPeriod(period, 1, now, weekStart))}
         >
@@ -175,14 +175,14 @@ export function OverviewPage(): React.JSX.Element {
             className="ml-2"
             onClick={() => go(readOverviewPeriod(overviewParams(period.kind, now), now, weekStart))}
           >
-            This {unit(period.kind)}
+            {t(isWeek ? 'overview.thisWeek' : 'overview.thisMonth')}
           </Button>
         )}
       </nav>
 
       {totals.isError && (
         <Card className="max-w-3xl">
-          <CardTitle>The overview could not be loaded</CardTitle>
+          <CardTitle>{t('overview.theOverviewCouldNot')}</CardTitle>
           <CardDescription className="mt-1">{totals.error.message}</CardDescription>
         </Card>
       )}
@@ -201,11 +201,13 @@ export function OverviewPage(): React.JSX.Element {
                 <Receipt className="size-6" />
               </span>
               <div>
-                <h2 className="text-lg font-semibold">Nothing recorded in {label}</h2>
+                <h2 className="text-lg font-semibold">
+                  {t('overview.nothingRecordedIn', { period: label })}
+                </h2>
                 <p className="mt-1 text-ink-muted">
                   {period.isCurrent
-                    ? 'Add what you spend and earn, and this page fills in as you go.'
-                    : `Step to another ${unit(period.kind)}, or add what you spent then.`}
+                    ? t('overview.addWhatYouSpend')
+                    : t(isWeek ? 'overview.stepWeek' : 'overview.stepMonth')}
                 </p>
               </div>
               <Button
@@ -217,7 +219,7 @@ export function OverviewPage(): React.JSX.Element {
                 }
               >
                 <Plus />
-                Add transaction
+                {t('shell.addTransaction')}
               </Button>
             </section>
           ) : (

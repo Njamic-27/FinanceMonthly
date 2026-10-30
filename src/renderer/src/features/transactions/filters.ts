@@ -1,5 +1,6 @@
 import { addMonths, endOfMonth, isIsoDate, startOfMonth, type IsoDate } from '@shared/dates'
 import { transactionKinds, type TransactionKind } from '@shared/transactions'
+import { t } from '@renderer/lib/i18n'
 
 /** The Transactions screen's filters. They live in the URL so other screens can link to them. */
 export interface TransactionFilters {
@@ -61,17 +62,32 @@ export function periodPresets(today: IsoDate): PeriodPreset[] {
   const lastYear = String(Number(year) - 1)
   const lastMonth = addMonths(startOfMonth(today), -1)
   return [
-    { id: 'all', label: 'All time' },
-    { id: 'this-month', label: 'This month', from: startOfMonth(today), to: endOfMonth(today) },
-    { id: 'last-month', label: 'Last month', from: lastMonth, to: endOfMonth(lastMonth) },
+    { id: 'all', label: t('transactions.allTime') },
+    {
+      id: 'this-month',
+      label: t('overview.thisMonth'),
+      from: startOfMonth(today),
+      to: endOfMonth(today)
+    },
+    {
+      id: 'last-month',
+      label: t('transactions.lastMonth'),
+      from: lastMonth,
+      to: endOfMonth(lastMonth)
+    },
     {
       id: 'last-3-months',
-      label: 'Last 3 months',
+      label: t('transactions.last3Months'),
       from: addMonths(startOfMonth(today), -2),
       to: endOfMonth(today)
     },
-    { id: 'this-year', label: 'This year', from: `${year}-01-01`, to: `${year}-12-31` },
-    { id: 'last-year', label: 'Last year', from: `${lastYear}-01-01`, to: `${lastYear}-12-31` }
+    { id: 'this-year', label: t('history.thisYear'), from: `${year}-01-01`, to: `${year}-12-31` },
+    {
+      id: 'last-year',
+      label: t('transactions.lastYear'),
+      from: `${lastYear}-01-01`,
+      to: `${lastYear}-12-31`
+    }
   ]
 }
 

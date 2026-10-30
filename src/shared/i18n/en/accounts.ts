@@ -116,5 +116,21 @@ export const accounts = {
   'accounts.deletePlanCharged': {
     one: 'Its {count} charged installment ({amount}) is removed too, as if you never bought it.',
     other: 'Its {count} charged installments ({amount}) are removed too, as if you never bought it.'
-  }
+  },
+  'accounts.overdrawn': 'Overdrawn',
+  'accounts.debitCardsCreditCards': 'Debit cards, credit cards and cash.',
+  'accounts.accountsCouldNotBe': 'Accounts could not be loaded',
+  'accounts.addTheAccountsYou': 'Add the accounts you pay with',
+  'accounts.yourDebitCardsCredit':
+    'Your debit cards, credit cards and cash, with what’s on each of them today. Every transaction then comes from or goes to one of them.',
+  'accounts.addYourFirstAccount': 'Add your first account',
+  'accounts.archived': 'Archived',
+  'accounts.leftOutOfTotals': 'Left out of totals and new transactions. Their history stays.',
+  'accounts.openInTransactions': 'Open in Transactions',
+  'accounts.thatAccountNoLonger': 'That account no longer exists',
+  'accounts.backToAccounts': 'Back to accounts',
+  'accounts.cardsAndCash': 'Cards and cash',
+  'accounts.owedOnCreditCards': 'Owed on credit cards',
+  'accounts.startedWith': 'Started with {amount} on {date}',
+  'accounts.nothingPaid': 'Nothing paid with or into {name} yet.'
 } satisfies Record<string, Message>

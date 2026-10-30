@@ -122,5 +122,21 @@ export const accounts: Translation<typeof en> = {
     one: 'Uklanja se i {count} naplaćena rata ({amount}), kao da je nikad nisi kupio.',
     few: 'Uklanjaju se i {count} naplaćene rate ({amount}), kao da je nikad nisi kupio.',
     other: 'Uklanja se i {count} naplaćenih rata ({amount}), kao da je nikad nisi kupio.'
-  }
+  },
+  'accounts.startedWith': 'Početno stanje {amount}, {date}',
+  'accounts.nothingPaid': 'S računa {name} ili na njega još ništa nije plaćeno.',
+  'accounts.overdrawn': 'U minusu',
+  'accounts.debitCardsCreditCards': 'Debitne kartice, kreditne kartice i gotovina.',
+  'accounts.accountsCouldNotBe': 'Računi se nisu mogli učitati',
+  'accounts.addTheAccountsYou': 'Dodaj račune kojima plaćaš',
+  'accounts.yourDebitCardsCredit':
+    'Tvoje debitne kartice, kreditne kartice i gotovina, s onim što je danas na svakoj. Svaka transakcija ide s jedne od njih ili na nju.',
+  'accounts.addYourFirstAccount': 'Dodaj svoj prvi račun',
+  'accounts.archived': 'Arhivirano',
+  'accounts.leftOutOfTotals': 'Izostavljeni iz zbrojeva i novih transakcija. Povijest ostaje.',
+  'accounts.openInTransactions': 'Otvori u Transakcijama',
+  'accounts.thatAccountNoLonger': 'Taj račun više ne postoji',
+  'accounts.backToAccounts': 'Natrag na račune',
+  'accounts.cardsAndCash': 'Kartice i gotovina',
+  'accounts.owedOnCreditCards': 'Dug na kreditnim karticama'
 }

@@ -1,0 +1,68 @@
+import type { overview as en } from '../en/overview'
+import type { Translation } from '../types'
+
+export const overview: Translation<typeof en> = {
+  'overview.loading': 'Učitavanje…',
+  'overview.oneWeekOrOne': 'Jedan tjedan ili jedan mjesec u detalje.',
+  'overview.showAWeekOr': 'Prikaži tjedan ili mjesec',
+  'overview.period': 'Razdoblje',
+  'overview.theOverviewCouldNot': 'Pregled se nije mogao učitati',
+  'overview.addWhatYouSpend':
+    'Dodaj ono što trošiš i zarađuješ, i ova se stranica popunjava usput.',
+  'overview.unchanged': 'Bez promjene',
+  'overview.incomeAboveTheLine':
+    'Prihodi iznad crte, potrošnja ispod. Klikni mjesec da ga otvoriš.',
+  'overview.spent': 'Potrošeno',
+  'overview.spendingByCategory': 'Potrošnja po kategorijama',
+  'overview.nothingSpentYet': 'Još ništa nije potrošeno',
+  'overview.unknownCategory': 'Nepoznata kategorija',
+  'overview.dailySpending': 'Dnevna potrošnja',
+  'overview.spendingPerDay': 'Potrošnja po danu',
+  'overview.day': 'Dan',
+  'overview.largestExpenses': 'Najveći troškovi',
+  'overview.notCountedAsIncome': 'Ne broji se kao prihod ni potrošnja.',
+  'overview.incomeMinusSpending': 'Prihodi minus potrošnja',
+  'overview.weekBefore': 'prethodni tjedan',
+  'overview.week': 'Tjedan',
+  'overview.nothingIn': '{against}: ništa',
+  'overview.aboutSame': 'Otprilike kao {against}',
+  'overview.percentMore': '{percent} više nego {against}',
+  'overview.percentLess': '{percent} manje nego {against}',
+  'overview.same': 'Isto kao {against}',
+  'overview.higher': '{amount} više nego {against}',
+  'overview.lower': '{amount} manje nego {against}',
+  'overview.putIntoSavings': '{amount} uplaćeno u štednju',
+  'overview.takenOut': '{amount} podignuto',
+  'overview.lentOrRepaid': '{amount} posuđeno ili vraćeno',
+  'overview.borrowedOrBack': '{amount} posuđeno od drugih ili vraćeno tebi',
+  'overview.savingsList': 'Štednja: {list}',
+  'overview.loansList': 'Zajmovi: {list}',
+  'overview.openIn': 'Otvori {period} u Transakcijama',
+  'overview.showMoreLeft': 'Prikaži više (još {count})',
+  'overview.previousWeek': 'Prethodni tjedan',
+  'overview.previousMonth': 'Prethodni mjesec',
+  'overview.nextWeek': 'Sljedeći tjedan',
+  'overview.nextMonth': 'Sljedeći mjesec',
+  'overview.thisWeek': 'Ovaj tjedan',
+  'overview.thisMonth': 'Ovaj mjesec',
+  'overview.nothingRecordedIn': 'Ništa zabilježeno: {period}',
+  'overview.stepWeek': 'Prijeđi na drugi tjedan ili dodaj što si tada potrošio.',
+  'overview.stepMonth': 'Prijeđi na drugi mjesec ili dodaj što si tada potrošio.',
+  'overview.showCategory': 'Prikaži transakcije: {name}',
+  'overview.moreCategories': {
+    one: 'Još {count} kategorija',
+    few: 'Još {count} kategorije',
+    other: 'Još {count} kategorija'
+  },
+  'overview.aDay': '{amount} dnevno u prosjeku',
+  'overview.aDaySoFar': '{amount} dnevno u prosjeku dosad',
+  'overview.since': '{change} od {date}',
+  'overview.unchangedSince': 'Bez promjene od {date}',
+  'overview.tableCaption': '{title} prvog u svakom mjesecu i danas',
+  'history.nothingRecordedIn': 'Ništa zabilježeno u {year}.',
+  'history.shadedMonth':
+    'Zasjenjeno od najniže do najviše potrošnje u {year}. Otvori bilo koji mjesec za pojedinosti.',
+  'history.shadedWeek':
+    'Zasjenjeno od najniže do najviše potrošnje u {year}. Otvori bilo koji tjedan za pojedinosti.',
+  'history.in': 'Prihodi {amount}'
+}

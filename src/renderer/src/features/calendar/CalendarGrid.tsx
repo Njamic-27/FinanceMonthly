@@ -7,6 +7,7 @@ import { accountPath } from '@renderer/lib/links'
 import { cn } from '@renderer/lib/utils'
 import { cardDueLabel } from './cardDue'
 import { weekdayLabels } from './month'
+import { t } from '@renderer/lib/i18n'
 
 /** Card payments and planned items shown in a cell before "+N more". */
 const PILLS = 2
@@ -61,7 +62,7 @@ function CardDuePill({ marker }: { marker: CardDueMarker }): React.JSX.Element {
     <button
       type="button"
       title={label}
-      aria-label={`${label}, card payment`}
+      aria-label={t('calendar.cardPayment', { label })}
       onClick={() => navigate(accountPath(marker.accountId))}
       className="relative z-10 flex w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded-full border border-line bg-surface-2 px-2 text-left text-xs leading-5 text-ink transition-colors hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
     >
@@ -158,7 +159,7 @@ function DayCell({
           ))}
           {pills > PILLS && (
             <span className="px-2 text-xs text-ink-muted" aria-hidden>
-              +{pills - PILLS} more
+              {t('calendar.more', { count: pills - PILLS })}
             </span>
           )}
         </div>

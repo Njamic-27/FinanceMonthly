@@ -48,5 +48,15 @@ export const categories = {
   'categories.sortIncome': 'Sort your income into it when you add transactions.',
   'categories.sortSpending': 'Sort your spending into it when you add transactions.',
   'categories.moveIncome': 'Move everything in it to another income category.',
-  'categories.moveExpense': 'Move everything in it to another expense category.'
+  'categories.moveExpense': 'Move everything in it to another expense category.',
+  'categories.noExpenseCategoriesYet':
+    'No expense categories yet. Add one to start sorting your spending.',
+  'categories.noIncomeCategoriesYet':
+    'No income categories yet. Add one for your salary or other income.',
+  'categories.usedByRecurringItems': 'Used by recurring items',
+  'categories.notUsedYet': 'Not used yet',
+  'categories.whatYouSortIncome': 'What you sort income and spending into.',
+  'categories.categoriesCouldNotBe': 'Categories could not be loaded',
+  'categories.categoryType': 'Category type',
+  'categories.notOfferedForNew': 'Not offered for new transactions. Past transactions keep them.'
 } satisfies Record<string, Message>
