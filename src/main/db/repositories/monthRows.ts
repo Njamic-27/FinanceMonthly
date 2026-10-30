@@ -3,6 +3,7 @@ import type { CategoryType } from '@shared/categories'
 import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getCategory } from './categories'
+import { t } from '@shared/i18n'
 
 /** A category added to the Month sheet (PLAN.md §2, month_rows). */
 export interface MonthRow {
@@ -49,10 +50,10 @@ export function addMonthRow(
   const category = getCategory(db, input.categoryId)
   const account = getAccount(db, input.accountId)
   if (account.isArchived) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   if (db.prepare('SELECT 1 FROM month_rows WHERE category_id = ?').get(category.id)) {
-    throw new AppError('conflict', `“${category.name}” is on the sheet already.`)
+    throw new AppError('conflict', t('errors.onSheet', { name: category.name }))
   }
   const { lastInsertRowid } = db
     .prepare(

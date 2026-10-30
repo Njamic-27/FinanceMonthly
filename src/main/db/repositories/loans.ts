@@ -23,6 +23,7 @@ import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getSettings } from './settings'
 import { getTransaction, toTransaction, type TransactionRow } from './transactions'
+import { t } from '@shared/i18n'
 
 interface LoanRow {
   id: number
@@ -163,7 +164,7 @@ export function listLoans(db: Database): Loan[] {
 export function getLoan(db: Database, id: number): Loan {
   const row = db.prepare(`${selectLoans} WHERE l.id = ?`).get(loanIdSchema.parse(id)) as
     LoanRow | undefined
-  if (!row) throw new AppError('not_found', 'That loan no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.loanGone'))
   return toLoan(db, row)
 }
 
@@ -184,13 +185,16 @@ export function usableAccount(
 ): void {
   const account = getAccount(db, id)
   if (account.isArchived && account.id !== keep) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   if (date !== null && date < account.openingDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Choose that day or later.`
+      t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, locale)
+      })
     )
   }
 }
@@ -261,20 +265,19 @@ export function createPersonalLoan(db: Database, input: PersonalLoanInput): Loan
 export function updatePersonalLoan(db: Database, id: number, input: PersonalLoanInput): Loan {
   const current = getLoan(db, id)
   if (current.kind === 'bank_loan') {
-    throw new AppError('validation', 'Bank loans are edited from their own screen.')
+    throw new AppError('validation', t('errors.bankLoanOwnScreen'))
   }
   const loan = personalLoanInputSchema.parse(input)
   if (loan.kind !== current.kind && current.repaymentCount > 0) {
     throw new AppError(
       'validation',
-      'Something has been paid back already, so it stays a loan you ' +
-        (current.kind === 'lent' ? 'lent.' : 'borrowed.')
+      t(current.kind === 'lent' ? 'errors.staysLent' : 'errors.staysBorrowed')
     )
   }
   if (loan.principal < current.repaid) {
     throw new AppError(
       'validation',
-      `${money(db, current.repaid)} has been paid back already. Enter at least that much.`
+      t('errors.repaidAlready', { amount: money(db, current.repaid) })
     )
   }
   const existing = disbursementOf(db, current)
@@ -337,25 +340,27 @@ function checkRepayment(
   const repayment = repaymentInputSchema.parse(input)
   const loan = getLoan(db, repayment.loanId)
   if (loan.kind === 'bank_loan') {
-    throw new AppError('validation', 'A bank loan is paid off one installment at a time.')
+    throw new AppError('validation', t('errors.bankLoanByInstallment'))
   }
   if (!current && loan.status !== 'active') {
     throw new AppError(
       'validation',
-      `“${loan.title}” is ${loan.status === 'paid_off' ? 'paid off' : 'written off'}. Reopen it to record more.`
+      t(loan.status === 'paid_off' ? 'errors.loanPaidOff' : 'errors.loanWrittenOff', {
+        title: loan.title
+      })
     )
   }
   if (repayment.date < loan.startDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `The loan started on ${formatDate(loan.startDate, locale)}. Choose that day or later.`
+      t('errors.loanStarted', { date: formatDate(loan.startDate, locale) })
     )
   }
   usableAccount(db, repayment.accountId, repayment.date, current?.accountId)
   const owed = loan.principal - loan.repaid + (current?.loanId === loan.id ? current.amount : 0)
   if (repayment.amount > owed) {
-    throw new AppError('validation', `Only ${money(db, Math.max(0, owed))} is still owed.`)
+    throw new AppError('validation', t('errors.onlyOwed', { amount: money(db, Math.max(0, owed)) }))
   }
   return { repayment, loan }
 }
@@ -383,7 +388,7 @@ function getRepayment(db: Database, id: number): Transaction {
   const tx = getTransaction(db, id)
   const loan = tx.loanId === null ? null : getLoan(db, tx.loanId)
   if (!loan || tx.type !== loanTypes(loan.kind).repayment) {
-    throw new AppError('validation', 'That isn’t a loan repayment.')
+    throw new AppError('validation', t('errors.notRepayment'))
   }
   return tx
 }
@@ -391,10 +396,7 @@ function getRepayment(db: Database, id: number): Transaction {
 export function updateRepayment(db: Database, id: number, input: RepaymentInput): Transaction {
   const current = getRepayment(db, id)
   if (current.loanInstallmentId !== null) {
-    throw new AppError(
-      'validation',
-      'An installment is paid as scheduled. Undo the payment and pay it again to change it.'
-    )
+    throw new AppError('validation', t('errors.installmentAsScheduled'))
   }
   const { repayment } = checkRepayment(db, { ...input, loanId: current.loanId ?? 0 }, current)
   db.transaction(() => {
@@ -423,10 +425,10 @@ export function settleLoan(db: Database, id: number, input: SettleLoanInput): Lo
   const loan = getLoan(db, id)
   const how = settleLoanInputSchema.parse(input)
   if (loan.kind === 'bank_loan') {
-    throw new AppError('validation', 'A bank loan is paid off one installment at a time.')
+    throw new AppError('validation', t('errors.bankLoanByInstallment'))
   }
   if (loan.status !== 'active') {
-    throw new AppError('validation', `“${loan.title}” is already closed.`)
+    throw new AppError('validation', t('errors.loanClosed', { title: loan.title }))
   }
   if (how.how === 'repaid') {
     addRepayment(db, {
@@ -447,7 +449,7 @@ export function reopenLoan(db: Database, id: number): Loan {
   const loan = getLoan(db, id)
   if (loan.status === 'active') return loan
   if (loan.principal - loan.repaid <= 0) {
-    throw new AppError('validation', 'Everything has been paid back, so there’s nothing to reopen.')
+    throw new AppError('validation', t('errors.nothingToReopen'))
   }
   db.prepare("UPDATE loans SET status = 'active' WHERE id = ?").run(id)
   return getLoan(db, id)

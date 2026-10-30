@@ -1,3 +1,5 @@
+import { t } from './i18n'
+
 /**
  * Services offered as one-click names when adding a subscription (PLAN.md §3, screen 8).
  * A preset fills in the name only; the amount, billing date and account are always entered
@@ -22,4 +24,4 @@ export const subscriptionPresets = [
 ] as const
 
 /** The category a new subscription starts in, when it exists. */
-export const subscriptionCategoryName = 'Subscriptions'
+export const subscriptionCategoryName = (): string => t('builtin.subscriptions')

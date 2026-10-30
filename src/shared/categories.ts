@@ -11,12 +11,6 @@ export type CategoryType = (typeof categoryTypes)[number]
 export const expenseGroups = ['everyday', 'bills', 'subscriptions'] as const
 export type ExpenseGroup = (typeof expenseGroups)[number]
 
-export const expenseGroupLabels: Record<ExpenseGroup, string> = {
-  everyday: 'Everyday',
-  bills: 'Bills',
-  subscriptions: 'Subscriptions'
-}
-
 /** Icons offered for categories; the renderer maps each name to a lucide icon. */
 export const categoryIcons = [
   'briefcase',

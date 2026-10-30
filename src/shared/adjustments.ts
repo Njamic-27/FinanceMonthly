@@ -2,12 +2,13 @@ import { z } from 'zod'
 import { isIsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 import type { Transaction, TransactionType } from './transactions'
+import { t } from './i18n'
 
 // Balance adjustments (PLAN.md §2, step 39). When an account's real balance differs from the
 // app's, typing the real one adds an adjustment for the difference: in or out of the account,
 // never counted as income or spending, but part of every balance.
 
-export const ADJUSTMENT_TITLE = 'Balance adjustment'
+export const adjustmentTitle = (): string => t('data.balanceAdjustment')
 
 export const isAdjustment = (type: TransactionType): boolean =>
   type === 'adjustment_in' || type === 'adjustment_out'

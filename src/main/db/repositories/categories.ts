@@ -15,6 +15,8 @@ import {
 } from '@shared/categories'
 import { isPaletteColor, neutralPaletteColor } from '@shared/palette'
 import { AppError } from '../../errors'
+import { isMessageKey, languages, translate, type Language } from '@shared/i18n'
+import { t } from '@shared/i18n'
 
 interface CategoryRow {
   id: number
@@ -76,7 +78,7 @@ export function listCategories(db: Database): Category[] {
 export function getCategory(db: Database, id: number): Category {
   const row = db.prepare(`${selectCategories} WHERE c.id = ?`).get(categoryIdSchema.parse(id)) as
     CategoryRow | undefined
-  if (!row) throw new AppError('not_found', 'That category no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.categoryGone'))
   return toCategory(row)
 }
 
@@ -89,8 +91,13 @@ function assertNameFree(db: Database, type: CategoryType, name: string, exceptId
     throw new AppError(
       'conflict',
       clash.is_archived
-        ? `An archived ${type} category is already called “${name}”. Restore it instead.`
-        : `There's already an ${type} category called “${name}”.`
+        ? t(
+            type === 'income' ? 'errors.archivedIncomeCategory' : 'errors.archivedExpenseCategory',
+            { name }
+          )
+        : t(type === 'income' ? 'errors.incomeCategoryExists' : 'errors.expenseCategoryExists', {
+            name
+          })
     )
   }
 }
@@ -137,11 +144,8 @@ export function deleteCategory(db: Database, id: number): void {
     const uses =
       category.transactionCount === category.usageCount
         ? `${category.transactionCount} transaction${category.transactionCount === 1 ? '' : 's'}`
-        : `${category.usageCount} transactions, recurring items or installment plans`
-    throw new AppError(
-      'conflict',
-      `“${category.name}” is used by ${uses}. Archive it or merge it into another category instead.`
-    )
+        : String(category.usageCount)
+    throw new AppError('conflict', t('errors.categoryInUse', { name: category.name, count: uses }))
   }
   db.prepare('DELETE FROM categories WHERE id = ?').run(id)
 }
@@ -151,12 +155,14 @@ export function mergeCategory(db: Database, sourceId: number, targetId: number):
   const source = getCategory(db, sourceId)
   const target = getCategory(db, targetId)
   if (source.id === target.id) {
-    throw new AppError('validation', 'Choose a different category to merge into.')
+    throw new AppError('validation', t('errors.mergeDifferent'))
   }
   if (source.type !== target.type) {
     throw new AppError(
       'validation',
-      `“${source.name}” is an ${source.type} category, so it can only be merged into another ${source.type} category.`
+      t(source.type === 'income' ? 'errors.mergeIncome' : 'errors.mergeExpense', {
+        name: source.name
+      })
     )
   }
 
@@ -190,4 +196,30 @@ export function mergeCategory(db: Database, sourceId: number, targetId: number):
     db.prepare('DELETE FROM categories WHERE id = ?').run(source.id)
   })()
   return getCategory(db, target.id)
+}
+
+/**
+ * Renames the built-in categories into `language` (PLAN.md step 55): those still carrying a
+ * built-in name, in any language. One the user renamed keeps its name, and so does one whose
+ * new name another category of its type already has. Returns how many were renamed.
+ */
+export function renameBuiltinCategories(db: Database, language: Language): number {
+  const rows = db
+    .prepare('SELECT id, type, name, builtin_key FROM categories WHERE builtin_key IS NOT NULL')
+    .all() as { id: number; type: CategoryType; name: string; builtin_key: string }[]
+  const taken = db.prepare('SELECT 1 FROM categories WHERE type = ? AND name = ? AND id != ?')
+  const rename = db.prepare('UPDATE categories SET name = ? WHERE id = ?')
+  let renamed = 0
+  db.transaction(() => {
+    for (const row of rows) {
+      const key = `builtin.${row.builtin_key}`
+      if (!isMessageKey(key) || !languages.some((other) => translate(other, key) === row.name))
+        continue
+      const name = translate(language, key)
+      if (name === row.name || taken.get(row.type, name, row.id)) continue
+      rename.run(name, row.id)
+      renamed += 1
+    }
+  })()
+  return renamed
 }

@@ -13,6 +13,7 @@ import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getCategory } from './categories'
 import { getSettings } from './settings'
+import { t } from '@shared/i18n'
 
 interface PlanRow {
   id: number
@@ -69,7 +70,7 @@ export function listInstallmentPlans(db: Database, accountId?: number): Installm
 export function getInstallmentPlan(db: Database, id: number): InstallmentPlan {
   const row = db.prepare(`${selectPlans} WHERE p.id = ?`).get(installmentPlanIdSchema.parse(id)) as
     PlanRow | undefined
-  if (!row) throw new AppError('not_found', 'That installment plan no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.planGone'))
   return toPlan(row)
 }
 
@@ -82,21 +83,24 @@ export function createInstallmentPlan(db: Database, input: InstallmentPlanInput)
 
   const account = getAccount(db, plan.accountId)
   if (account.type !== 'credit') {
-    throw new AppError('validation', 'Only purchases on a credit card can be paid in installments.')
+    throw new AppError('validation', t('errors.installmentsOnCard'))
   }
   if (account.isArchived) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   if (plan.firstDate < account.openingDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Choose a later date, or move the card’s starting date back first.`
+      t('errors.cardStartsBack', {
+        name: account.name,
+        date: formatDate(account.openingDate, locale)
+      })
     )
   }
   const category = getCategory(db, plan.categoryId)
   if (category.type !== 'expense' || category.isArchived) {
-    throw new AppError('validation', 'Choose an expense category that isn’t archived.')
+    throw new AppError('validation', t('errors.expenseCategoryActive'))
   }
 
   const { lastInsertRowid } = db

@@ -38,6 +38,10 @@ export function useUpdateSettings(): UseMutationResult<
     onError: (_error, _patch, context) => {
       if (context?.previous) queryClient.setQueryData(settingsKeys.all, context.previous)
     },
-    onSuccess: (settings) => queryClient.setQueryData(settingsKeys.all, settings)
+    onSuccess: (settings, patch) => {
+      queryClient.setQueryData(settingsKeys.all, settings)
+      // A new language renames the built-in categories, and texts made by main follow it.
+      if (patch.language) void queryClient.invalidateQueries()
+    }
   })
 }

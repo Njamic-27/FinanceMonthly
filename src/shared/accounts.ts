@@ -6,12 +6,6 @@ import { paletteColors, type PaletteColor } from './palette'
 export const accountTypes = ['debit', 'credit', 'cash'] as const
 export type AccountType = (typeof accountTypes)[number]
 
-export const accountTypeLabels: Record<AccountType, string> = {
-  debit: 'Debit card',
-  credit: 'Credit card',
-  cash: 'Cash'
-}
-
 export interface Account {
   id: number
   name: string

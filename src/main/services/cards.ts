@@ -22,6 +22,7 @@ import { AppError } from '../errors'
 import { incomingTypes } from '../db/ledger'
 import { getAccount, listAccounts } from '../db/repositories/accounts'
 import { when } from './when'
+import { t } from '@shared/i18n'
 
 // Credit cards (PLAN.md step 24): what's used and available, where the card is in its
 // statement cycle, and reminders when a statement closes and before its payment is due.
@@ -56,7 +57,7 @@ export function cardBillsDue(db: Database, today: IsoDate): CardBillDue[] {
 export function cardStatus(db: Database, accountId: number, today: IsoDate): CardStatus {
   const account = getAccount(db, accountId, today)
   if (account.type !== 'credit') {
-    throw new AppError('validation', `“${account.name}” isn’t a credit card.`)
+    throw new AppError('validation', t('errors.notCard', { name: account.name }))
   }
   const limit = account.creditLimit ?? 0
   const owed = owedOn(account.balance)
@@ -182,16 +183,21 @@ export function cardReminderMessage(
   const amount = formatMoney(reminder.amount, settings)
   if (reminder.kind === 'due') {
     return {
-      title: `${reminder.name} payment due ${when(reminder.date, today, settings.locale)}`,
-      body: `${amount} left to pay on this statement.`
+      title: t('reminder.cardDue', {
+        card: reminder.name,
+        when: when(reminder.date, today, settings.locale)
+      }),
+      body: t('reminder.cardLeft', { amount })
     }
   }
-  const by = reminder.dueDate
-    ? ` by ${formatDate(reminder.dueDate, settings.locale, { day: 'numeric', month: 'long' })}`
-    : ''
   return {
-    title: `${reminder.name} statement closed`,
-    body: `${amount} to pay${by}.`
+    title: t('reminder.statementClosed', { card: reminder.name }),
+    body: reminder.dueDate
+      ? t('reminder.toPayBy', {
+          amount,
+          date: formatDate(reminder.dueDate, settings.locale, { day: 'numeric', month: 'long' })
+        })
+      : t('reminder.toPay', { amount })
   }
 }
 

@@ -11,6 +11,7 @@ import {
 import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getCategory } from './categories'
+import { t } from '@shared/i18n'
 
 interface RecurringRow {
   id: number
@@ -67,7 +68,7 @@ export function listRecurringItems(db: Database): RecurringItem[] {
 export function getRecurringItem(db: Database, id: number): RecurringItem {
   const row = db.prepare(`${selectItems} WHERE r.id = ?`).get(recurringIdSchema.parse(id)) as
     RecurringRow | undefined
-  if (!row) throw new AppError('not_found', 'That recurring item no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.recurringGone'))
   return toRecurringItem(row)
 }
 
@@ -84,7 +85,7 @@ function check(
 
   const account = getAccount(db, item.accountId)
   if (account.isArchived && account.id !== current?.accountId) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   const category = getCategory(db, item.categoryId)
   const categoryType = postedType(item.kind)
@@ -92,15 +93,16 @@ function check(
     category.type !== categoryType ||
     (category.isArchived && category.id !== current?.categoryId)
   ) {
-    throw new AppError('validation', `Choose an ${categoryType} category that isn’t archived.`)
+    throw new AppError(
+      'validation',
+      t(categoryType === 'income' ? 'errors.incomeCategoryActive' : 'errors.expenseCategoryActive')
+    )
   }
   // Posted transactions keep their type, so an item can't switch between income and spending.
   if (current && current.postedCount > 0 && postedType(current.kind) !== categoryType) {
     throw new AppError(
       'validation',
-      current.kind === 'income'
-        ? 'Its past payments were posted as income, so it stays income. Add a new item instead.'
-        : 'Its past payments were posted as expenses, so it stays an expense. Add a new item instead.'
+      current.kind === 'income' ? t('errors.staysIncome') : t('errors.staysExpense')
     )
   }
   return item

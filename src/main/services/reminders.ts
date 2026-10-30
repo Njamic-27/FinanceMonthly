@@ -8,6 +8,7 @@ import type { Settings } from '@shared/settings'
 import { listRecurringItems } from '../db/repositories/recurring'
 import { plannedItems } from './planned'
 import { when } from './when'
+import { t } from '@shared/i18n'
 
 // Reminders (PLAN.md steps 23 and 32), on top of planned items: a payment whose recurring
 // item has `reminder_days_before` set is announced once, on that many days before it falls
@@ -109,22 +110,26 @@ export function reminderMessages(
 ): { title: string; body: string; path: string }[] {
   const money = (cents: number): string => formatMoney(cents, settings)
   if (reminders.length > SEPARATE) {
-    const lines = reminders
-      .slice(0, SEPARATE)
-      .map(
-        ({ planned }) =>
-          `${planned.title} ${money(planned.amount)}, ${when(planned.date, today, settings.locale)}`
-      )
+    const lines = reminders.slice(0, SEPARATE).map(({ planned }) =>
+      t('reminder.line', {
+        title: planned.title,
+        amount: money(planned.amount),
+        when: when(planned.date, today, settings.locale)
+      })
+    )
     return [
       {
-        title: `${reminders.length} payments coming up`,
-        body: [...lines, `and ${reminders.length - SEPARATE} more`].join('\n'),
+        title: t('reminder.manyTitle', { count: reminders.length }),
+        body: [...lines, t('reminder.andMore', { count: reminders.length - SEPARATE })].join('\n'),
         path: '/'
       }
     ]
   }
   return reminders.map(({ planned }) => ({
-    title: `${planned.title} ${planned.group === 'income' ? 'arrives' : 'is due'} ${when(planned.date, today, settings.locale)}`,
+    title: t(planned.group === 'income' ? 'reminder.arrives' : 'reminder.isDue', {
+      title: planned.title,
+      when: when(planned.date, today, settings.locale)
+    }),
     body: [money(planned.amount), accounts.get(planned.accountId)].filter(Boolean).join(' · '),
     // Each opens its row on Month, in the month it counts in, where it's paid or confirmed.
     path: plannedRowPath(planned)

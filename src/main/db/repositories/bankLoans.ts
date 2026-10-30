@@ -16,6 +16,7 @@ import { AppError } from '../../errors'
 import { getLoan, listLoanInstallments, syncStatus, usableAccount } from './loans'
 import { getSettings } from './settings'
 import { getTransaction } from './transactions'
+import { t } from '@shared/i18n'
 
 // Bank loans (PLAN.md step 28): an annuity schedule generated on creation, one row per
 // monthly installment in loan_installments. An installment is paid once a transaction links
@@ -88,7 +89,7 @@ export function createBankLoan(db: Database, input: BankLoanInput): Loan {
  */
 export function updateBankLoan(db: Database, id: number, input: BankLoanInput): Loan {
   const current = getLoan(db, id)
-  if (current.kind !== 'bank_loan') throw new AppError('validation', 'That isn’t a bank loan.')
+  if (current.kind !== 'bank_loan') throw new AppError('validation', t('errors.notBankLoan'))
   const loan = bankLoanInputSchema.parse(input)
   const schedule = listLoanInstallments(db, id)
   const title = loan.title || defaultBankLoanTitle(loan.counterparty)
@@ -102,10 +103,7 @@ export function updateBankLoan(db: Database, id: number, input: BankLoanInput): 
     loan.createDisbursementTx !== current.createDisbursementTx
 
   if (paid > 0 && termsChanged) {
-    throw new AppError(
-      'validation',
-      `${paid} installment${paid === 1 ? ' is' : 's are'} paid already, so the amount, rate and dates stay as they are.`
-    )
+    throw new AppError('validation', t('errors.installmentsPaid', { count: paid }))
   }
   usableAccount(
     db,
@@ -153,7 +151,7 @@ function getInstallment(db: Database, id: number): LoanInstallment {
   const row = db.prepare('SELECT loan_id FROM loan_installments WHERE id = ?').get(id) as
     { loan_id: number } | undefined
   const installment = row && listLoanInstallments(db, row.loan_id).find((i) => i.id === id)
-  if (!installment) throw new AppError('not_found', 'That installment no longer exists.')
+  if (!installment) throw new AppError('not_found', t('errors.installmentGone'))
   return installment
 }
 
@@ -167,13 +165,13 @@ export function payInstallment(
   const { accountId, date } = payInstallmentInputSchema.parse(input)
   const loan = getLoan(db, installment.loanId)
   if (installment.transactionId !== null) {
-    throw new AppError('conflict', `Installment ${installment.seq} is paid already.`)
+    throw new AppError('conflict', t('errors.installmentPaid', { seq: installment.seq }))
   }
   if (date < loan.startDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `The loan started on ${formatDate(loan.startDate, locale)}. Choose that day or later.`
+      t('errors.loanStarted', { date: formatDate(loan.startDate, locale) })
     )
   }
   usableAccount(db, accountId, date, loan.accountId)

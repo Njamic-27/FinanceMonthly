@@ -3,10 +3,12 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { closeDatabase, databasePath, getDb, initDatabase } from './db'
+import { setCurrentLanguage } from '@shared/i18n'
 import { getSettings } from './db/repositories/settings'
 import { registerIpcHandlers } from './ipc'
 import { startScheduler } from './app/scheduler'
 import { applySystemSettings, manageWindow, showMainWindow, startedHidden } from './app/shell'
+import { t } from '@shared/i18n'
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -73,10 +75,14 @@ app.whenReady().then(async () => {
   try {
     initDatabase()
     nativeTheme.themeSource = getSettings(getDb()).theme
+    setCurrentLanguage(getSettings(getDb()).language)
   } catch (error) {
     dialog.showErrorBox(
-      'Financije could not open its data',
-      `${error instanceof Error ? error.message : String(error)}\n\nDatabase file: ${databasePath()}`
+      t('errors.couldNotOpen'),
+      t('errors.databaseFile', {
+        error: error instanceof Error ? error.message : String(error),
+        path: databasePath()
+      })
     )
     app.quit()
     return

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { isIsoDate, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
 import type { TransactionType } from './transactions'
+import { t } from './i18n'
 
 export const loanKinds = ['lent', 'borrowed', 'bank_loan'] as const
 export type LoanKind = (typeof loanKinds)[number]
@@ -94,11 +95,11 @@ export function loanTypes(kind: LoanKind): {
 
 /** "Loan to Marko" or "Loan from Ana", when no title is given. */
 export const defaultLoanTitle = (kind: PersonalLoanKind, counterparty: string): string =>
-  kind === 'lent' ? `Loan to ${counterparty}` : `Loan from ${counterparty}`
+  t(kind === 'lent' ? 'data.loanTo' : 'data.loanFrom', { name: counterparty })
 
 /** "Marko paid back" or "Paid back Ana": a repayment's title. */
 export const repaymentTitle = (kind: LoanKind, counterparty: string): string =>
-  kind === 'lent' ? `${counterparty} paid back` : `Paid back ${counterparty}`
+  t(kind === 'lent' ? 'data.paidBackBy' : 'data.paidBackTo', { name: counterparty })
 
 /** Share of the loan paid back: 0 to 1. */
 export const loanShare = (loan: Pick<Loan, 'principal' | 'repaid'>): number =>
@@ -228,4 +229,4 @@ export type PayInstallmentInput = z.input<typeof payInstallmentInputSchema>
 export const LOAN_REMINDER_DAYS = 3
 
 /** "Loan from Erste", when a bank loan has no title. */
-export const defaultBankLoanTitle = (bank: string): string => `Loan from ${bank}`
+export const defaultBankLoanTitle = (bank: string): string => t('data.loanFrom', { name: bank })

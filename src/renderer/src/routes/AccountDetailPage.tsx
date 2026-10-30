@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { Pencil, Plus } from 'lucide-react'
-import { accountTypeLabels, type Account } from '@shared/accounts'
+import type { Account } from '@shared/accounts'
 import { addMonths, formatDate, today, type IsoDate } from '@shared/dates'
 import type { DayTotal } from '@shared/transactions'
 import { BalanceTrend } from '@renderer/components/charts/BalanceTrend'
@@ -124,7 +124,7 @@ function AccountDetail({ account, all }: { account: Account; all: Account[] }): 
           <div className="min-w-0">
             <h1 className="truncate text-[2rem] leading-tight font-bold">{account.name}</h1>
             <p className="mt-1 text-ink-muted">
-              {accountTypeLabels[account.type]}
+              {t(`accountType.${account.type}`)}
               {account.isArchived && ' · Archived'}
             </p>
           </div>

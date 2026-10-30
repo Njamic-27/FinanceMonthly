@@ -23,6 +23,7 @@ import { payInstallment } from '../db/repositories/bankLoans'
 import { chargedDates, listInstallmentPlans } from '../db/repositories/installments'
 import { getSettings } from '../db/repositories/settings'
 import { checkTransaction, createPlannedTransaction } from '../db/repositories/transactions'
+import { t } from '@shared/i18n'
 
 // Posting service (PLAN.md step 20). Turns recurring items into transactions when they fall
 // due: automatically for items that post themselves, after confirmation ("Due now") for the
@@ -125,11 +126,11 @@ function checkOpen(db: Database, item: RecurringItem, plannedDate: IsoDate): voi
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `“${item.title}” isn’t due on ${formatDate(plannedDate, locale)}.`
+      t('errors.notDueOn', { title: item.title, date: formatDate(plannedDate, locale) })
     )
   }
   if (plannedDate < item.nextDueDate || isSettled(db, item.id, plannedDate)) {
-    throw new AppError('conflict', `That “${item.title}” payment is already posted or skipped.`)
+    throw new AppError('conflict', t('errors.alreadyPosted', { title: item.title }))
   }
 }
 
@@ -163,7 +164,7 @@ export function skipOccurrence(db: Database, itemId: number, plannedDate: IsoDat
   db.transaction(() => {
     checkOpen(db, item, plannedDate)
     if (plannedDate !== item.nextDueDate) {
-      throw new AppError('validation', `Skip the earlier “${item.title}” payments first.`)
+      throw new AppError('validation', t('errors.skipEarlier', { title: item.title }))
     }
     setNextDueDate(db, item.id, following(item, plannedDate))
     advance(db, getRecurringItem(db, itemId))

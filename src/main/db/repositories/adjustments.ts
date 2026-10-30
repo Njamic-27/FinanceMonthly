@@ -1,6 +1,6 @@
 import type { Database } from 'better-sqlite3'
 import {
-  ADJUSTMENT_TITLE,
+  adjustmentTitle,
   adjustmentUpdateSchema,
   balanceTargetsSchema,
   isAdjustment,
@@ -13,6 +13,7 @@ import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getSettings } from './settings'
 import { getTransaction, usableAccount } from './transactions'
+import { t } from '@shared/i18n'
 
 // Balance adjustments (PLAN.md §2, step 39): the difference between an account's balance in the
 // app and the real one, as a transaction in or out of the account. Not income or spending.
@@ -34,16 +35,16 @@ export function adjustBalances(
     valid.flatMap(({ accountId, balance }) => {
       const account = getAccount(db, accountId, today)
       if (account.isArchived) {
-        throw new AppError(
-          'validation',
-          `“${account.name}” is archived. Restore it to correct its balance.`
-        )
+        throw new AppError('validation', t('errors.archivedBalance', { name: account.name }))
       }
       if (today < account.openingDate) {
         const { locale } = getSettings(db)
         throw new AppError(
           'validation',
-          `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Change its starting balance instead.`
+          t('errors.changeStartingBalance', {
+            name: account.name,
+            date: formatDate(account.openingDate, locale)
+          })
         )
       }
       const difference = balance - account.balance
@@ -53,7 +54,7 @@ export function adjustBalances(
           `INSERT INTO transactions (date, title, amount, type, account_id)
            VALUES (?, ?, ?, ?, ?)`
         )
-        .run(today, ADJUSTMENT_TITLE, Math.abs(difference), typeFor(difference), account.id)
+        .run(today, adjustmentTitle(), Math.abs(difference), typeFor(difference), account.id)
       return [getTransaction(db, Number(lastInsertRowid))]
     })
   )()
@@ -63,7 +64,7 @@ export function adjustBalances(
 export function updateAdjustment(db: Database, id: number, input: AdjustmentUpdate): Transaction {
   const current = getTransaction(db, transactionIdSchema.parse(id))
   if (!isAdjustment(current.type)) {
-    throw new AppError('validation', 'That transaction isn’t a balance adjustment.')
+    throw new AppError('validation', t('errors.notAdjustment'))
   }
   const valid = adjustmentUpdateSchema.parse(input)
   usableAccount(db, current.accountId, valid.date, current)

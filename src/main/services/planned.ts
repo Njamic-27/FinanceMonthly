@@ -28,6 +28,7 @@ import { listRecurringItems } from '../db/repositories/recurring'
 import { getSettings } from '../db/repositories/settings'
 import { getBalanceAt, getSeries, getTotals } from '../db/repositories/stats'
 import { cardDueMarkers } from './cards'
+import { t } from '@shared/i18n'
 
 // Planned items (PLAN.md §4): payments expected on a date and not settled yet. Calendar,
 // reminders and projections all read them from here, so they always agree.
@@ -226,7 +227,9 @@ export function calendarMonth(db: Database, input: CalendarQuery, today: IsoDate
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `The calendar goes up to ${formatDate(last, locale, { month: 'long', year: 'numeric' })}.`
+      t('errors.calendarUpTo', {
+        month: formatDate(last, locale, { month: 'long', year: 'numeric' })
+      })
     )
   }
   const { weekStart } = getSettings(db)

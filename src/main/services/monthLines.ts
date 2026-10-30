@@ -34,6 +34,7 @@ import { getSavingsGoal } from '../db/repositories/savings'
 import { createTransaction } from '../db/repositories/transactions'
 import { categoryRowAccount, monthSheet } from './monthSheet'
 import { postDueInstallments } from './posting'
+import { t } from '@shared/i18n'
 
 // Changing the Month sheet's rows (PLAN.md §3, Month): "+" under a section, rename, hide and
 // reorder. Only categories are stored as rows; the other rows come from their own items.
@@ -69,7 +70,7 @@ function ensureRow(db: Database, categoryId: number, today: IsoDate, accountId?:
     return
   }
   const account = accountId ?? categoryRowAccount(db, categoryId, today)
-  if (account === null) throw new AppError('validation', 'Add an account first.')
+  if (account === null) throw new AppError('validation', t('errors.addAccountFirst'))
   addMonthRow(db, { categoryId, accountId: account })
 }
 
@@ -168,7 +169,7 @@ export function reorderMonthRows(db: Database, input: MonthRowOrder, today: IsoD
   db.transaction(() => {
     for (const categoryId of categoryIds) {
       if (getCategory(db, categoryId).type !== type) {
-        throw new AppError('validation', 'Rows can only move within their own section.')
+        throw new AppError('validation', t('errors.rowsOwnSection'))
       }
       ensureRow(db, categoryId, today)
     }

@@ -11,6 +11,7 @@ import { eachDay, today, type IsoDate } from '@shared/dates'
 import { isPaletteColor, neutralPaletteColor } from '@shared/palette'
 import { AppError } from '../../errors'
 import { signedAmountSql } from '../ledger'
+import { t } from '@shared/i18n'
 
 interface AccountRow {
   id: number
@@ -97,7 +98,7 @@ export function getAccount(db: Database, id: number, asOf: IsoDate = today()): A
   const row = db
     .prepare(`${selectAccounts} WHERE a.id = @id`)
     .get({ id: accountIdSchema.parse(id), asOf }) as AccountRow | undefined
-  if (!row) throw new AppError('not_found', 'That account no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.accountGone'))
   return toAccount(row)
 }
 
@@ -105,7 +106,7 @@ function assertNameFree(db: Database, name: string, exceptId?: number): void {
   const clash = db
     .prepare('SELECT 1 FROM accounts WHERE name = ? COLLATE NOCASE AND id IS NOT ?')
     .get(name, exceptId ?? null)
-  if (clash) throw new AppError('conflict', `You already have an account called “${name}”.`)
+  if (clash) throw new AppError('conflict', t('errors.accountExists', { name: name }))
 }
 
 /**
@@ -121,13 +122,10 @@ function payFromAccount(
     const account = db.prepare('SELECT type FROM accounts WHERE id = ?').get(chosen) as
       { type: string } | undefined
     if (!account || chosen === self) {
-      throw new AppError('validation', 'Choose the account the card’s bill is paid from')
+      throw new AppError('validation', t('errors.choosePayFrom'))
     }
     if (account.type === 'credit') {
-      throw new AppError(
-        'validation',
-        'A card’s bill is paid from a debit account or cash, not another card'
-      )
+      throw new AppError('validation', t('errors.payFromNotCard'))
     }
     return chosen
   }
@@ -184,10 +182,7 @@ export function updateAccount(db: Database, id: number, input: AccountInput): Ac
       .prepare('SELECT count(*) AS n FROM installment_plans WHERE account_id = ?')
       .get(id) as { n: number }
     if (plans.n > 0) {
-      throw new AppError(
-        'validation',
-        `“${current.name}” has purchases paid in installments, so it has to stay a credit card.`
-      )
+      throw new AppError('validation', t('errors.staysCard', { name: current.name }))
     }
   }
 
@@ -210,10 +205,7 @@ export function setAccountArchived(db: Database, id: number, archived: boolean):
 export function deleteAccount(db: Database, id: number): void {
   const account = getAccount(db, id)
   if (account.usageCount > 0) {
-    throw new AppError(
-      'conflict',
-      `“${account.name}” has transactions or plans linked to it. Archive it instead to keep your history.`
-    )
+    throw new AppError('conflict', t('errors.accountInUse', { name: account.name }))
   }
   db.prepare('DELETE FROM accounts WHERE id = ?').run(id)
 }

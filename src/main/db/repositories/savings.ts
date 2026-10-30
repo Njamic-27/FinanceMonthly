@@ -16,6 +16,7 @@ import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getSettings } from './settings'
 import { getTransaction, toTransaction, type TransactionRow } from './transactions'
+import { t } from '@shared/i18n'
 
 interface GoalRow {
   id: number
@@ -70,7 +71,7 @@ export function listSavingsGoals(db: Database): SavingsGoal[] {
 export function getSavingsGoal(db: Database, id: number): SavingsGoal {
   const row = db.prepare(`${selectGoals} WHERE g.id = ?`).get(savingsGoalIdSchema.parse(id)) as
     GoalRow | undefined
-  if (!row) throw new AppError('not_found', 'That savings goal no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.goalGone'))
   return toGoal(row)
 }
 
@@ -105,10 +106,7 @@ export function updateSavingsGoal(db: Database, id: number, input: SavingsGoalIn
   // Lowering the starting amount can't take more out than has been saved.
   const saved = current.saved - current.startingAmount + goal.startingAmount
   if (saved < 0) {
-    throw new AppError(
-      'validation',
-      'More has been taken out of this goal than that would leave in it. Keep a higher starting amount.'
-    )
+    throw new AppError('validation', t('errors.goalStartTooLow'))
   }
   const values = columns(goal)
   db.prepare(
@@ -129,10 +127,7 @@ export function setSavingsGoalArchived(db: Database, id: number, archived: boole
 export function deleteSavingsGoal(db: Database, id: number): void {
   const goal = getSavingsGoal(db, id)
   if (goal.movementCount > 0) {
-    throw new AppError(
-      'conflict',
-      `“${goal.name}” has deposits or withdrawals. Archive it instead to keep your history.`
-    )
+    throw new AppError('conflict', t('errors.goalInUse', { name: goal.name }))
   }
   db.prepare('DELETE FROM savings_goals WHERE id = ?').run(id)
 }
@@ -148,20 +143,20 @@ function checkMovement(
   const movement = savingsMovementInputSchema.parse(input)
   const goal = getSavingsGoal(db, movement.goalId)
   if (goal.isArchived && current?.savingsGoalId !== goal.id) {
-    throw new AppError(
-      'validation',
-      `“${goal.name}” is archived. Restore it to save into it again.`
-    )
+    throw new AppError('validation', t('errors.goalArchived', { name: goal.name }))
   }
   const account = getAccount(db, movement.accountId)
   if (account.isArchived && account.id !== current?.accountId) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   const { locale, currency } = getSettings(db)
   if (movement.date < account.openingDate) {
     throw new AppError(
       'validation',
-      `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Choose that day or later.`
+      t('recurring.accountStarts', {
+        account: account.name,
+        date: formatDate(account.openingDate, locale)
+      })
     )
   }
 
@@ -174,7 +169,10 @@ function checkMovement(
   if (after < 0) {
     throw new AppError(
       'validation',
-      `“${goal.name}” only has ${formatMoney(Math.max(0, without), { currency, locale })} to take out.`
+      t('errors.goalOnlyHas', {
+        name: goal.name,
+        amount: formatMoney(Math.max(0, without), { currency, locale })
+      })
     )
   }
   return movement
@@ -196,7 +194,7 @@ export function addSavingsMovement(db: Database, input: SavingsMovementInput): T
 function getMovement(db: Database, id: number): Transaction {
   const tx = getTransaction(db, id)
   if (tx.savingsGoalId === null) {
-    throw new AppError('validation', 'That isn’t a savings deposit or withdrawal.')
+    throw new AppError('validation', t('errors.notSavingsMovement'))
   }
   return tx
 }
@@ -229,7 +227,10 @@ export function deleteSavingsMovement(db: Database, id: number): void {
     const { locale, currency } = getSettings(db)
     throw new AppError(
       'validation',
-      `More has been taken out of “${goal.name}” since. Deleting this ${formatMoney(tx.amount, { currency, locale })} deposit would leave it below zero.`
+      t('errors.goalBelowZero', {
+        name: goal.name,
+        amount: formatMoney(tx.amount, { currency, locale })
+      })
     )
   }
   db.prepare('DELETE FROM transactions WHERE id = ?').run(id)

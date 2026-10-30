@@ -19,6 +19,7 @@ import { AppError } from '../../errors'
 import { getAccount } from './accounts'
 import { getCategory } from './categories'
 import { getSettings } from './settings'
+import { t } from '@shared/i18n'
 
 export interface TransactionRow {
   id: number
@@ -71,7 +72,7 @@ export function getTransaction(db: Database, id: number): Transaction {
   const row = db
     .prepare('SELECT * FROM transactions WHERE id = ?')
     .get(transactionIdSchema.parse(id)) as TransactionRow | undefined
-  if (!row) throw new AppError('not_found', 'That transaction no longer exists.')
+  if (!row) throw new AppError('not_found', t('errors.transactionGone'))
   return toTransaction(row)
 }
 
@@ -100,13 +101,16 @@ export function usableAccount(
   const account = getAccount(db, id)
   const alreadyUsed = account.id === current?.accountId || account.id === current?.toAccountId
   if (account.isArchived && !alreadyUsed) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   if (date < account.openingDate) {
     const { locale } = getSettings(db)
     throw new AppError(
       'validation',
-      `“${account.name}” starts on ${formatDate(account.openingDate, locale)}. Choose a later date, or move the account’s starting date back first.`
+      t('errors.accountStartsBack', {
+        name: account.name,
+        date: formatDate(account.openingDate, locale)
+      })
     )
   }
   return account
@@ -129,14 +133,11 @@ export function checkTransaction(
     if (valid.type !== current.type) {
       throw new AppError(
         'validation',
-        `This ${current.type} was posted from a plan, so it stays an ${current.type}.`
+        t(current.type === 'income' ? 'errors.planIncome' : 'errors.planExpense')
       )
     }
     if (current.installmentPlanId != null && valid.accountId !== current.accountId) {
-      throw new AppError(
-        'validation',
-        'Installment payments stay on the card they were bought with.'
-      )
+      throw new AppError('validation', t('errors.installmentStaysOnCard'))
     }
   }
 
@@ -163,11 +164,13 @@ export function checkTransaction(
   if (category.type !== valid.type) {
     throw new AppError(
       'validation',
-      `“${category.name}” is an ${category.type} category. Choose an ${valid.type} category.`
+      t(valid.type === 'income' ? 'errors.chooseIncomeCategory' : 'errors.chooseExpenseCategory', {
+        name: category.name
+      })
     )
   }
   if (category.isArchived && category.id !== current?.categoryId) {
-    throw new AppError('validation', `“${category.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: category.name }))
   }
   return {
     ...base,
@@ -211,10 +214,7 @@ export function createPlannedTransaction(
 export function updateTransaction(db: Database, id: number, input: TransactionInput): Transaction {
   const current = getTransaction(db, id)
   if (!editableTypes.includes(current.type)) {
-    throw new AppError(
-      'validation',
-      'Savings and loan movements are edited from their own screens.'
-    )
+    throw new AppError('validation', t('errors.movementsOwnScreens'))
   }
   const tx = checkTransaction(db, input, current)
   // A monthly summary moved to another row or month becomes an ordinary transaction there.
@@ -233,10 +233,7 @@ export function deleteTransaction(db: Database, id: number): void {
   const tx = getTransaction(db, id)
   // On its own it would only be charged again on the next run of the posting service.
   if (tx.installmentPlanId !== null) {
-    throw new AppError(
-      'validation',
-      'This is one installment of a purchase. Delete the whole purchase from the card’s page instead.'
-    )
+    throw new AppError('validation', t('errors.deleteWholePurchase'))
   }
   db.prepare('DELETE FROM transactions WHERE id = ?').run(id)
 }

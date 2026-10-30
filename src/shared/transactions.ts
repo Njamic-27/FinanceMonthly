@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { Account } from './accounts'
 import { isIsoDate, type IsoDate } from './dates'
 import { MAX_CENTS, type Cents } from './money'
+import { t } from './i18n'
 
 export const transactionTypes = [
   'income',
@@ -144,7 +145,7 @@ export function defaultTransferTitle(
   to: Pick<Account, 'name' | 'type'>
 ): string {
   if (to.type === 'credit') return `${to.name} payment`
-  if (from.type !== 'cash' && to.type === 'cash') return 'Cash withdrawal'
-  if (from.type === 'cash' && to.type !== 'cash') return 'Cash deposit'
-  return `Transfer to ${to.name}`
+  if (from.type !== 'cash' && to.type === 'cash') return t('data.cashWithdrawal')
+  if (from.type === 'cash' && to.type !== 'cash') return t('data.cashDeposit')
+  return t('data.transferTo', { name: to.name })
 }

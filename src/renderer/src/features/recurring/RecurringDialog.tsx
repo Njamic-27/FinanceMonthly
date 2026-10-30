@@ -124,7 +124,7 @@ function RecurringForm({
   const [amount, setAmount] = useState(existing ? money.toInput(existing.amount) : '')
   const [categoryId, setCategoryId] = useState(() => {
     if (existing) return String(existing.categoryId)
-    const preferred = itemKind === 'subscription' ? subscriptionCategoryName : null
+    const preferred = itemKind === 'subscription' ? subscriptionCategoryName() : null
     return String(usableCategories.find((c) => c.name === preferred)?.id ?? '')
   })
   const [accountId, setAccountId] = useState(() =>

@@ -140,12 +140,12 @@ function presetEntries(data: AddMenuData): AddEntry[] {
     (c) => c.type === 'expense' && c.group === 'subscriptions' && !c.isArchived
   )
   const home =
-    inGroup.find((c) => c.name === subscriptionCategoryName) ??
+    inGroup.find((c) => c.name === subscriptionCategoryName()) ??
     inGroup[0] ??
     data.categories.find(
-      (c) => c.type === 'expense' && foldText(c.name) === foldText(subscriptionCategoryName)
+      (c) => c.type === 'expense' && foldText(c.name) === foldText(subscriptionCategoryName())
     )
-  const name = home?.name ?? subscriptionCategoryName
+  const name = home?.name ?? subscriptionCategoryName()
   const taken = new Set(data.categories.map((c) => foldText(c.name)))
   return subscriptionPresets
     .filter((preset) => !taken.has(foldText(preset)))

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Plus, Wallet } from 'lucide-react'
-import { accountTypeLabels, type Account } from '@shared/accounts'
+import type { Account } from '@shared/accounts'
 import { ColorChip } from '@renderer/components/ColorChip'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { Button } from '@renderer/components/ui/button'
@@ -52,7 +52,7 @@ function AccountCard({
           <ColorChip color={account.color} icon={accountTypeIcons[account.type]} />
           <span className="min-w-0">
             <span className="block truncate font-semibold">{account.name}</span>
-            <span className="block text-sm text-ink-muted">{accountTypeLabels[account.type]}</span>
+            <span className="block text-sm text-ink-muted">{t(`accountType.${account.type}`)}</span>
           </span>
         </span>
         <span className="mt-6 block text-sm text-ink-muted">{caption}</span>

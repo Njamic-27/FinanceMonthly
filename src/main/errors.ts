@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { ZodError } from 'zod'
 import type { ErrorCode, SerializedError } from '@shared/errors'
+import { t, translateMessage } from '@shared/i18n'
 
 /** An error whose message is safe and useful to show to the user. */
 export class AppError extends Error {
@@ -21,7 +22,11 @@ export function toSerializedError(error: unknown): SerializedError {
     const field = issue?.path.join('.')
     return {
       code: 'validation',
-      message: issue ? (field ? `${field}: ${issue.message}` : issue.message) : 'Invalid input'
+      message: issue
+        ? field
+          ? `${field}: ${translateMessage(issue.message)}`
+          : translateMessage(issue.message)
+        : t('errors.invalidInput')
     }
   }
 
@@ -30,17 +35,17 @@ export function toSerializedError(error: unknown): SerializedError {
       error.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
       error.code === 'SQLITE_CONSTRAINT_PRIMARYKEY'
     ) {
-      return { code: 'conflict', message: 'That already exists.' }
+      return { code: 'conflict', message: t('errors.alreadyExists') }
     }
     if (error.code.startsWith('SQLITE_CONSTRAINT')) {
       console.error('[db] constraint failed:', error.message)
-      return { code: 'validation', message: 'The data was rejected by the database.' }
+      return { code: 'validation', message: t('errors.rejected') }
     }
   }
 
   console.error('[ipc] unexpected error:', error)
   return {
     code: 'internal',
-    message: error instanceof Error ? error.message : 'Something went wrong.'
+    message: error instanceof Error ? error.message : t('errors.somethingWrong')
   }
 }

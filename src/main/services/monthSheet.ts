@@ -60,6 +60,7 @@ import {
 } from '../db/repositories/transactions'
 import { calendarMonth, plannedCountedIn } from './planned'
 import { postOccurrence, skipOccurrence } from './posting'
+import { t } from '@shared/i18n'
 
 // The Month sheet (PLAN.md §3–4): a month as sections of rows, each row backed by real
 // transactions. Every income and expense transaction counted in the month lands in exactly one row
@@ -593,7 +594,7 @@ function topUp(db: Database, amount: Cents, individual: Cents, title: string): C
   if (amount < individual) {
     throw new AppError(
       'validation',
-      `“${title}” already has ${money(db, individual)} in transactions this month. Enter at least that, or change those transactions.`
+      t('errors.rowHasMore', { title, amount: money(db, individual) })
     )
   }
   return amount - individual
@@ -609,7 +610,7 @@ type WithoutAccount<T> = T extends unknown ? Omit<T, 'accountId'> : never
 /** The account a summary uses: the one asked for, else the one it uses already, else the row's. */
 function summaryAccount(cell: Cell, summary: Transaction | undefined): number {
   const accountId = cell.accountId ?? summary?.accountId ?? cell.rowAccountId
-  if (accountId === null) throw new AppError('validation', 'Choose an account for this row first.')
+  if (accountId === null) throw new AppError('validation', t('errors.chooseRowAccount'))
   return accountId
 }
 
@@ -661,7 +662,7 @@ function setCategoryCell(db: Database, cell: Cell): void {
 
 function setCardPaymentCell(db: Database, cell: Cell): void {
   const card = listAccounts(db, cell.today).find((a) => a.id === cell.sourceId)
-  if (card?.type !== 'credit') throw new AppError('not_found', 'That card no longer exists.')
+  if (card?.type !== 'credit') throw new AppError('not_found', t('errors.cardGone'))
   const posted = transactionsIn(db, cell.month, "type = 'transfer' AND to_account_id = ?", card.id)
   const summary = posted.find((t) => t.isMonthTotal)
   const individual = sum(posted.filter((t) => !t.isMonthTotal).map((t) => t.amount))
@@ -712,8 +713,8 @@ function setRecurringCell(db: Database, cell: Cell): void {
     throw new AppError(
       'validation',
       posted.length + due.length === 0
-        ? `“${item.title}” isn’t due this month.`
-        : `“${item.title}” falls due more than once this month. Change each payment in its list.`
+        ? t('errors.notDueThisMonth', { title: item.title })
+        : t('errors.dueTwice', { title: item.title })
     )
   }
 
@@ -748,14 +749,14 @@ function setRecurringCell(db: Database, cell: Cell): void {
 function setLoanCell(db: Database, cell: Cell): void {
   const loan = getLoan(db, cell.sourceId)
   if (loan.kind !== 'bank_loan') {
-    throw new AppError('validation', 'Record repayments of this loan on its page.')
+    throw new AppError('validation', t('errors.repaymentsOnPage'))
   }
   const { start, end } = monthRange(cell.month)
   const due = listLoanInstallments(db, loan.id).filter(
     (i) => i.dueDate >= start && i.dueDate <= end
   )
   if (due.length !== 1) {
-    throw new AppError('validation', `No installment of “${loan.title}” is due this month.`)
+    throw new AppError('validation', t('errors.noInstallmentDue', { title: loan.title }))
   }
   const [installment] = due
   if (cell.amount === 0) {
@@ -765,12 +766,15 @@ function setLoanCell(db: Database, cell: Cell): void {
   if (cell.amount !== installment.amount) {
     throw new AppError(
       'validation',
-      `Installment ${installment.seq} is ${money(db, installment.amount)}, paid in full. Enter that amount to mark it paid, or 0 to undo the payment.`
+      t('errors.installmentInFull', {
+        seq: installment.seq,
+        amount: money(db, installment.amount)
+      })
     )
   }
   if (installment.transactionId !== null) return
   const accountId = cell.accountId ?? cell.rowAccountId
-  if (accountId === null) throw new AppError('validation', 'Choose an account for this row first.')
+  if (accountId === null) throw new AppError('validation', t('errors.chooseRowAccount'))
   payInstallment(db, installment.id, { accountId, date: paidOn(installment.dueDate, cell) })
 }
 
@@ -781,7 +785,7 @@ const setters: Record<MonthRowKind, (db: Database, cell: Cell) => void> = {
   recurring: setRecurringCell,
   loan: setLoanCell,
   installment_plan: () => {
-    throw new AppError('validation', 'Card installments are charged by themselves on their dates.')
+    throw new AppError('validation', t('month.locked.installment'))
   }
 }
 
@@ -834,7 +838,7 @@ export function monthRowTransactions(db: Database, input: MonthRowQuery): Transa
 export function clearMonthRow(db: Database, input: MonthRowQuery): number {
   const { month, kind, sourceId } = monthRowQuerySchema.parse(input)
   if (kind !== 'category') {
-    throw new AppError('validation', 'Only a category row’s amounts can be removed at once.')
+    throw new AppError('validation', t('errors.onlyCategoryRow'))
   }
   const ids = transactionsIn(db, month, ownOfCategory, sourceId).map((t) => t.id)
   const remove = db.prepare('DELETE FROM transactions WHERE id = ?')
@@ -855,7 +859,7 @@ export function setMonthRowAccount(
   const { month, kind, sourceId, accountId } = monthRowAccountInputSchema.parse(input)
   const account = getAccount(db, accountId)
   if (account.isArchived) {
-    throw new AppError('validation', `“${account.name}” is archived. Restore it to use it again.`)
+    throw new AppError('validation', t('errors.archived', { name: account.name }))
   }
   const row = monthSheet(db, { month }, today)
     .sections.flatMap((s) => s.rows)

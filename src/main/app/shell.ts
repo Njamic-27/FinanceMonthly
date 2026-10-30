@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, Notification, Tray } from 'electron'
 import type { IpcEvent, IpcEvents } from '@shared/ipc'
 import type { Settings } from '@shared/settings'
+import { t } from '@shared/i18n'
 
 // The window, the tray icon and start-with-Windows: how Financije sits in Windows. With
 // "close to tray" on, closing the window only hides it, so reminders keep arriving.
@@ -54,8 +55,8 @@ export function manageWindow(window: BrowserWindow, icon: string): void {
     if (!hintShown && Notification.isSupported()) {
       hintShown = true
       new Notification({
-        title: 'Financije is still running',
-        body: 'It stays in the tray to remind you of payments. Right-click the icon to quit.',
+        title: t('tray.stillRunning'),
+        body: t('tray.stillRunningHint'),
         icon: trayIcon,
         silent: true
       }).show()
@@ -67,18 +68,20 @@ app.on('before-quit', () => {
   quitting = true
 })
 
+/** The tray icon's menu, in the app's language. */
+const trayMenu = (): Menu =>
+  Menu.buildFromTemplate([
+    { label: t('tray.open'), click: () => showMainWindow() },
+    { label: t('tray.dueNow'), click: () => showMainWindow('/') },
+    { type: 'separator' },
+    { label: t('tray.quit'), click: () => app.quit() }
+  ])
+
 function createTray(): Tray {
   // The app icon is large; the tray shows it at 16 px (32 on high-DPI screens).
   const created = new Tray(nativeImage.createFromPath(trayIcon).resize({ width: 32, height: 32 }))
   created.setToolTip('Financije')
-  created.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open Financije', click: () => showMainWindow() },
-      { label: 'Due now and coming up', click: () => showMainWindow('/') },
-      { type: 'separator' },
-      { label: 'Quit Financije', click: () => app.quit() }
-    ])
-  )
+  created.setContextMenu(trayMenu())
   created.on('click', () => showMainWindow())
   return created
 }
@@ -87,6 +90,8 @@ function createTray(): Tray {
 export function applySystemSettings(settings: Settings): void {
   closeToTray = settings.closeToTray
   if (closeToTray && !tray && trayIcon) tray = createTray()
+  // Drawn again, so it follows a change of language.
+  else if (tray) tray.setContextMenu(trayMenu())
   if (!closeToTray && tray) {
     tray.destroy()
     tray = null
