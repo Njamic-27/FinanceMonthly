@@ -101,5 +101,11 @@ export const add: Translation<typeof en> = {
   'inst.perMonth': '{total} / {count} = {each} mjesečno',
   'inst.last': 'Zadnja rata {amount}.',
   'inst.firstOn':
-    'Prva se naplaćuje {date}, a zatim jedna svaki mjesec. Ono što tek dolazi zauzima limit kartice.'
+    'Prva se naplaćuje {date}, a zatim jedna svaki mjesec. Ono što tek dolazi zauzima limit kartice.',
+  'line.countsFirstInstallment':
+    'Prva rata broji se u mjesecu: {month} — račun kartice {card} dospijeva {date}',
+  'line.countsInToast':
+    'Broji se u mjesecu: {month}, s računom kartice {card} koji dospijeva {date}.',
+  'line.firstCountsInToast':
+    'Prva rata broji se u mjesecu: {month}, s računom kartice {card} koji dospijeva {date}.'
 }

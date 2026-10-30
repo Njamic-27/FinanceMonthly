@@ -132,6 +132,9 @@ function AddLineForm({
   const canSplit = !recurring && target.type === 'expense' && account?.type === 'credit'
   const split = canSplit && inInstallments
   const typedCents = amount.trim() === '' ? null : money.parse(amount)
+  const billDue = account
+    ? formatDate(countedDate(date, account), money.locale, { day: 'numeric', month: 'short' })
+    : ''
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault()
@@ -170,6 +173,15 @@ function AddLineForm({
               : cents > 0
                 ? t('line.addedAmount', { amount: money.format(cents), name: target.name })
                 : t('line.addedToSheet', { name: target.name }),
+          // A card purchase shows only in the month its bill is paid: say which.
+          description:
+            countsIn && account && cents > 0
+              ? t(split ? 'line.firstCountsInToast' : 'line.countsInToast', {
+                  month: countsIn,
+                  card: account.name,
+                  date: billDue
+                })
+              : undefined,
           variant: 'success'
         })
         onClose()
@@ -328,16 +340,16 @@ function AddLineForm({
             }}
           />
           <FieldError id="line-account-error" message={errors.accountId} />
-          {countsIn && account && !split && (
+          {countsIn && account && (
             <p className="text-sm text-ink-muted">
-              {t(recurring ? 'line.countsFirst' : 'line.counts', {
-                month: countsIn,
-                card: account.name,
-                date: formatDate(countedDate(date, account), money.locale, {
-                  day: 'numeric',
-                  month: 'short'
-                })
-              })}
+              {t(
+                split
+                  ? 'line.countsFirstInstallment'
+                  : recurring
+                    ? 'line.countsFirst'
+                    : 'line.counts',
+                { month: countsIn, card: account.name, date: billDue }
+              )}
             </p>
           )}
         </div>

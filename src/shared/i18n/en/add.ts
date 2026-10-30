@@ -96,5 +96,9 @@ export const add = {
   'inst.perMonth': '{total} / {count} = {each}/month',
   'inst.last': 'Last installment {amount}.',
   'inst.firstOn':
-    'The first is charged on {date}, then one each month. What’s still to come is held from the card’s limit.'
+    'The first is charged on {date}, then one each month. What’s still to come is held from the card’s limit.',
+  'line.countsFirstInstallment': 'The first installment counts in {month} — {card} bill due {date}',
+  'line.countsInToast': 'It counts in {month}, with the {card} bill due {date}.',
+  'line.firstCountsInToast':
+    'The first installment counts in {month}, with the {card} bill due {date}.'
 } satisfies Record<string, Message>
