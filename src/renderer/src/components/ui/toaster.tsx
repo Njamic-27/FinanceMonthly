@@ -19,6 +19,7 @@ export function Toaster(): React.JSX.Element {
       {toasts.map((item) => (
         <ToastPrimitive.Root
           key={item.id}
+          duration={item.action ? 10000 : undefined}
           onOpenChange={(open) => !open && dismissToast(item.id)}
           className={cn(
             'relative flex items-start gap-3 rounded-control border border-line bg-surface p-4 pr-10 text-ink shadow-float data-[state=open]:animate-toast-in data-[swipe=end]:translate-x-(--radix-toast-swipe-end-x) data-[swipe=move]:translate-x-(--radix-toast-swipe-move-x)',
@@ -32,6 +33,15 @@ export function Toaster(): React.JSX.Element {
               <ToastPrimitive.Description className="text-sm text-ink-muted">
                 {item.description}
               </ToastPrimitive.Description>
+            )}
+            {item.action && (
+              <ToastPrimitive.Action
+                altText={item.action.label}
+                onClick={item.action.run}
+                className="mt-1.5 inline-flex h-8 cursor-pointer items-center justify-self-start rounded-control border border-line px-3 text-sm font-semibold hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                {item.action.label}
+              </ToastPrimitive.Action>
             )}
           </div>
           <ToastPrimitive.Close

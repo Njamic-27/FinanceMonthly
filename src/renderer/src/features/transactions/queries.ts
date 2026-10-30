@@ -91,7 +91,8 @@ export function useUpdateAdjustment(): UseMutationResult<
   })
 }
 
-export function useDeleteTransaction(): UseMutationResult<void, Error, number> {
+/** Deletes a transaction; resolves with the id to put it back with (see undo.ts). */
+export function useDeleteTransaction(): UseMutationResult<number, Error, number> {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => invoke('transactions:delete', id),

@@ -110,5 +110,8 @@ export const errors = {
     '“{title}” already has {amount} in transactions this month. Enter at least that, or change those transactions.',
   'errors.installmentInFull':
     'Installment {seq} is {amount}, paid in full. Enter that amount to mark it paid, or 0 to undo the payment.',
-  'errors.databaseFile': '{error}\n\nDatabase file: {path}'
+  'errors.databaseFile': '{error}\n\nDatabase file: {path}',
+  'errors.restoreGone': 'That deletion can’t be undone any more.',
+  'errors.restoreBlocked':
+    'It can’t be put back: its account or category is gone, or its payment was recorded again since.'
 } satisfies Record<string, Message>

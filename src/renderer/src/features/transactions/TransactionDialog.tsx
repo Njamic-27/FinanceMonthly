@@ -67,6 +67,7 @@ import {
 } from './queries'
 import type { MessageKey } from '@shared/i18n'
 import { t, tNode } from '@renderer/lib/i18n'
+import { deletedToast } from './undo'
 
 type Kind = EditableType
 type Field =
@@ -332,8 +333,8 @@ function TransactionForm({
   if (existing && confirmDelete) {
     const remove = (): void =>
       deleteTransaction.mutate(existing.id, {
-        onSuccess: () => {
-          toast({ title: t('transactions.transactionDeleted'), variant: 'success' })
+        onSuccess: (deletedId) => {
+          deletedToast(deletedId, existing.title)
           closeTransactionDialog()
         },
         onError: (error) => setFormError(error.message)

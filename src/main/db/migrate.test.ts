@@ -27,6 +27,7 @@ describe('migrate', () => {
     expect(tables(db)).toEqual([
       'accounts',
       'categories',
+      'deleted_transactions',
       'installment_plans',
       'loan_installments',
       'loans',

@@ -1,5 +1,13 @@
 import { Link } from 'react-router'
-import { ArrowLeftRight, Copy, HandCoins, PiggyBank, Scale, type LucideIcon } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Copy,
+  HandCoins,
+  PiggyBank,
+  Scale,
+  Trash2,
+  type LucideIcon
+} from 'lucide-react'
 import type { Account } from '@shared/accounts'
 import { isAdjustment } from '@shared/adjustments'
 import type { Category } from '@shared/categories'
@@ -13,7 +21,10 @@ import { accountPath, categoryPath, dayPath, ownerPath } from '@renderer/lib/lin
 import { cn } from '@renderer/lib/utils'
 import { countsInMonth } from './countsIn'
 import { duplicateTransaction, openTransactionDialog } from './dialogStore'
+import { useDeleteTransaction } from './queries'
+import { deletedToast } from './undo'
 import { t, tNode } from '@renderer/lib/i18n'
+import { toast } from '@renderer/lib/toast'
 
 const incoming: TransactionType[] = ['income', 'savings_withdrawal', 'loan_in', 'adjustment_in']
 
@@ -57,6 +68,9 @@ interface Lookup {
   categories: Map<number, Category>
 }
 
+const rowButtonClass =
+  'inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-control text-ink-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40'
+
 function TransactionRow({
   tx,
   lookup,
@@ -69,6 +83,7 @@ function TransactionRow({
   onOpenOwned?: (tx: Transaction) => void
 }): React.JSX.Element {
   const money = useCurrency()
+  const remove = useDeleteTransaction()
   const category = tx.categoryId ? lookup.categories.get(tx.categoryId) : undefined
   const account = lookup.accounts.get(tx.accountId)
   const toAccount = tx.toAccountId ? lookup.accounts.get(tx.toAccountId) : undefined
@@ -160,12 +175,37 @@ function TransactionRow({
           aria-label={t('transactions.duplicateTitle', { title: tx.title })}
           title={t('transactions.duplicate')}
           onClick={() => duplicateTransaction(tx)}
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-control text-ink-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary"
+          className={rowButtonClass}
         >
           <Copy className="size-4" />
         </button>
       ) : (
-        // Keeps amounts in one column with the rows that can be duplicated.
+        // Keeps amounts in one column with the rows that have the button.
+        <span className="size-9 shrink-0" aria-hidden />
+      )}
+      {/* An installment goes with its whole purchase, deleted from the card's page. */}
+      {editable && tx.installmentPlanId === null ? (
+        <button
+          type="button"
+          aria-label={t('transactions.deleteNamed', { title: tx.title })}
+          title={t('common.delete')}
+          disabled={remove.isPending}
+          onClick={() =>
+            remove.mutate(tx.id, {
+              onSuccess: (deletedId) => deletedToast(deletedId, tx.title),
+              onError: (error) =>
+                toast({
+                  title: t('common.notDeleted'),
+                  description: error.message,
+                  variant: 'error'
+                })
+            })
+          }
+          className={cn(rowButtonClass, 'hover:text-expense')}
+        >
+          <Trash2 className="size-4" />
+        </button>
+      ) : (
         <span className="size-9 shrink-0" aria-hidden />
       )}
     </li>

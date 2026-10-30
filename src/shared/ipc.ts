@@ -91,7 +91,9 @@ export interface IpcContract {
   'transactions:get': (id: number) => Transaction
   'transactions:create': (input: TransactionInput) => Transaction
   'transactions:update': (id: number, input: TransactionInput) => Transaction
-  'transactions:delete': (id: number) => void
+  /** Returns the id to put it back with (transactions:restore). */
+  'transactions:delete': (id: number) => number
+  'transactions:restore': (deletedId: number) => Transaction
   'transactions:updateAdjustment': (id: number, input: AdjustmentUpdate) => Transaction
 
   /** Installment plans on one card, or on every card; the newest first. */
@@ -236,6 +238,7 @@ const channels: Record<IpcChannel, true> = {
   'transactions:create': true,
   'transactions:update': true,
   'transactions:delete': true,
+  'transactions:restore': true,
   'transactions:updateAdjustment': true,
   'installments:list': true,
   'installments:create': true,

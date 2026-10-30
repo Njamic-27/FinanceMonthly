@@ -48,7 +48,7 @@ export const transactions: Translation<typeof en> = {
   'transactions.transferPlaceholder': 'npr. Bankomat Ilica',
   'transactions.expensePlaceholder': 'npr. Tjedna kupnja u Lidlu',
   'transactions.deleteDescription':
-    '{amount}, {date}. Stanje računa vraća se kakvo je bilo. Ovo se ne može poništiti.',
+    '{amount}, {date}. Stanje računa vraća se kakvo je bilo. Odmah nakon toga to možeš poništiti.',
   'transactions.cardOwes': 'Dug na kartici {card}: {amount}.',
   'transactions.countsIn': '{counts} u mjesecu: {month} — račun kartice {card} dospijeva {date}',
   'transactions.installmentNote':
@@ -60,7 +60,7 @@ export const transactions: Translation<typeof en> = {
   'transactions.dayOut': 'Odljevi {amount}',
   'transactions.theAccount': 'račun',
   'transactions.deleteAdjustmentDescription':
-    '{amount} na računu {account}, {date}. Stanje se vraća na ono prije. Ovo se ne može poništiti.',
+    '{amount} na računu {account}, {date}. Stanje se vraća na ono prije. Odmah nakon toga to možeš poništiti.',
   'transactions.adjustmentDescription':
     'Ispravak stanja računa {account}. Ne broji se kao prihod ni potrošnja.',
   'transactions.summaryIncome': 'Prihodi {amount}',
@@ -85,5 +85,10 @@ export const transactions: Translation<typeof en> = {
   'transactions.allTime': 'Sve vrijeme',
   'transactions.lastMonth': 'Prošli mjesec',
   'transactions.last3Months': 'Zadnja 3 mjeseca',
-  'transactions.lastYear': 'Prošla godina'
+  'transactions.lastYear': 'Prošla godina',
+  'transactions.deletedNamed': 'Obrisano: „{title}”',
+  'transactions.undo': 'Poništi',
+  'transactions.restored': 'Vraćeno: „{title}”',
+  'transactions.notRestored': 'Nije vraćeno',
+  'transactions.deleteNamed': 'Obriši „{title}”'
 }

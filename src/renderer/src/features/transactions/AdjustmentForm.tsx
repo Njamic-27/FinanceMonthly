@@ -24,6 +24,7 @@ import { toast } from '@renderer/lib/toast'
 import { closeTransactionDialog } from './dialogStore'
 import { useDeleteTransaction, useUpdateAdjustment } from './queries'
 import { t } from '@renderer/lib/i18n'
+import { deletedToast } from './undo'
 
 type Direction = 'in' | 'out'
 
@@ -115,8 +116,8 @@ export function AdjustmentForm({
             disabled={pending}
             onClick={() =>
               remove.mutate(existing.id, {
-                onSuccess: () => {
-                  toast({ title: t('transactions.adjustmentDeleted'), variant: 'success' })
+                onSuccess: (deletedId) => {
+                  deletedToast(deletedId, existing.title)
                   closeTransactionDialog()
                 },
                 onError: (error) => setFormError(error.message)

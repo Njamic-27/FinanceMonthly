@@ -1,4 +1,4 @@
-import type { Database } from 'better-sqlite3'
+import BetterSqlite3, { type Database } from 'better-sqlite3'
 import { formatDate, type IsoDate } from '@shared/dates'
 import type { Account } from '@shared/accounts'
 import { foldText } from '@shared/text'
@@ -229,13 +229,61 @@ export function updateTransaction(db: Database, id: number, input: TransactionIn
   return getTransaction(db, id)
 }
 
-export function deleteTransaction(db: Database, id: number): void {
+/** How many deleted transactions are kept to be put back. */
+const KEEP_DELETED = 50
+
+/**
+ * Deletes a transaction, keeping it among the recently deleted so it can be put back
+ * (restoreTransaction). Returns the id to put it back with.
+ */
+export function deleteTransaction(db: Database, id: number): number {
   const tx = getTransaction(db, id)
   // On its own it would only be charged again on the next run of the posting service.
   if (tx.installmentPlanId !== null) {
     throw new AppError('validation', t('errors.deleteWholePurchase'))
   }
-  db.prepare('DELETE FROM transactions WHERE id = ?').run(id)
+  return db.transaction(() => {
+    const row = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id)
+    const { lastInsertRowid } = db
+      .prepare('INSERT INTO deleted_transactions (row) VALUES (?)')
+      .run(JSON.stringify(row))
+    db.prepare('DELETE FROM transactions WHERE id = ?').run(id)
+    db.prepare(
+      'DELETE FROM deleted_transactions WHERE id NOT IN (SELECT id FROM deleted_transactions ORDER BY id DESC LIMIT ?)'
+    ).run(KEEP_DELETED)
+    return Number(lastInsertRowid)
+  })()
+}
+
+/**
+ * Puts a deleted transaction back as it was: same date, amount, account, category and links.
+ * It keeps its id unless something else has taken it since.
+ */
+export function restoreTransaction(db: Database, deletedId: number): Transaction {
+  const kept = db.prepare('SELECT row FROM deleted_transactions WHERE id = ?').get(deletedId) as
+    { row: string } | undefined
+  if (!kept) throw new AppError('not_found', t('errors.restoreGone'))
+  const row = JSON.parse(kept.row) as Record<string, string | number | null>
+  if (db.prepare('SELECT 1 FROM transactions WHERE id = ?').get(row.id)) delete row.id
+  const columns = Object.keys(row)
+  try {
+    const id = db.transaction(() => {
+      const { lastInsertRowid } = db
+        .prepare(
+          `INSERT INTO transactions (${columns.join(', ')}) VALUES (${columns.map((c) => '@' + c).join(', ')})`
+        )
+        .run(row)
+      db.prepare('DELETE FROM deleted_transactions WHERE id = ?').run(deletedId)
+      return Number(lastInsertRowid)
+    })()
+    return getTransaction(db, id)
+  } catch (error) {
+    if (error instanceof BetterSqlite3.SqliteError && error.code.startsWith('SQLITE_CONSTRAINT')) {
+      // Its account or category is gone, or its payment was recorded again since.
+      throw new AppError('conflict', t('errors.restoreBlocked'))
+    }
+    throw error
+  }
 }
 
 const DEFAULT_PAGE_SIZE = 100

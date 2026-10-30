@@ -5,6 +5,7 @@ import {
   deleteTransaction,
   getTransaction,
   listTransactions,
+  restoreTransaction,
   updateTransaction
 } from '../db/repositories/transactions'
 import { handle } from './handle'
@@ -15,5 +16,6 @@ export function registerTransactionHandlers(): void {
   handle('transactions:create', (input) => createTransaction(getDb(), input))
   handle('transactions:update', (id, input) => updateTransaction(getDb(), id, input))
   handle('transactions:delete', (id) => deleteTransaction(getDb(), id))
+  handle('transactions:restore', (deletedId) => restoreTransaction(getDb(), deletedId))
   handle('transactions:updateAdjustment', (id, input) => updateAdjustment(getDb(), id, input))
 }

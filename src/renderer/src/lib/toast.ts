@@ -5,6 +5,8 @@ export interface ToastItem {
   title: string
   description?: string
   variant: ToastVariant
+  /** A button in the toast, e.g. Undo; such a toast stays longer. */
+  action?: { label: string; run: () => void }
 }
 
 let items: ToastItem[] = []
@@ -19,6 +21,7 @@ export function toast(input: {
   title: string
   description?: string
   variant?: ToastVariant
+  action?: ToastItem['action']
 }): void {
   items = [...items, { id: nextId++, variant: 'default', ...input }]
   emit()

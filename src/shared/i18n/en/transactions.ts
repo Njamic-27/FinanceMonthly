@@ -46,7 +46,7 @@ export const transactions = {
   'transactions.transferPlaceholder': 'e.g. ATM Ilica',
   'transactions.expensePlaceholder': 'e.g. Lidl weekly shop',
   'transactions.deleteDescription':
-    '{amount} on {date}. The account balance changes back. This can’t be undone.',
+    '{amount} on {date}. The account balance changes back. You can undo it right after.',
   'transactions.cardOwes': '{card} owes {amount}.',
   'transactions.countsIn': '{counts} in {month} — {card} bill due {date}',
   'transactions.installmentNote':
@@ -58,7 +58,7 @@ export const transactions = {
   'transactions.dayOut': 'Out {amount}',
   'transactions.theAccount': 'the account',
   'transactions.deleteAdjustmentDescription':
-    '{amount} on {account}, {date}. The balance goes back to what it was before. This can’t be undone.',
+    '{amount} on {account}, {date}. The balance goes back to what it was before. You can undo it right after.',
   'transactions.adjustmentDescription':
     'A correction to {account}’s balance. It isn’t counted as income or spending.',
   'transactions.expenses': 'Expenses',
@@ -83,5 +83,10 @@ export const transactions = {
   'transactions.last3Months': 'Last 3 months',
   'transactions.lastYear': 'Last year',
   'transactions.summaryIncome': 'Income {amount}',
-  'transactions.summaryExpenses': 'Expenses {amount}'
+  'transactions.summaryExpenses': 'Expenses {amount}',
+  'transactions.deletedNamed': '“{title}” deleted',
+  'transactions.undo': 'Undo',
+  'transactions.restored': '“{title}” is back',
+  'transactions.notRestored': 'Not put back',
+  'transactions.deleteNamed': 'Delete “{title}”'
 } satisfies Record<string, Message>

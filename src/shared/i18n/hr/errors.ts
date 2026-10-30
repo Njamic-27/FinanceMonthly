@@ -112,5 +112,8 @@ export const errors: Translation<typeof en> = {
     '„{title}” ovaj mjesec već ima {amount} u transakcijama. Upiši barem toliko ili promijeni te transakcije.',
   'errors.installmentInFull':
     'Rata {seq} iznosi {amount} i plaća se u cijelosti. Upiši taj iznos da je označiš plaćenom ili 0 da poništiš uplatu.',
-  'errors.databaseFile': '{error}\n\nDatoteka baze: {path}'
+  'errors.databaseFile': '{error}\n\nDatoteka baze: {path}',
+  'errors.restoreGone': 'To se brisanje više ne može poništiti.',
+  'errors.restoreBlocked':
+    'Ne može se vratiti: njezin račun ili kategorija više ne postoji, ili je to plaćanje od tada ponovno zabilježeno.'
 }
