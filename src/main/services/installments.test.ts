@@ -101,11 +101,11 @@ describe('postDueInstallments', () => {
     expect(postDueInstallments(db, TODAY)).toBe(2)
     expect(postDueInstallments(db, TODAY)).toBe(0)
     expect(charged()).toEqual([
-      ['2026-08-31', 'Laptop (1/3)', 33333],
-      ['2026-09-30', 'Laptop (2/3)', 33333]
+      ['2026-08-31', 'Laptop 1/3', 33333],
+      ['2026-09-30', 'Laptop 2/3', 33333]
     ])
     expect(postDueInstallments(db, '2026-10-31')).toBe(1)
-    expect(charged().at(-1)).toEqual(['2026-10-31', 'Laptop (3/3)', 33334])
+    expect(charged().at(-1)).toEqual(['2026-10-31', 'Laptop 3/3', 33334])
     expect(listTransactions(db, { accountId: card }).items[0]).toMatchObject({
       type: 'expense',
       categoryId: categoryId('Shopping'),
@@ -157,10 +157,10 @@ describe('planned installments', () => {
     expect(
       plannedItems(db, TODAY, '2027-03-31', TODAY).map((p) => [p.source, p.date, p.title, p.amount])
     ).toEqual([
-      ['installment_plan', '2026-11-27', 'Laptop (2/5)', 40000],
-      ['installment_plan', '2026-12-27', 'Laptop (3/5)', 40000],
-      ['installment_plan', '2027-01-27', 'Laptop (4/5)', 40000],
-      ['installment_plan', '2027-02-27', 'Laptop (5/5)', 40000]
+      ['installment_plan', '2026-11-27', 'Laptop 2/5', 40000],
+      ['installment_plan', '2026-12-27', 'Laptop 3/5', 40000],
+      ['installment_plan', '2027-01-27', 'Laptop 4/5', 40000],
+      ['installment_plan', '2027-02-27', 'Laptop 5/5', 40000]
     ])
     // A recurring item with the same id doesn't lend its reminder to an installment.
     createRecurringItem(db, {
@@ -179,7 +179,7 @@ describe('planned installments', () => {
     expect(
       upcomingPayments(db, '2026-11-20').map((u) => [u.planned.title, u.reminderDaysBefore])
     ).toEqual([
-      ['Laptop (2/5)', null],
+      ['Laptop 2/5', null],
       ['Netflix', 2]
     ])
   })

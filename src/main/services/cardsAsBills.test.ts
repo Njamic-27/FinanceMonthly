@@ -106,7 +106,7 @@ describe('card purchases', () => {
     expect(section(november, 'everyday')).toContainEqual(
       expect.objectContaining({
         kind: 'installment_plan',
-        title: 'PlayStation',
+        title: 'PlayStation 1/6',
         actual: 10000,
         byCard: [{ accountId: card, amount: 10000 }]
       })
@@ -120,6 +120,9 @@ describe('card purchases', () => {
       recorded: 10000 + 1399,
       count: 2
     })
+    expect(section(sheet('2026-12'), 'everyday')).toContainEqual(
+      expect.objectContaining({ title: 'PlayStation 2/6', planned: 10000 })
+    )
     // December: the second installment and November's Netflix, still planned.
     expect(cardLine(sheet('2026-12'))).toMatchObject({ planned: 10000 + 1399 })
   })
@@ -238,7 +241,7 @@ describe('money out', () => {
     )
     expect(bill.transactions.map((t) => [t.date, t.title]).sort()).toEqual([
       ['2026-10-05', 'Netflix'],
-      ['2026-10-10', 'PlayStation (1/6)']
+      ['2026-10-10', 'PlayStation 1/6']
     ])
     // The loan's installment, still to pay.
     expect(

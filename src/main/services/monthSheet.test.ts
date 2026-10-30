@@ -276,7 +276,7 @@ describe('rows', () => {
     ])
     // The laptop is in Shopping, an everyday category, so its installments are everyday.
     expect(section('everyday').rows.map((r) => [r.kind, r.title])).toEqual([
-      ['installment_plan', 'Laptop']
+      ['installment_plan', 'Laptop 1/4']
     ])
     // The card's statement closes on the 25th and is paid by the 15th: the laptop's September
     // rate is on the bill due 15 October; its October rate and the shopping on 14 October are
@@ -289,7 +289,12 @@ describe('rows', () => {
       count: 1
     })
     // The installment due 15 October isn't paid: planned, overdue, and out of the balance.
-    expect(find('loan', loan)).toMatchObject({ actual: 0, planned: -100000, overdue: true })
+    expect(find('loan', loan)).toMatchObject({
+      title: 'Car loan 2/3',
+      actual: 0,
+      planned: -100000,
+      overdue: true
+    })
 
     const expenses = october.sections
       .filter((s) => ['subscriptions', 'bills', 'everyday'].includes(s.key))

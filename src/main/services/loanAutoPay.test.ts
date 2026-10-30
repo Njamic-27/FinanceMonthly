@@ -95,7 +95,7 @@ describe('reminders for loans paid by hand', () => {
     expect(dueReminders(db, '2026-10-26')).toEqual([])
     const due = dueReminders(db, TODAY)
     expect(due.map((r) => [r.planned.title, r.planned.date, r.reminderDaysBefore])).toEqual([
-      ['Car loan (1/3)', '2026-10-30', 3]
+      ['Car loan 1/3', '2026-10-30', 3]
     ])
     markNotified(
       db,
@@ -123,7 +123,7 @@ describe('reminders for loans paid by hand', () => {
       TODAY
     )
     expect(message).toEqual({
-      title: 'Car loan (1/3) is due on Friday 30 Oct',
+      title: 'Car loan 1/3 is due on Friday 30 Oct',
       body: '€1,000.00 · Visa Debit',
       path: `/?month=2026-10&row=loan%3A${id}`
     })

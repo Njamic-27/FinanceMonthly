@@ -117,10 +117,10 @@ describe('seedDemoData', () => {
       'SELECT * FROM transactions WHERE installment_plan_id IS NOT NULL ORDER BY date'
     )
     expect(rates.map((r) => [r.date, r.title, r.amount])).toEqual([
-      ['2026-07-08', 'Laptop (1/5)', 20999],
-      ['2026-08-08', 'Laptop (2/5)', 20999],
-      ['2026-09-08', 'Laptop (3/5)', 20999],
-      ['2026-10-08', 'Laptop (4/5)', 20999]
+      ['2026-07-08', 'Laptop 1/5', 20999],
+      ['2026-08-08', 'Laptop 2/5', 20999],
+      ['2026-09-08', 'Laptop 3/5', 20999],
+      ['2026-10-08', 'Laptop 4/5', 20999]
     ])
     expect(
       db.prepare('SELECT total_amount, installments_count FROM installment_plans').get()
@@ -178,7 +178,7 @@ describe('seedDemoData', () => {
       '2026-09-20',
       '2026-10-20'
     ])
-    expect(paid[0]).toMatchObject({ title: 'Car loan (1/48)', type: 'loan_out' })
+    expect(paid[0]).toMatchObject({ title: 'Car loan 1/48', type: 'loan_out' })
     expect(db.prepare('SELECT count(*) AS n FROM loan_installments').get()).toEqual({ n: 48 })
   })
 })

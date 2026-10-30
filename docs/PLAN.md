@@ -250,6 +250,7 @@ A credit card isn't a source of money: it's a bill paid from a debit account the
 - `categories.builtin_key` — marks the seeded categories, so a language switch can rename those the user hasn't renamed.
 - `settings.language` — `en` (default) or `hr`; number and date format stay a separate setting.
 - On Month and in the Calendar's month summary, **money out** = spending (card items counted on their bill) + loan payments + savings deposits − withdrawals; the net is income − money out. The card bill transfer is never counted. Overview and History keep showing spending only.
+- Migration 008 (step 52): installment numbers lose their brackets — transactions posted by an installment plan or a bank loan installment titled "Laptop (2/5)" become "Laptop 2/5"; Month's plan and loan rows show the installment(s) counted that month ("PlayStation 1/6").
 
 **Computed, not stored:** account balances, period aggregates, upcoming bills list, projections.
 

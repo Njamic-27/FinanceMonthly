@@ -54,7 +54,7 @@ describe('installmentSchedule', () => {
 
 describe('installmentTitle', () => {
   it('numbers each installment', () => {
-    expect(installmentTitle('Laptop', 2, 5)).toBe('Laptop (2/5)')
+    expect(installmentTitle('Laptop', 2, 5)).toBe('Laptop 2/5')
   })
 })
 

@@ -228,7 +228,7 @@ describe('adding from a group (step 51)', () => {
       })
     ])
     expect(section('everyday', '2026-11')).toEqual([
-      expect.objectContaining({ kind: 'installment_plan', title: 'PlayStation', actual: 10000 })
+      expect.objectContaining({ kind: 'installment_plan', title: 'PlayStation 1/6', actual: 10000 })
     ])
     expect(section('everyday', '2026-12')[0]).toMatchObject({ planned: 10000 })
 

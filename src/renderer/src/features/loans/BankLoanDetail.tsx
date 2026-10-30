@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Landmark, Pencil } from 'lucide-react'
 import { formatDate, today } from '@shared/dates'
+import { installmentTitle } from '@shared/installments'
 import { LOAN_REMINDER_DAYS, type Loan, type LoanInstallment } from '@shared/loans'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
@@ -211,7 +212,11 @@ function Schedule({
                             onClick={() =>
                               onPay({
                                 installmentId: row.id,
-                                title: `${loan.title} (${row.seq}/${loan.installmentsCount ?? row.seq})`,
+                                title: installmentTitle(
+                                  loan.title,
+                                  row.seq,
+                                  loan.installmentsCount ?? row.seq
+                                ),
                                 amount: row.amount,
                                 dueDate: row.dueDate,
                                 accountId: loan.accountId

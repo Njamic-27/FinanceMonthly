@@ -124,7 +124,7 @@ describe('installments', () => {
     })
     expect(listLoanTransactions(db, id)[0]).toMatchObject({
       type: 'loan_out',
-      title: 'Car loan (1/12)',
+      title: 'Car loan 1/12',
       amount: 86066,
       loanInstallmentId: first.id,
       plannedDate: '2026-11-15'
@@ -191,8 +191,8 @@ describe('in the calendar and the expected balance', () => {
         p.loanId
       ])
     ).toEqual([
-      ['loan_installment', '2026-12-15', 'Car loan (2/12)', 'loan', id],
-      ['loan_installment', '2027-01-15', 'Car loan (3/12)', 'loan', id]
+      ['loan_installment', '2026-12-15', 'Car loan 2/12', 'loan', id],
+      ['loan_installment', '2027-01-15', 'Car loan 3/12', 'loan', id]
     ])
     // 1,000 + 10,000 received − 860.66 paid − 860.66 due 15 December
     expect(projectedBalance(db, '2026-12-31', TODAY)).toBe(100000 + 1000000 - 2 * 86066)

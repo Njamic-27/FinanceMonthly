@@ -1,3 +1,4 @@
+import { installmentTitle } from '@shared/installments'
 import type { Loan } from '@shared/loans'
 import type { PayInstallmentTarget } from './PayInstallmentDialog'
 
@@ -7,7 +8,7 @@ export function nextInstallment(loan: Loan): PayInstallmentTarget | null {
   if (!next || loan.status !== 'active') return null
   return {
     installmentId: next.id,
-    title: `${loan.title} (${next.seq}/${loan.installmentsCount ?? next.seq})`,
+    title: installmentTitle(loan.title, next.seq, loan.installmentsCount ?? next.seq),
     amount: next.amount,
     dueDate: next.dueDate,
     accountId: loan.accountId

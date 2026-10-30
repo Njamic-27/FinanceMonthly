@@ -27,6 +27,8 @@ import {
   type MoneyOutPlanned,
   type MoneyOutQuery
 } from '@shared/month'
+import { countedDate } from '@shared/cards'
+import { installmentSchedule, installmentsTitle } from '@shared/installments'
 import type { PlannedItem } from '@shared/planned'
 import type { Account } from '@shared/accounts'
 import type { Category, ExpenseGroup } from '@shared/categories'
@@ -287,6 +289,8 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
     })
   }
 
+  const inRange = (date: IsoDate): boolean => date >= range.start && date <= range.end
+
   // Credit cards: each card's bill this month, for information (its purchases are in their
   // groups), and its purchases in installments, with their category's group.
   const plans = listInstallmentPlans(db).reverse()
@@ -314,11 +318,15 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
       const posted = txs.filter((t) => t.installmentPlanId === plan.id)
       const due = planned.filter((p) => p.source === 'installment_plan' && p.sourceId === plan.id)
       if (posted.length === 0 && due.length === 0) continue
+      // The installments on this month's bill: "PlayStation 1/6".
+      const seqs = installmentSchedule(plan.totalAmount, plan.count, plan.firstDate)
+        .filter((i) => inRange(countedDate(i.date, card)))
+        .map((i) => i.seq)
       sections[groupOf(plan.categoryId)].push({
         ...base,
         kind: 'installment_plan',
         sourceId: plan.id,
-        title: plan.title,
+        title: installmentsTitle(plan.title, seqs, plan.count),
         accountId: card.id,
         categoryId: plan.categoryId,
         ...recorded(posted),
@@ -333,17 +341,18 @@ export function monthSheet(db: Database, input: MonthSheetQuery, today: IsoDate)
     const posted = txs.filter((t) => t.loanId === loan.id)
     const due = planned.filter((p) => p.source === 'loan_installment' && p.loanId === loan.id)
     if (posted.length === 0 && due.length === 0) continue
-    const installments =
+    const seqs =
       loan.kind === 'bank_loan'
-        ? listLoanInstallments(db, loan.id).filter(
-            (i) => i.dueDate >= range.start && i.dueDate <= range.end
-          ).length
-        : 0
+        ? listLoanInstallments(db, loan.id)
+            .filter((i) => inRange(i.dueDate))
+            .map((i) => i.seq)
+        : []
+    const installments = seqs.length
     sections.loans.push({
       ...base,
       kind: 'loan',
       sourceId: loan.id,
-      title: loan.title,
+      title: installmentsTitle(loan.title, seqs, loan.installmentsCount ?? Math.max(0, ...seqs)),
       accountId: pick(loan.accountId),
       ...recorded(posted, signedLoanAmount),
       ...expected(due, -1),

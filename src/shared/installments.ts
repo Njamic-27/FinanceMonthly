@@ -40,9 +40,25 @@ export function installmentSchedule(
   }))
 }
 
-/** The title each installment's transaction gets: "Laptop (2/5)". */
+/**
+ * An installment's number everywhere it shows (PLAN.md step 52): "Laptop 2/5" — its
+ * transaction's title, a planned one, a sheet row, a reminder.
+ */
 export const installmentTitle = (title: string, seq: number, count: number): string =>
-  `${title} (${seq}/${count})`
+  `${title} ${seq}/${count}`
+
+/**
+ * A sheet row's title for the installments counted in a month: "PlayStation 1/6", or
+ * "PlayStation 1–2/6" when a month holds more than one; just the title when it holds none.
+ */
+export function installmentsTitle(title: string, seqs: number[], count: number): string {
+  if (seqs.length === 0) return title
+  const first = Math.min(...seqs)
+  const last = Math.max(...seqs)
+  return first === last
+    ? installmentTitle(title, first, count)
+    : `${title} ${first}–${last}/${count}`
+}
 
 /** A credit card purchase paid in monthly installments (PLAN.md §2, installment_plans). */
 export interface InstallmentPlan {
