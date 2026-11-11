@@ -49,6 +49,11 @@ function createWindow(): BrowserWindow {
   return mainWindow
 }
 
+// The app used to be called Financije. Keep its data folder (%APPDATA%\Financije) so the
+// rename to FinanceMonthly doesn't leave the existing database behind. Must run before anything
+// reads userData, including the single-instance lock below.
+app.setPath('userData', join(app.getPath('appData'), 'Financije'))
+
 // Only one copy of the app may run, so the database is never opened twice.
 // Launching it again brings the existing window to the front instead.
 const isPrimaryInstance = app.requestSingleInstanceLock()

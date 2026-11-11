@@ -30,7 +30,7 @@ export const onboarding: Translation<typeof en> = {
   'onboarding.yourSalaryIsIn': 'Plaća je dodana. Troškove dodaješ s Ctrl+N.',
   'onboarding.addWhatYouSpend': 'Troškove dodaješ s Ctrl+N.',
   'onboarding.setupNotFinished': 'Postavljanje nije završeno',
-  'onboarding.financije': 'Financije',
+  'onboarding.financije': 'FinanceMonthly',
   'onboarding.setUpInFour': 'Postavi u četiri kratka koraka.',
   'onboarding.setupSteps': 'Koraci postavljanja',
   'onboarding.skipSetup': 'Preskoči postavljanje',

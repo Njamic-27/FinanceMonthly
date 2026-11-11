@@ -38,7 +38,7 @@ export const common = {
   'accountType.cash': 'Cash',
   'common.eg': 'e.g. {example}',
   'common.titleOptional': 'Title',
-  'common.restart': '{error} Restart Financije to try again.',
+  'common.restart': '{error} Restart FinanceMonthly to try again.',
   'common.mayBeDeleted': 'It may have been deleted.',
   'common.showMoreLeft': 'Show more ({count} left)',
   'common.ofAmount': 'of {amount}'

@@ -29,7 +29,7 @@ export const onboarding = {
   'onboarding.yourSalaryIsIn': 'Your salary is in. Add what you spend with Ctrl+N.',
   'onboarding.addWhatYouSpend': 'Add what you spend with Ctrl+N.',
   'onboarding.setupNotFinished': 'Setup not finished',
-  'onboarding.financije': 'Financije',
+  'onboarding.financije': 'FinanceMonthly',
   'onboarding.setUpInFour': 'Set up in four short steps.',
   'onboarding.setupSteps': 'Setup steps',
   'onboarding.skipSetup': 'Skip setup',

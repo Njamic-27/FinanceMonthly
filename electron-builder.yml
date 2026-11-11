@@ -1,5 +1,6 @@
+# Kept from before the rename, so the installer updates the existing install in place.
 appId: com.financije.app
-productName: Financije
+productName: FinanceMonthly
 directories:
   buildResources: build
   output: release/${version}
@@ -14,7 +15,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: Financije
+  executableName: FinanceMonthly
   target: nsis
 nsis:
   artifactName: ${name}-${version}-setup.${ext}

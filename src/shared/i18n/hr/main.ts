@@ -2,10 +2,10 @@ import type { main as en } from '../en/main'
 import type { Translation } from '../types'
 
 export const main: Translation<typeof en> = {
-  'tray.open': 'Otvori Financije',
+  'tray.open': 'Otvori FinanceMonthly',
   'tray.dueNow': 'Dospjelo i uskoro',
-  'tray.quit': 'Zatvori Financije',
-  'tray.stillRunning': 'Financije i dalje radi',
+  'tray.quit': 'Zatvori FinanceMonthly',
+  'tray.stillRunning': 'FinanceMonthly i dalje radi',
   'tray.stillRunningHint':
     'Ostaje u traci da te podsjeća na plaćanja. Za izlaz desnim klikom na ikonu.',
   'reminder.today': 'danas',

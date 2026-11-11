@@ -28,7 +28,7 @@ export const loans: Translation<typeof en> = {
     'Uklanjaju se i otplatni plan i sva zabilježena plaćanja, a novac koji su pomaknula vraća se.',
   'loans.editBankLoan': 'Uredi kredit',
   'loans.aLoanPaidBack':
-    'Kredit koji se otplaćuje u jednakim mjesečnim ratama. Financije izračunava otplatni plan.',
+    'Kredit koji se otplaćuje u jednakim mjesečnim ratama. FinanceMonthly izračunava otplatni plan.',
   'loans.bank': 'Banka',
   'loans.installmentsArePaidAlready':
     'Rate su već plaćene, pa iznos, kamata i datumi ostaju kakvi jesu.',
@@ -91,7 +91,7 @@ export const loans: Translation<typeof en> = {
   'loans.expectedBackBy': 'Očekuje se povrat do {date}',
   'loans.paidFromOnDue': 'Plaća se automatski s računa {account} na svaki dan dospijeća.',
   'loans.paidOnDue': 'Plaća se automatski na svaki dan dospijeća.',
-  'loans.youMark': 'Svaku ratu sam označavaš plaćenom; Financije te podsjeća {days} dana prije.',
+  'loans.youMark': 'Svaku ratu sam označavaš plaćenom; FinanceMonthly te podsjeća {days} dana prije.',
   'loans.perYear': '{percent} % godišnje',
   'loans.paidOfTotal': '{paid} od {total}',
   'loans.pastDue': {

@@ -23,7 +23,7 @@ export const recurring: Translation<typeof en> = {
   'recurring.ends': 'Završava',
   'recurring.whenItsDue': 'Kad dospije',
   'recurring.addedToYourTransactions':
-    'Dodaje se u tvoje transakcije na taj dan, čak i ako je Financije bio zatvoren.',
+    'Dodaje se u tvoje transakcije na taj dan, čak i ako je FinanceMonthly bio zatvoren.',
   'recurring.waitsUnderDueNow':
     'Čeka pod „Čeka na tebe” dok ga ne potvrdiš, s iznosom koji si stvarno platio.',
   'recurring.remindMe': 'Podsjeti me',

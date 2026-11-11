@@ -1,10 +1,10 @@
 import type { Message } from '../types'
 
 export const main = {
-  'tray.open': 'Open Financije',
+  'tray.open': 'Open FinanceMonthly',
   'tray.dueNow': 'Due now and coming up',
-  'tray.quit': 'Quit Financije',
-  'tray.stillRunning': 'Financije is still running',
+  'tray.quit': 'Quit FinanceMonthly',
+  'tray.stillRunning': 'FinanceMonthly is still running',
   'tray.stillRunningHint':
     'It stays in the tray to remind you of payments. Right-click the icon to quit.',
   'reminder.today': 'today',

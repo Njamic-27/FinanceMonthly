@@ -89,7 +89,7 @@ export const accounts: Translation<typeof en> = {
   'accounts.forStatement': 'Za izvod zatvoren {date}',
   'accounts.closesEachMonth': 'Zatvara se {day} dan svakog mjeseca',
   'accounts.remindersOn':
-    'Financije te podsjeća kad se izvod zatvori i {days} dana prije dospijeća plaćanja.',
+    'FinanceMonthly te podsjeća kad se izvod zatvori i {days} dana prije dospijeća plaćanja.',
   'accounts.addDaysHint':
     'Dodaj dane zatvaranja izvoda i dospijeća plaćanja da vidiš što i kada platiti, uz podsjetnike.',
   'accounts.usageOwed': '{owed} duga, od {limit}',

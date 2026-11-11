@@ -45,7 +45,7 @@ export const errors: Translation<typeof en> = {
   'errors.cardGone': 'Ta kartica više ne postoji.',
   'errors.repaymentsOnPage': 'Povrate ovog zajma bilježi na njegovoj stranici.',
   'errors.onlyCategoryRow': 'Odjednom se mogu ukloniti samo iznosi retka kategorije.',
-  'errors.couldNotOpen': 'Financije nije mogao otvoriti svoje podatke',
+  'errors.couldNotOpen': 'FinanceMonthly nije mogao otvoriti svoje podatke',
   'errors.archived': '„{name}” je arhiviran. Vrati ga da ga opet koristiš.',
   'errors.loanStarted': 'Zajam je počeo {date}. Odaberi taj dan ili kasniji.',
   'errors.cardStartsLater':

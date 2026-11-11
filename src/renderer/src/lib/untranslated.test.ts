@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 const ROOT = join(__dirname, '..')
 
 /** Words that stay as they are in every language. */
-const ALLOWED = new Set(['Financije'])
+const ALLOWED = new Set(['FinanceMonthly'])
 
 /** Props and fields whose value is shown to people. */
 const USER_FACING = new Set([

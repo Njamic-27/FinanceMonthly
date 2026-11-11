@@ -22,7 +22,7 @@ export const recurring = {
   'recurring.ends': 'Ends',
   'recurring.whenItsDue': 'When it’s due',
   'recurring.addedToYourTransactions':
-    'Added to your transactions on the day, even if Financije was closed.',
+    'Added to your transactions on the day, even if FinanceMonthly was closed.',
   'recurring.waitsUnderDueNow':
     'Waits under Due now until you confirm it, with the amount you actually paid.',
   'recurring.remindMe': 'Remind me',

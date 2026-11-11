@@ -20,7 +20,7 @@ export const settings = {
   'settings.systemFollowsTheWindows': 'System follows the Windows light or dark mode.',
   'settings.remindersAndStartup': 'Reminders and startup',
   'settings.remindersArriveWhileFinancije':
-    'Reminders arrive while Financije is open or running in the tray.',
+    'Reminders arrive while FinanceMonthly is open or running in the tray.',
   'settings.paymentReminders': 'Payment reminders',
   'settings.aWindowsNotificationBefore':
     'A Windows notification before bills and subscriptions are due. Set how many days before on each one under Recurring.',
@@ -28,7 +28,7 @@ export const settings = {
   'settings.remindersTurnedOff': 'Reminders turned off',
   'settings.keepRunningInThe': 'Keep running in the tray',
   'settings.closingTheWindowLeaves':
-    'Closing the window leaves Financije in the tray, so reminders still arrive. Quit from the tray icon’s menu.',
+    'Closing the window leaves FinanceMonthly in the tray, so reminders still arrive. Quit from the tray icon’s menu.',
   'settings.startWithWindows': 'Start with Windows',
   'settings.startsInTheTray':
     'Starts in the tray when you sign in, so reminders arrive without opening it.',
@@ -42,5 +42,5 @@ export const settings = {
   'settings.currencyChanged': 'Currency changed to {currency}',
   'settings.weeksRun': 'Weeks run {from} to {to} in weekly views and the calendar.',
   'settings.weeksStart': 'Weeks now start on {day}',
-  'settings.restartToRetry': '{error} Restart Financije to try again.'
+  'settings.restartToRetry': '{error} Restart FinanceMonthly to try again.'
 } satisfies Record<string, Message>

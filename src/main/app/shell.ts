@@ -3,7 +3,7 @@ import type { IpcEvent, IpcEvents } from '@shared/ipc'
 import type { Settings } from '@shared/settings'
 import { t } from '@shared/i18n'
 
-// The window, the tray icon and start-with-Windows: how Financije sits in Windows. With
+// The window, the tray icon and start-with-Windows: how FinanceMonthly sits in Windows. With
 // "close to tray" on, closing the window only hides it, so reminders keep arriving.
 
 let mainWindow: BrowserWindow | null = null
@@ -80,7 +80,7 @@ const trayMenu = (): Menu =>
 function createTray(): Tray {
   // The app icon is large; the tray shows it at 16 px (32 on high-DPI screens).
   const created = new Tray(nativeImage.createFromPath(trayIcon).resize({ width: 32, height: 32 }))
-  created.setToolTip('Financije')
+  created.setToolTip('FinanceMonthly')
   created.setContextMenu(trayMenu())
   created.on('click', () => showMainWindow())
   return created

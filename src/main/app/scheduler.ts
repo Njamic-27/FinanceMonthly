@@ -15,7 +15,7 @@ let icon = ''
 
 /**
  * The work that depends on the date: posting payments that have fallen due and announcing
- * reminders. Runs on launch, every hour while Financije runs (in the tray too) and when the
+ * reminders. Runs on launch, every hour while FinanceMonthly runs (in the tray too) and when the
  * computer wakes up, so a new day is noticed without a restart.
  */
 export function runScheduledWork(): void {

@@ -141,7 +141,7 @@ export function Sidebar({ onAddTransaction }: { onAddTransaction: () => void }):
       <div className={cn('flex h-15 items-center gap-2.5', collapsed ? 'justify-center' : 'px-1')}>
         <BrandMark />
         {!collapsed && (
-          <span className="font-display text-xl font-bold tracking-tight">Financije</span>
+          <span className="font-display text-xl font-bold tracking-tight">FinanceMonthly</span>
         )}
       </div>
 

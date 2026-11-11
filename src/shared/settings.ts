@@ -17,7 +17,7 @@ export const settingsSchema = z.object({
   onboardingDone: z.boolean(),
   /** Windows notifications for payment reminders. */
   notificationsEnabled: z.boolean(),
-  /** Closing the window keeps Financije running in the tray, so reminders still arrive. */
+  /** Closing the window keeps FinanceMonthly running in the tray, so reminders still arrive. */
   closeToTray: z.boolean(),
   /** Start (in the tray) when you sign in to Windows. Only the installed app can do this. */
   startWithWindows: z.boolean(),

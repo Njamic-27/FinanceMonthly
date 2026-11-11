@@ -18,7 +18,7 @@ export const loans = {
   'loans.recordTheMoneyMoving': 'Record the money moving',
   'loans.takesItOutOf': 'Takes it out of one of your accounts on that day.',
   'loans.addsItToOne': 'Adds it to one of your accounts on that day.',
-  'loans.leaveItOffFor': 'Leave it off for a loan from before you used Financije.',
+  'loans.leaveItOffFor': 'Leave it off for a loan from before you used FinanceMonthly.',
   'loans.removeTheLoanAnd': 'Remove the loan and everything recorded for it.',
   'loans.saveLoan': 'Save loan',
   'loans.addLoan': 'Add loan',
@@ -27,7 +27,7 @@ export const loans = {
     'Its schedule and every payment recorded for it are removed too, and the money they moved goes back.',
   'loans.editBankLoan': 'Edit bank loan',
   'loans.aLoanPaidBack':
-    'A loan paid back in equal monthly installments. Financije works out the schedule.',
+    'A loan paid back in equal monthly installments. FinanceMonthly works out the schedule.',
   'loans.bank': 'Bank',
   'loans.installmentsArePaidAlready':
     'Installments are paid already, so the amount, rate and dates stay as they are.',
@@ -135,7 +135,7 @@ export const loans = {
   'loans.expectedBackBy': 'Expected back by {date}',
   'loans.paidFromOnDue': 'Paid automatically from {account} on each due date.',
   'loans.paidOnDue': 'Paid automatically on each due date.',
-  'loans.youMark': 'You mark each installment paid; Financije reminds you {days} days before.',
+  'loans.youMark': 'You mark each installment paid; FinanceMonthly reminds you {days} days before.',
   'loans.perYear': '{percent}% a year',
   'loans.paidOfTotal': '{paid} of {total}',
   'loans.pastDue': {

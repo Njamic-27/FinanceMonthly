@@ -89,7 +89,7 @@ export const accounts = {
   'accounts.forStatement': 'For the statement closing {date}',
   'accounts.closesEachMonth': 'Closes on the {day} of each month',
   'accounts.remindersOn':
-    'Financije reminds you when a statement closes and {days} days before the payment is due.',
+    'FinanceMonthly reminds you when a statement closes and {days} days before the payment is due.',
   'accounts.addDaysHint':
     'Add the days the statement closes and the payment is due to see what to pay and when, with reminders.',
   'accounts.usageOwed': '{owed} owed, of {limit}',

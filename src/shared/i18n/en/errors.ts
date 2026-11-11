@@ -43,7 +43,7 @@ export const errors = {
   'errors.cardGone': 'That card no longer exists.',
   'errors.repaymentsOnPage': 'Record repayments of this loan on its page.',
   'errors.onlyCategoryRow': 'Only a category row’s amounts can be removed at once.',
-  'errors.couldNotOpen': 'Financije could not open its data',
+  'errors.couldNotOpen': 'FinanceMonthly could not open its data',
   'errors.archived': '“{name}” is archived. Restore it to use it again.',
   'errors.loanStarted': 'The loan started on {date}. Choose that day or later.',
   'errors.cardStartsLater':

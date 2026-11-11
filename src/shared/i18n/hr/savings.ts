@@ -28,7 +28,7 @@ export const savings: Translation<typeof en> = {
   'savings.alreadySaved': 'Već ušteđeno',
   'savings.eachMonth': 'Svaki mjesec',
   'savings.amountsHint':
-    '„Već ušteđeno” je novac odvojen prije nego što si počeo koristiti Financije. „Svaki mjesec” je ono što planiraš uplaćivati, za datum kad ćeš dosegnuti cilj.',
+    '„Već ušteđeno” je novac odvojen prije nego što si počeo koristiti FinanceMonthly. „Svaki mjesec” je ono što planiraš uplaćivati, za datum kad ćeš dosegnuti cilj.',
   'savings.putInto': 'Uplaćeno: {goal}',
   'savings.takenOut': 'Podignuto: {goal}',
   'savings.deleteDeposit': 'Obrisati ovu uplatu?',

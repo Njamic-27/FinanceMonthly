@@ -27,7 +27,7 @@ export const savings = {
   'savings.alreadySaved': 'Already saved',
   'savings.eachMonth': 'Each month',
   'savings.amountsHint':
-    '“Already saved” is money set aside before you started using Financije. “Each month” is what you plan to put in, for the date you’ll reach the goal.',
+    '“Already saved” is money set aside before you started using FinanceMonthly. “Each month” is what you plan to put in, for the date you’ll reach the goal.',
   'savings.putInto': 'Put into {goal}',
   'savings.takenOut': 'Taken out of {goal}',
   'savings.deleteDeposit': 'Delete this deposit?',

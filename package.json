@@ -1,5 +1,5 @@
 {
-  "name": "financije",
+  "name": "finance-monthly",
   "version": "1.0.0",
   "description": "Personal finance desktop app for Windows",
   "main": "./out/main/index.js",
@@ -68,6 +68,6 @@
     "vitest": "^5.0.5",
     "zod": "^4.6.7"
   },
-  "productName": "Financije",
+  "productName": "FinanceMonthly",
   "private": true
 }

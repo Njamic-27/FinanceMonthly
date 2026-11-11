@@ -22,7 +22,7 @@ export const settings: Translation<typeof en> = {
   'settings.systemFollowsTheWindows': 'Sustav prati svijetli ili tamni način Windowsa.',
   'settings.remindersAndStartup': 'Podsjetnici i pokretanje',
   'settings.remindersArriveWhileFinancije':
-    'Podsjetnici stižu dok je Financije otvoren ili radi u traci.',
+    'Podsjetnici stižu dok je FinanceMonthly otvoren ili radi u traci.',
   'settings.paymentReminders': 'Podsjetnici za plaćanja',
   'settings.aWindowsNotificationBefore':
     'Obavijest u Windowsima prije dospijeća režija i pretplata. Koliko dana prije postavljaš za svaku pod Ponavljajuće.',
@@ -30,7 +30,7 @@ export const settings: Translation<typeof en> = {
   'settings.remindersTurnedOff': 'Podsjetnici isključeni',
   'settings.keepRunningInThe': 'Nastavi raditi u traci',
   'settings.closingTheWindowLeaves':
-    'Zatvaranje prozora ostavlja Financije u traci, pa podsjetnici i dalje stižu. Izlaz je u izborniku ikone u traci.',
+    'Zatvaranje prozora ostavlja FinanceMonthly u traci, pa podsjetnici i dalje stižu. Izlaz je u izborniku ikone u traci.',
   'settings.startWithWindows': 'Pokreni s Windowsima',
   'settings.startsInTheTray':
     'Pokreće se u traci kad se prijaviš, pa podsjetnici stižu bez otvaranja.',
@@ -44,5 +44,5 @@ export const settings: Translation<typeof en> = {
   'settings.currencyChanged': 'Valuta promijenjena u {currency}',
   'settings.weeksRun': 'Tjedni traju od {from} do {to} u tjednim prikazima i kalendaru.',
   'settings.weeksStart': 'Tjedni sad počinju: {day}',
-  'settings.restartToRetry': '{error} Ponovno pokreni Financije i pokušaj opet.'
+  'settings.restartToRetry': '{error} Ponovno pokreni FinanceMonthly i pokušaj opet.'
 }
